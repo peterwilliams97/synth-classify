@@ -1,0 +1,27 @@
+model     models/distinct/modernbert-synthetic
+test rows 399 (mteb/banking77, 10 classes)
+accuracy  0.9925
+macro F1  0.9925
+recall
+  card_arrival            0.9750
+  lost_or_stolen_card     1.0000
+  exchange_rate           1.0000
+  change_pin              1.0000
+  terminate_account       1.0000
+  age_limit               0.9750
+  atm_support             1.0000
+  apple_pay_or_google_pay 1.0000
+  request_refund          0.9750
+  edit_personal_details   1.0000
+confusion (row: true class, column: predicted class, numbered as the rows are)
+                               0   1   2   3   4   5   6   7   8   9
+   0 card_arrival             39   1   0   0   0   0   0   0   0   0
+   1 lost_or_stolen_card       0  40   0   0   0   0   0   0   0   0
+   2 exchange_rate             0   0  40   0   0   0   0   0   0   0
+   3 change_pin                0   0   0  40   0   0   0   0   0   0
+   4 terminate_account         0   0   0   0  40   0   0   0   0   0
+   5 age_limit                 0   0   0   0   0  39   0   1   0   0
+   6 atm_support               0   0   0   0   0   0  39   0   0   0
+   7 apple_pay_or_google_pay   0   0   0   0   0   0   0  40   0   0
+   8 request_refund            0   0   0   0   1   0   0   0  39   0
+   9 edit_personal_details     0   0   0   0   0   0   0   0   0  40

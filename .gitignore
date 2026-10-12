@@ -1,7 +1,7 @@
 .venv/
 __pycache__/
 
-# Downloads, exports and model outputs; the generated training set is the one tracked artifact.
-data/*
-!data/synthetic.jsonl
+# Downloads, exports and model outputs; the generated training sets are the tracked artifacts.
+data/*/*
+!data/*/synthetic.jsonl
 models/

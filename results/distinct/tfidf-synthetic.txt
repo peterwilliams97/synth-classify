@@ -1,0 +1,27 @@
+model     models/distinct/tfidf-synthetic
+test rows 399 (mteb/banking77, 10 classes)
+accuracy  0.9373
+macro F1  0.9375
+recall
+  card_arrival            0.8250
+  lost_or_stolen_card     0.9750
+  exchange_rate           0.9750
+  change_pin              0.9750
+  terminate_account       1.0000
+  age_limit               0.8500
+  atm_support             0.9744
+  apple_pay_or_google_pay 0.9500
+  request_refund          0.8750
+  edit_personal_details   0.9750
+confusion (row: true class, column: predicted class, numbered as the rows are)
+                               0   1   2   3   4   5   6   7   8   9
+   0 card_arrival             33   7   0   0   0   0   0   0   0   0
+   1 lost_or_stolen_card       1  39   0   0   0   0   0   0   0   0
+   2 exchange_rate             0   0  39   0   0   0   1   0   0   0
+   3 change_pin                0   0   0  39   0   0   0   0   0   1
+   4 terminate_account         0   0   0   0  40   0   0   0   0   0
+   5 age_limit                 0   0   0   0   5  34   0   0   1   0
+   6 atm_support               0   0   0   0   0   0  38   0   1   0
+   7 apple_pay_or_google_pay   0   0   0   0   0   0   0  38   1   1
+   8 request_refund            2   2   0   0   1   0   0   0  35   0
+   9 edit_personal_details     0   0   0   0   0   0   1   0   0  39

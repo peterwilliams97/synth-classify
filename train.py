@@ -1,7 +1,8 @@
-"""train.py fits a classifier over `CLASSES` on a jsonl file of {text, label} rows and saves it to
-`--out`. The default is a fine-tune of answerdotai/ModernBERT-base; `--tfidf` fits the TF-IDF +
-logistic regression baseline instead. Neither looks at a test set: epochs and learning rate are
-fixed, so score.py's numbers are not tuned on what they measure."""
+"""train.py fits a classifier over the `CLASS_SETS` entry named by `--set` on a jsonl file of
+{text, label} rows and saves it to `--out`. The default is a fine-tune of
+answerdotai/ModernBERT-base; `--tfidf` fits the TF-IDF + logistic regression baseline instead.
+Neither looks at a test set: epochs and learning rate are fixed, so score.py's numbers are not tuned
+on what they measure."""
 
 import argparse
 import json
@@ -9,18 +10,20 @@ import os
 import random
 import sys
 
-from classes import CLASSES
+from classes import CLASS_SETS
 
 BASE = "answerdotai/ModernBERT-base"
-LABELS = list(CLASSES)
 
 
-def read_jsonl(path):
+def read_jsonl(path, names):
     with open(path) as f:
         rows = [json.loads(line) for line in f if line.strip()]
     if not rows:
         sys.exit(f"{path}: no rows")
-    return [r["text"] for r in rows], [LABELS.index(r["label"]) for r in rows]
+    unknown = sorted({r["label"] for r in rows} - set(names))
+    if unknown:
+        sys.exit(f"{path}: labels not in the class set: {unknown}")
+    return [r["text"] for r in rows], [names.index(r["label"]) for r in rows]
 
 
 def train_tfidf(texts, labels, out):
@@ -37,7 +40,7 @@ def train_tfidf(texts, labels, out):
     joblib.dump(model, os.path.join(out, "tfidf.joblib"))
 
 
-def train_modernbert(texts, labels, out, epochs, lr, batch_size):
+def train_modernbert(texts, labels, names, out, epochs, lr, batch_size):
     import torch
     from transformers import AutoModelForSequenceClassification, AutoTokenizer
     from transformers import get_linear_schedule_with_warmup
@@ -49,9 +52,9 @@ def train_modernbert(texts, labels, out, epochs, lr, batch_size):
     tok = AutoTokenizer.from_pretrained(BASE)
     model = AutoModelForSequenceClassification.from_pretrained(
         BASE,
-        num_labels=len(LABELS),
-        id2label=dict(enumerate(LABELS)),
-        label2id={name: i for i, name in enumerate(LABELS)},
+        num_labels=len(names),
+        id2label=dict(enumerate(names)),
+        label2id={name: i for i, name in enumerate(names)},
     ).to(device)
 
     steps = epochs * -(-len(texts) // batch_size)
@@ -90,6 +93,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--train", required=True)
     ap.add_argument("--out", required=True)
+    ap.add_argument("--set", choices=list(CLASS_SETS), default="distinct")
     ap.add_argument("--tfidf", action="store_true")
     ap.add_argument("--epochs", type=int, default=5)
     ap.add_argument("--lr", type=float, default=5e-5)
@@ -97,7 +101,8 @@ def main():
     ap.add_argument("--seed", type=int, default=0)
     args = ap.parse_args()
 
-    texts, labels = read_jsonl(args.train)
+    names = list(CLASS_SETS[args.set])
+    texts, labels = read_jsonl(args.train, names)
     os.makedirs(args.out, exist_ok=True)
     random.seed(args.seed)
     if args.tfidf:
@@ -106,7 +111,7 @@ def main():
         import torch
 
         torch.manual_seed(args.seed)
-        train_modernbert(texts, labels, args.out, args.epochs, args.lr, args.batch_size)
+        train_modernbert(texts, labels, names, args.out, args.epochs, args.lr, args.batch_size)
     print(f"trained on {len(texts)} rows, saved to {args.out}", file=sys.stderr)
 
 

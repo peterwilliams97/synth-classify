@@ -1,0 +1,27 @@
+model     models/confusable/tfidf-synthetic
+test rows 400 (mteb/banking77, 10 classes)
+accuracy  0.7900
+macro F1  0.7849
+recall
+  card_arrival                            0.8500
+  card_delivery_estimate                  0.7500
+  declined_transfer                       0.7750
+  failed_transfer                         0.5250
+  card_payment_wrong_exchange_rate        0.9750
+  wrong_exchange_rate_for_cash_withdrawal 0.8500
+  getting_virtual_card                    0.8500
+  get_disposable_virtual_card             0.9500
+  verify_my_identity                      0.9500
+  why_verify_identity                     0.4250
+confusion (row: true class, column: predicted class, numbered as the rows are)
+                                               0   1   2   3   4   5   6   7   8   9
+   0 card_arrival                             34   5   0   0   0   0   1   0   0   0
+   1 card_delivery_estimate                   10  30   0   0   0   0   0   0   0   0
+   2 declined_transfer                         4   0  31   3   1   0   0   0   1   0
+   3 failed_transfer                           0   1  17  21   0   0   0   0   0   1
+   4 card_payment_wrong_exchange_rate          0   0   0   0  39   0   0   0   0   1
+   5 wrong_exchange_rate_for_cash_withdrawal   0   0   0   0   6  34   0   0   0   0
+   6 getting_virtual_card                      2   0   0   0   0   0  34   4   0   0
+   7 get_disposable_virtual_card               0   0   0   0   0   0   1  38   1   0
+   8 verify_my_identity                        0   0   0   0   0   0   0   0  38   2
+   9 why_verify_identity                       0   0   0   0   0   0   0   0  23  17

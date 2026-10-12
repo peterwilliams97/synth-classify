@@ -1,13 +1,15 @@
-"""generate.py writes data/synthetic.jsonl: customer messages a local Ollama model invents for each
-class in `CLASSES`. The model sees the class name and definition and nothing else — this file must
-not import `datasets` or read any Banking77 text, or the synthetic-vs-real comparison is void."""
+"""generate.py writes data/<set>/synthetic.jsonl: customer messages a local Ollama model invents for
+each class in the `CLASS_SETS` entry named by `--set`. The model sees the class name and definition
+and nothing else — this file must not import `datasets` or read any Banking77 text, or the
+synthetic-vs-real comparison is void."""
 
 import argparse
 import json
+import os
 import sys
 import urllib.request
 
-from classes import CLASSES
+from classes import CLASS_SETS
 
 BATCH = 20
 
@@ -60,12 +62,14 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--model", default="gemma4:e4b")
     ap.add_argument("--per-class", type=int, default=100)
-    ap.add_argument("--out", default="data/synthetic.jsonl")
+    ap.add_argument("--set", choices=list(CLASS_SETS), default="distinct")
+    ap.add_argument("--out", help="default data/<set>/synthetic.jsonl")
     ap.add_argument("--url", default="http://localhost:11434")
     args = ap.parse_args()
+    out = args.out or f"data/{args.set}/synthetic.jsonl"
 
     rows = []
-    for name, definition in CLASSES.items():
+    for name, definition in CLASS_SETS[args.set].items():
         seen = {}  # lowercased text -> text, so near-identical repeats are dropped
         for attempt in range(4 * args.per_class // BATCH):
             if len(seen) >= args.per_class:
@@ -78,10 +82,11 @@ def main():
             sys.exit(f"{name}: only {len(seen)} distinct messages, wanted {args.per_class}")
         rows += [{"text": t, "label": name} for t in list(seen.values())[: args.per_class]]
 
-    with open(args.out, "w") as f:
+    os.makedirs(os.path.dirname(out) or ".", exist_ok=True)
+    with open(out, "w") as f:
         for row in rows:
             f.write(json.dumps(row, ensure_ascii=False) + "\n")
-    print(f"wrote {len(rows)} rows to {args.out}", file=sys.stderr)
+    print(f"wrote {len(rows)} rows to {out}", file=sys.stderr)
 
 
 if __name__ == "__main__":
