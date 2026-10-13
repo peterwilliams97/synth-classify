@@ -30,11 +30,13 @@ def read_jsonl(path, names):
 def write_minutes(class_set, out, train, rows, seconds):
     """write_minutes records how long a training run took, base model load included, in
     results/<class_set>/train/<name>.txt, `name` being the last component of `out` as in
-    score.py's reports. finetune.py calls it too, so both kinds of training are timed alike."""
+    score.py's reports. finetune.py calls it too, so both kinds of training are timed alike. A run
+    under a minute is recorded in seconds: a TF-IDF fit is 0.0 minutes to one decimal."""
+    took = f"minutes   {seconds / 60:.1f}" if seconds >= 60 else f"seconds   {seconds:.2f}"
     text = (
         f"model     {out}\n"
         f"train     {train} ({rows} rows)\n"
-        f"minutes   {seconds / 60:.1f} (base model load to save)\n"
+        f"{took} (base model load to save)\n"
     )
     sys.stderr.write(text)
     path = os.path.join("results", class_set, "train", os.path.basename(os.path.normpath(out)))

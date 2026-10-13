@@ -1,0 +1,3 @@
+model     xtmp/models/distinct/tfidf-synthetic
+train     data/distinct/synthetic.jsonl (1000 rows)
+seconds   0.65 (base model load to save)

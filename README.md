@@ -34,12 +34,13 @@ set** is the Banking77 train rows of the same classes: 1188 for `distinct`, 1284
 - [LLM classifiers against the baselines](#llm-classifiers-against-the-baselines): on `confusable`
   ModernBERT trained on real data makes 25 errors of 400, the two `fewshot` prompts 27 and 28, and
   the other LLM classifiers 35 to 60.
-- [Classes that are close together](#classes-that-are-close-together): most errors confuse the two
-  intents of a pair — 24 of 25 for ModernBERT trained on real data, 56 of 57 for the LoRA adapter
-  trained on real data.
+- [Classes that are close together](#classes-that-are-close-together): a classifier needed real
+  labelled examples, 1284 to train on or 30 in the prompt, to score above 0.92 on `confusable`; the
+  LoRA adapter trained on the real train set used 1284 and scored 0.8575.
 - [What raised an LLM classifier's accuracy](#what-raised-an-llm-classifiers-accuracy): restricting
   the reply to a class name (+25 messages of 400) and 3 real examples per class in the prompt (+7
-  and +22); the 27B model and the LoRA adapters added 0 to 3.
+  and +22); the 27B model and the LoRA adapters, one configuration with nothing tuned, added 0 to
+  3.
 - [Costs](#costs): on `confusable` an LLM classifier takes 32 to 335 times ModernBERT's seconds per
   message, and a LoRA adapter 13.6 to 17.9 training minutes against ModernBERT's 1.7 to 2.0.
 
@@ -69,32 +70,35 @@ ModernBERT trained on real data.
 
 ## Classes that are close together
 
-**Most errors are inside a pair: the predicted class is the other intent of the true class's
-pair.**
+**A classifier needed real labelled examples, 1284 to train on or 30 in the prompt, to score above
+0.92 on `confusable`.**
 
-| Classifier                       | Training set or prompt | Errors | Inside a pair | Most frequent error (true → predicted)        | Messages, of 40 |
-|----------------------------------|------------------------|--------|---------------|-----------------------------------------------|-----------------|
-| TF-IDF + logistic regression     | synthetic              | 84     | 71            | `why_verify_identity` → `verify_my_identity`  | 23              |
-| TF-IDF + logistic regression     | real                   | 30     | 26            | `verify_my_identity` → `why_verify_identity`  | 7               |
-| ModernBERT-base                  | synthetic              | 63     | 54            | `why_verify_identity` → `verify_my_identity`  | 15              |
-| ModernBERT-base                  | real                   | 25     | 24            | `card_arrival` → `card_delivery_estimate`     | 5               |
-| `gemma4:e4b`                     | `definitions`          | 35     | 32            | `card_arrival` → `card_delivery_estimate`     | 13              |
-| `gemma4:e4b`                     | `fewshot`              | 28     | 25            | `card_arrival` → `card_delivery_estimate`     | 7               |
-| `qwen3.6:27b-q4_K_M`             | `names`                | 49     | 47            | `verify_my_identity` → `why_verify_identity`  | 17              |
-| `qwen3.6:27b-q4_K_M`             | `fewshot`              | 27     | 21            | `card_arrival` → `card_delivery_estimate`     | 6               |
-| Gemma 4 E4B (MLX), no adapter    | `definitions`          | 60     | 26            | `card_arrival` → `card_delivery_estimate`     | 16              |
-| Gemma 4 E4B (MLX) + LoRA adapter | synthetic              | 60     | 34            | `card_arrival` → `card_delivery_estimate`     | 18              |
-| Gemma 4 E4B (MLX) + LoRA adapter | real                   | 57     | 56            | `declined_transfer` → `failed_transfer`       | 24              |
+| Classifier                       | Training set or prompt | Real labelled examples used | Errors | Inside a pair | Most frequent error (true → predicted)        | Messages, of 40 |
+|----------------------------------|------------------------|-----------------------------|--------|---------------|-----------------------------------------------|-----------------|
+| TF-IDF + logistic regression     | synthetic              | 0                           | 84     | 71            | `why_verify_identity` → `verify_my_identity`  | 23              |
+| TF-IDF + logistic regression     | real                   | 1284                        | 30     | 26            | `verify_my_identity` → `why_verify_identity`  | 7               |
+| ModernBERT-base                  | synthetic              | 0                           | 63     | 54            | `why_verify_identity` → `verify_my_identity`  | 15              |
+| ModernBERT-base                  | real                   | 1284                        | 25     | 24            | `card_arrival` → `card_delivery_estimate`     | 5               |
+| `gemma4:e4b`                     | `definitions`          | 0                           | 35     | 32            | `card_arrival` → `card_delivery_estimate`     | 13              |
+| `gemma4:e4b`                     | `fewshot`              | 30                          | 28     | 25            | `card_arrival` → `card_delivery_estimate`     | 7               |
+| `qwen3.6:27b-q4_K_M`             | `names`                | 0                           | 49     | 47            | `verify_my_identity` → `why_verify_identity`  | 17              |
+| `qwen3.6:27b-q4_K_M`             | `fewshot`              | 30                          | 27     | 21            | `card_arrival` → `card_delivery_estimate`     | 6               |
+| Gemma 4 E4B (MLX), no adapter    | `definitions`          | 0                           | 60     | 26            | `card_arrival` → `card_delivery_estimate`     | 16              |
+| Gemma 4 E4B (MLX) + LoRA adapter | synthetic              | 0                           | 60     | 34            | `card_arrival` → `card_delivery_estimate`     | 18              |
+| Gemma 4 E4B (MLX) + LoRA adapter | real                   | 1284                        | 57     | 56            | `declined_transfer` → `failed_transfer`       | 24              |
 
-With no adapter, the 34 errors outside a pair are the invalid replies. 56 of the real-trained
-adapter's 57 errors are inside a pair, 24 of them `declined_transfer` predicted as
-`failed_transfer`. The synthetic-trained adapter's 26 errors outside a pair are all predictions of
-`getting_virtual_card`.
+Real examples took the errors of 400 from 84 to 30 for TF-IDF, 63 to 25 for ModernBERT, 35 to 28
+for `gemma4:e4b` and 49 to 27 for `qwen3.6:27b-q4_K_M`. The LoRA adapter trained on the real train
+set is the exception at 57. With no adapter, the 34 errors outside a pair are the invalid replies.
+56 of the real-trained adapter's 57 errors are inside a pair, 24 of them `declined_transfer`
+predicted as `failed_transfer`. The synthetic-trained adapter's 26 errors outside a pair are all
+predictions of `getting_virtual_card`.
 
 ## What raised an LLM classifier's accuracy
 
 **Restricting the reply to a class name and putting real examples in the prompt raised accuracy by
-7 to 25 messages of 400; the 27B model and the LoRA adapters by 0 to 3.**
+7 to 25 messages of 400; the 27B model and the LoRA adapters, one configuration with nothing tuned,
+by 0 to 3.**
 
 | Change                                                                   | Before | After  | Messages | Scored on |
 |--------------------------------------------------------------------------|--------|--------|----------|-----------|
@@ -107,10 +111,11 @@ adapter's 57 errors are inside a pair, 24 of them `declined_transfer` predicted 
 | LoRA adapter trained on the synthetic set, against no adapter            | 0.8500 | 0.8500 | 0        | test, 400 |
 | LoRA adapter trained on the real train set, against no adapter           | 0.8500 | 0.8575 | +3       | test, 400 |
 
-The two dev rows are scored on dev because the prompt not chosen was not run on test. With the
-dev-chosen prompts, `qwen3.6:27b-q4_K_M` is 14 messages below `gemma4:e4b`, 0.8775 against 0.9125.
-Both adapters take the invalid replies from 34 to 0, and theirs is the only LoRA configuration
-tried.
+The first row changes the runtime and the quantisation as well as the reply rule, and the mlx-lm
+model is right on 340 of the 366 messages it answered with a class name. The two dev rows are
+scored on dev because the prompt not chosen was not run on test. With the dev-chosen prompts,
+`qwen3.6:27b-q4_K_M` is 14 messages below `gemma4:e4b`, 0.8775 against 0.9125. Both adapters take
+the invalid replies from 34 to 0, and theirs is the only LoRA configuration tried.
 
 ## Costs
 
@@ -119,8 +124,8 @@ LoRA adapter 13.6 to 17.9 training minutes against ModernBERT's 1.7 to 2.0.**
 
 | Classifier                       | Training set or prompt | Training minutes | Seconds per message | × ModernBERT |
 |----------------------------------|------------------------|------------------|---------------------|--------------|
-| TF-IDF + logistic regression     | synthetic              | not recorded     | 0.00015             | 0.02         |
-| TF-IDF + logistic regression     | real                   | not recorded     | 0.00015             | 0.02         |
+| TF-IDF + logistic regression     | synthetic              | 0.71 s           | 0.00015             | 0.02         |
+| TF-IDF + logistic regression     | real                   | 0.65 s           | 0.00015             | 0.02         |
 | ModernBERT-base                  | synthetic              | 1.7              | 0.0073              | 1            |
 | ModernBERT-base                  | real                   | 2.0              | 0.0073              | 1            |
 | `gemma4:e4b`                     | `definitions`          | none             | 0.63                | 85           |
@@ -134,7 +139,7 @@ LoRA adapter 13.6 to 17.9 training minutes against ModernBERT's 1.7 to 2.0.**
 × ModernBERT divides the seconds in the row's report by the 0.00735 in
 `results/confusable/test/modernbert-real.txt`. On `distinct` the LLM classifiers take 19 to 332
 times ModernBERT's seconds and a LoRA adapter 7.8 to 9.1 minutes. No file under `results/` records
-TF-IDF training time or the minutes `generate.py` took to write a synthetic set.
+the minutes `generate.py` took to write a synthetic set.
 
 ## Class sets
 
@@ -248,17 +253,21 @@ Accuracy of each Ollama model with each prompt on the 200 dev messages; full rep
 
 Wall time of one `train.py` or `finetune.py` run on the same M5 Pro, from loading the base model to
 saving, with nothing else on the GPU; files are `results/<class set>/train/<model>.txt`. The
-ModernBERT minutes are from re-running the training commands into a scratch directory; the models
-scored in the test table were not replaced.
+ModernBERT and TF-IDF times are from re-running the training commands into a scratch directory; the
+models scored in the test table were not replaced. A time under a minute is in seconds.
 
 | Class set    | Model                    | Training set             | Rows | Minutes |
 |--------------|--------------------------|--------------------------|------|---------|
 | `distinct`   | ModernBERT-base          | synthetic (`gemma4:e4b`) | 1000 | 1.6     |
 | `distinct`   | ModernBERT-base          | real Banking77 train     | 1188 | 1.8     |
+| `distinct`   | TF-IDF + logistic regression | synthetic (`gemma4:e4b`) | 1000 | 0.65 s  |
+| `distinct`   | TF-IDF + logistic regression | real Banking77 train     | 1188 | 0.60 s  |
 | `distinct`   | Gemma 4 E4B (MLX) + LoRA | synthetic (`gemma4:e4b`) | 1000 | 7.8     |
 | `distinct`   | Gemma 4 E4B (MLX) + LoRA | real Banking77 train     | 1188 | 9.1     |
 | `confusable` | ModernBERT-base          | synthetic (`gemma4:e4b`) | 1000 | 1.7     |
 | `confusable` | ModernBERT-base          | real Banking77 train     | 1284 | 2.0     |
+| `confusable` | TF-IDF + logistic regression | synthetic (`gemma4:e4b`) | 1000 | 0.71 s  |
+| `confusable` | TF-IDF + logistic regression | real Banking77 train     | 1284 | 0.65 s  |
 | `confusable` | Gemma 4 E4B (MLX) + LoRA | synthetic (`gemma4:e4b`) | 1000 | 13.6    |
 | `confusable` | Gemma 4 E4B (MLX) + LoRA | real Banking77 train     | 1284 | 17.9    |
 
@@ -328,5 +337,5 @@ python score.py --set $S --mlx $M --adapter models/$S/gemma-4-e4b-lora-synthetic
 python score.py --set $S --mlx $M --adapter models/$S/gemma-4-e4b-lora-real
 ```
 
-`train.py` and `finetune.py` also write the minutes a run took to
-`results/<set>/train/<name>.txt`.
+`train.py` and `finetune.py` also write the minutes a run took, or the seconds if under a minute,
+to `results/<set>/train/<name>.txt`.

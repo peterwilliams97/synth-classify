@@ -36,9 +36,10 @@ The same two `train.py` lines with `data/$S/banking77_train.jsonl` give the real
 `score.py` prints its report and writes the same text to `results/$S/<split>/<name>.txt`, where
 `<name>` is the model directory name, or for `--llm` the Ollama model with `:` replaced by `-`, then
 `-<prompt>`, or for `--mlx` the adapter directory name, and without `--adapter` the last component
-of the mlx-lm model then `-definitions`. `train.py` and `finetune.py` write the minutes a run took
-to `results/$S/train/<name>.txt`, `<name>` being the `--out` directory name. A ModernBERT fine-tune
-is 1.6 to 2.0 minutes on MPS, a LoRA adapter 8 to 18; the TF-IDF model is seconds. An LLM run is one
+of the mlx-lm model then `-definitions`. `train.py` and `finetune.py` write the minutes a run took,
+or the seconds if under a minute, to `results/$S/train/<name>.txt`, `<name>` being the `--out`
+directory name. A ModernBERT fine-tune is 1.6 to 2.0 minutes on MPS, a LoRA adapter 8 to 18; the
+TF-IDF model is under a second. An LLM run is one
 Ollama request per message: about 0.5 s each for `gemma4:e4b` and 1.5–2.5 s for
 `qwen3.6:27b-q4_K_M`, so 400 test messages take 3 to 17 minutes.
 
@@ -148,8 +149,8 @@ Ollama 0.32.5, mlx 0.32.3 and mlx-lm 0.32.0, with `mlx-community/gemma-4-e4b-it-
 `475b9088d29754a3379866cf5aeb6b41acd313c2`.
 
 `results/<set>/train/*.txt` are the training minutes behind the README's training-minutes table.
-The `modernbert-*` ones name `xtmp/models/…` as the model: they are timing re-runs, and the models
-under `models/<set>/` that the test reports came from were not replaced.
+The `modernbert-*` and `tfidf-*` ones name `xtmp/models/…` as the model: they are timing re-runs,
+and the models under `models/<set>/` that the test reports came from were not replaced.
 
 **The README states each number more than once.** Above Class sets it has Classifiers, Findings
 and four sections: LLM classifiers against the baselines, Classes that are close together, What
