@@ -1,0 +1,28 @@
+model     gemma4:e4b prompt definitions
+dev rows  200 (mteb/banking77, 10 classes)
+accuracy  0.8750
+macro F1  0.8745
+seconds   0.628 (median per message, one message per call)
+recall
+  card_arrival                            0.6000
+  card_delivery_estimate                  1.0000
+  declined_transfer                       0.8500
+  failed_transfer                         0.9000
+  card_payment_wrong_exchange_rate        0.9000
+  wrong_exchange_rate_for_cash_withdrawal 0.9000
+  getting_virtual_card                    0.8500
+  get_disposable_virtual_card             0.9000
+  verify_my_identity                      0.9000
+  why_verify_identity                     0.9500
+confusion (row: true class, column: predicted class, numbered as the rows are)
+                                               0   1   2   3   4   5   6   7   8   9
+   0 card_arrival                             12   8   0   0   0   0   0   0   0   0
+   1 card_delivery_estimate                    0  20   0   0   0   0   0   0   0   0
+   2 declined_transfer                         0   0  17   3   0   0   0   0   0   0
+   3 failed_transfer                           0   0   2  18   0   0   0   0   0   0
+   4 card_payment_wrong_exchange_rate          0   0   0   0  18   2   0   0   0   0
+   5 wrong_exchange_rate_for_cash_withdrawal   0   1   0   0   1  18   0   0   0   0
+   6 getting_virtual_card                      1   1   0   0   0   0  17   1   0   0
+   7 get_disposable_virtual_card               0   0   0   0   0   0   2  18   0   0
+   8 verify_my_identity                        0   0   0   0   0   0   0   0  18   2
+   9 why_verify_identity                       0   0   0   0   0   0   0   0   1  19
