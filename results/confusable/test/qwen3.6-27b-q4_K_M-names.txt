@@ -1,0 +1,28 @@
+model     qwen3.6:27b-q4_K_M prompt names
+test rows 400 (mteb/banking77, 10 classes)
+accuracy  0.8775
+macro F1  0.8756
+seconds   1.45 (median per message, one message per call)
+recall
+  card_arrival                            0.7750
+  card_delivery_estimate                  0.7250
+  declined_transfer                       0.8500
+  failed_transfer                         0.9750
+  card_payment_wrong_exchange_rate        1.0000
+  wrong_exchange_rate_for_cash_withdrawal 0.9250
+  getting_virtual_card                    1.0000
+  get_disposable_virtual_card             0.9500
+  verify_my_identity                      0.5750
+  why_verify_identity                     1.0000
+confusion (row: true class, column: predicted class, numbered as the rows are)
+                                               0   1   2   3   4   5   6   7   8   9
+   0 card_arrival                             31   9   0   0   0   0   0   0   0   0
+   1 card_delivery_estimate                   11  29   0   0   0   0   0   0   0   0
+   2 declined_transfer                         0   0  34   5   1   0   0   0   0   0
+   3 failed_transfer                           1   0   0  39   0   0   0   0   0   0
+   4 card_payment_wrong_exchange_rate          0   0   0   0  40   0   0   0   0   0
+   5 wrong_exchange_rate_for_cash_withdrawal   0   0   0   0   3  37   0   0   0   0
+   6 getting_virtual_card                      0   0   0   0   0   0  40   0   0   0
+   7 get_disposable_virtual_card               0   0   0   0   0   0   2  38   0   0
+   8 verify_my_identity                        0   0   0   0   0   0   0   0  23  17
+   9 why_verify_identity                       0   0   0   0   0   0   0   0   0  40

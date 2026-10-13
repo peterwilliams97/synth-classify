@@ -2,7 +2,7 @@ model     models/confusable/tfidf-real
 test rows 400 (mteb/banking77, 10 classes)
 accuracy  0.9250
 macro F1  0.9251
-seconds   0.000153 (median per message, one message per call)
+seconds   0.000151 (median per message, one message per call)
 recall
   card_arrival                            0.9500
   card_delivery_estimate                  0.9250

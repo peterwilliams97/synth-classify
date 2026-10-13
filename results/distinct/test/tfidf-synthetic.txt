@@ -2,7 +2,7 @@ model     models/distinct/tfidf-synthetic
 test rows 399 (mteb/banking77, 10 classes)
 accuracy  0.9373
 macro F1  0.9375
-seconds   0.000155 (median per message, one message per call)
+seconds   0.000152 (median per message, one message per call)
 recall
   card_arrival            0.8250
   lost_or_stolen_card     0.9750
