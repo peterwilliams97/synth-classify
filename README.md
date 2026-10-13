@@ -135,5 +135,5 @@ predicted as `verify_my_identity`: 15 of 40 for ModernBERT, 23 of 40 for TF-IDF.
 On `confusable`, `gemma4:e4b` with the `definitions` prompt scores 0.9125, against 0.8425 for
 ModernBERT trained on the messages that same model wrote from those definitions. With the `fewshot`
 prompt both Ollama models are within 3 messages of 400 of ModernBERT trained on the real train
-split, at 60 and 340 times its seconds per message. On `distinct` every classifier but the
+split, at about 60 and 330 times its seconds per message. On `distinct` every classifier but the
 synthetic-trained TF-IDF model is within 5 messages of 399 of every other.
