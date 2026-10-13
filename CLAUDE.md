@@ -8,8 +8,9 @@ repository.
 A worked example, not a library: train an intent classifier on LLM-generated messages, score it on
 real Banking77, once per class set in `CLASS_SETS` (`classes.py`): `distinct`, 10 intents on
 unrelated topics, and `confusable`, 5 pairs of intents on the same topic. Local Ollama models
-prompted with the class list (`llm.py`) are scored beside the trained ones. Five scripts and two
-results tables in `README.md`. All Python — the repository layout, file header and `test.sh` rules
+prompted with the class list (`llm.py`) are scored beside the trained ones, and so is an mlx-lm
+copy of Gemma 4 E4B with and without a LoRA adapter (`finetune.py`). Six scripts and three results
+tables in `README.md`. All Python — the repository layout, file header and `test.sh` rules
 in `~/CLAUDE.md` do not apply here; its Python / ML environment section does.
 
 ## Commands
@@ -25,13 +26,18 @@ S=distinct   # or confusable; every script takes --set, default distinct
 .venv/bin/python train.py --set $S --train data/$S/synthetic.jsonl --out models/$S/tfidf-synthetic --tfidf
 .venv/bin/python score.py --set $S --model models/$S/modernbert-synthetic
 .venv/bin/python score.py --set $S --split dev --llm gemma4:e4b --prompt names   # ~2 min
+.venv/bin/python finetune.py --set $S --train data/$S/synthetic.jsonl --out models/$S/gemma-4-e4b-lora-synthetic
+.venv/bin/python score.py --set $S --mlx mlx-community/gemma-4-e4b-it-4bit --adapter models/$S/gemma-4-e4b-lora-synthetic
 ```
 
 The same two `train.py` lines with `data/$S/banking77_train.jsonl` give the real-data models.
 `score.py` prints its report and writes the same text to `results/$S/<split>/<name>.txt`, where
-`<name>` is the model directory name, or for `--llm` the Ollama model with `:` replaced by `-`,
-then `-<prompt>`. A ModernBERT fine-tune is about 3.5 minutes on MPS; the TF-IDF model is seconds.
-An LLM run is one Ollama request per message: about 0.5 s each for `gemma4:e4b` and 1.5–2.5 s for
+`<name>` is the model directory name, or for `--llm` the Ollama model with `:` replaced by `-`, then
+`-<prompt>`, or for `--mlx` the adapter directory name, and without `--adapter` the last component
+of the mlx-lm model then `-definitions`. `train.py` and `finetune.py` write the minutes a run took
+to `results/$S/train/<name>.txt`, `<name>` being the `--out` directory name. A ModernBERT fine-tune
+is 1.6 to 2.0 minutes on MPS, a LoRA adapter 8 to 18; the TF-IDF model is seconds. An LLM run is one
+Ollama request per message: about 0.5 s each for `gemma4:e4b` and 1.5–2.5 s for
 `qwen3.6:27b-q4_K_M`, so 400 test messages take 3 to 17 minutes.
 
 `score.py` overwrites the tracked report at that path. Its `model` line is the `--model` argument
@@ -41,10 +47,16 @@ drops the parent directory: two model directories with one basename write the sa
 
 There is no test suite, linter or `test.sh`. The check on a change is the end-to-end run, compared
 against the test table in `README.md`, and for `llm.py` or `dev_and_shots` the dev table as well.
+A change to `user_turn`, `MLX_PROMPT` or `classify_mlx` in `llm.py` means retraining the four
+adapters (about 50 minutes) before the mlx-lm rows can be compared.
 
 ## Running inside the Claude Code sandbox
 
-Two things fail in the Bash sandbox and work outside it; neither is a bug in the code:
+Three things fail in the Bash sandbox and work outside it; none is a bug in the code:
+
+- `import mlx.core` raises `[metal::load_device] No Metal device available`, so `finetune.py` and
+  `score.py --mlx` do not run at all. `llm.py` imports `mlx_lm` inside `classify_mlx` for this
+  reason: `score.py --llm` and `--model` still run in the sandbox.
 
 - `torch.backends.mps.is_available()` returns `False`, so `train.py` and `predict` in `score.py`
   fall back to CPU. Both print `device:` on stderr; check for `device: mps` before trusting a timing
@@ -55,7 +67,10 @@ Two things fail in the Bash sandbox and work outside it; neither is a bug in the
 `~/.cache/huggingface` is not sandbox-writable either; the runs recorded in `README.md` used
 `HF_HOME=$PWD/data/hf`, which `.gitignore` already covers. With the dataset cached there,
 `HF_HUB_OFFLINE=1` lets `score.py --llm` run inside the sandbox; Ollama on `localhost:11434` is
-reachable from it.
+reachable from it. `curl` does reach `huggingface.co` from the sandbox:
+`mlx-community/gemma-4-e4b-it-4bit` was fetched with it into
+`data/hf/hub/models--mlx-community--gemma-4-e4b-it-4bit/snapshots/<revision>/`, with the revision
+in `refs/main`, which is the layout `HF_HUB_OFFLINE=1` loads from.
 
 ## Invariants that span files
 
@@ -69,6 +84,16 @@ reachable from it.
   `SHOTS_PER_CLASS` (3) as examples; test is the Banking77 test split. Changing the seed, either
   constant or the class order changes dev and the examples, and invalidates every `--llm` report
   and both README tables' LLM rows.
+- **An adapter is scored on the turn it was trained on.** `finetune.py` and `classify_mlx` in
+  `llm.py` both build the user turn with `user_turn` and the `MLX_PROMPT` prompt (`definitions`);
+  `score.py --mlx` takes no `--prompt`. `finetune.py` does not load the dataset either.
+- **An mlx-lm reply is not restricted to a class name.** `classify_mlx` takes the text after the
+  tokenizer's `think_end` marker, strips it and requires it to equal a class name; anything else is
+  None, which `score.py` scores as prediction -1 and counts on the report's `invalid` line. Only
+  `--mlx` reports have that line. `MAX_REPLY_TOKENS` (512) and that rule were settled on dev;
+  changing either invalidates the mlx-lm rows without an adapter.
+- **`finetune.py`'s hyperparameters are fixed in the file and stated in its doc comment.** There is
+  no split to tune them on: dev is part of the real train split.
 - **Prompts are chosen on dev, never on test.** For each Ollama model and class set, test is run
   with `fewshot` and with whichever of `names` and `definitions` has the higher dev accuracy,
   `names` on a tie. Do not run the third prompt on test.
@@ -115,5 +140,10 @@ output the README test table's synthetic rows were computed from, and
 `results/<set>/<split>/*.txt` are the `score.py` reports behind each row of the dev and test
 tables. Regenerating a synthetic file changes the committed training set, so retrain, re-score and
 update the test table's synthetic rows in the same commit. `requirements.txt` is
-unpinned — the README numbers came from torch 2.14.1, transformers 5.19.0, datasets 5.1.0, and
-Ollama 0.32.5.
+unpinned — the README numbers came from torch 2.14.1, transformers 5.19.0, datasets 5.1.0,
+Ollama 0.32.5, mlx 0.32.3 and mlx-lm 0.32.0, with `mlx-community/gemma-4-e4b-it-4bit` at revision
+`475b9088d29754a3379866cf5aeb6b41acd313c2`.
+
+`results/<set>/train/*.txt` are the training minutes behind the README's training-minutes table.
+The `modernbert-*` ones name `xtmp/models/…` as the model: they are timing re-runs, and the models
+under `models/<set>/` that the test reports came from were not replaced.

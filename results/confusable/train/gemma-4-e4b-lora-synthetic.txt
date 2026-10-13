@@ -1,0 +1,3 @@
+model     models/confusable/gemma-4-e4b-lora-synthetic
+train     data/confusable/synthetic.jsonl (1000 rows)
+minutes   13.6 (base model load to save)

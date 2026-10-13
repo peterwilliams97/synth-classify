@@ -2,3 +2,4 @@ torch
 transformers
 datasets
 scikit-learn
+mlx-lm

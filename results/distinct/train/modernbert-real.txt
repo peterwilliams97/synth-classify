@@ -1,0 +1,3 @@
+model     xtmp/models/distinct/modernbert-real
+train     data/distinct/banking77_train.jsonl (1188 rows)
+minutes   1.8 (base model load to save)

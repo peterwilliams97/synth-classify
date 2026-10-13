@@ -1,8 +1,9 @@
 """score.py scores a classifier on Banking77 restricted to the `CLASS_SETS` entry named by `--set`,
-and writes the report it prints to results/<set>/<split>/<classifier>.txt. The classifier is a
-model saved by train.py (`--model`) or an Ollama model with one of llm.py's `PROMPTS` (`--llm`,
-`--prompt`). `--split test` is the Banking77 test split; `--split dev` is `dev_and_shots`' sample
-of the train split, which is what prompts are chosen on.
+and writes the report it prints to results/<set>/<split>/<classifier>.txt. The classifier is a model
+saved by train.py (`--model`), an Ollama model with one of llm.py's `PROMPTS` (`--llm`, `--prompt`),
+or an mlx-lm model with llm.py's `MLX_PROMPT` and optionally a LoRA adapter trained by finetune.py
+(`--mlx`, `--adapter`). `--split test` is the Banking77 test split; `--split dev` is
+`dev_and_shots`' sample of the train split, which is what prompts are chosen on.
 
 It is the only file that reads Banking77, loaded from the `mteb/banking77` parquet copy (the
 original `PolyAI/banking77` is a dataset script, which `datasets` no longer runs). `--write-train`
@@ -20,7 +21,7 @@ from datasets import load_dataset
 from sklearn.metrics import accuracy_score, confusion_matrix, f1_score, recall_score
 
 from classes import CLASS_SETS
-from llm import PROMPTS, classify
+from llm import MLX_PROMPT, PROMPTS, classify
 
 DATASET = "mteb/banking77"
 DEV_PER_CLASS = 20
@@ -85,7 +86,10 @@ def predict(model_dir, texts, names):
     return preds, seconds
 
 
-def report(classifier, split, gold, preds, seconds, names):
+def report(classifier, split, gold, preds, seconds, names, invalid=None):
+    """report formats the scores. `invalid` is the number of `preds` that are -1, an mlx-lm reply
+    that is no class name, or None for a classifier that cannot give one; the line is printed only
+    for the former."""
     ids = range(len(names))
     width = max(len(name) for name in names)
     recalls = recall_score(gold, preds, labels=ids, average=None)
@@ -95,10 +99,14 @@ def report(classifier, split, gold, preds, seconds, names):
         f"accuracy  {accuracy_score(gold, preds):.4f}",
         f"macro F1  {f1_score(gold, preds, labels=ids, average='macro'):.4f}",
         f"seconds   {statistics.median(seconds):.3g} (median per message, one message per call)",
-        "recall",
     ]
+    if invalid is not None:
+        lines.append(f"invalid   {invalid} (replies that are not a class name; counted as wrong)")
+    lines.append("recall")
     lines += [f"  {name:<{width}} {r:.4f}" for name, r in zip(names, recalls)]
     lines.append("confusion (row: true class, column: predicted class, numbered as the rows are)")
+    if invalid:
+        lines.append("  invalid replies are in no column, so a row can sum to less than its class")
     lines.append(f"  {'':<{width + 3}}" + "".join(f"{i:>4}" for i in ids))
     for i, (name, row) in enumerate(zip(names, confusion_matrix(gold, preds, labels=ids))):
         lines.append(f"  {i:>2} {name:<{width}}" + "".join(f"{n:>4}" for n in row))
@@ -112,6 +120,8 @@ def main():
     ap.add_argument("--model", help="directory written by train.py")
     ap.add_argument("--llm", metavar="MODEL", help="Ollama model to score in place of --model")
     ap.add_argument("--prompt", choices=list(PROMPTS), help="required with --llm")
+    ap.add_argument("--mlx", metavar="MODEL", help=f"mlx-lm model to score, {MLX_PROMPT} prompt")
+    ap.add_argument("--adapter", metavar="DIR", help="LoRA adapter from finetune.py, with --mlx")
     ap.add_argument("--write-train", metavar="JSONL", help="export the restricted train split")
     args = ap.parse_args()
     names = list(CLASS_SETS[args.set])
@@ -123,12 +133,14 @@ def main():
             for text, label in zip(texts, labels):
                 f.write(json.dumps({"text": text, "label": names[label]}) + "\n")
         print(f"wrote {len(texts)} rows to {args.write_train}", file=sys.stderr)
-    if bool(args.model) + bool(args.llm) != 1:
-        if args.write_train and not args.model and not args.llm:
+    if bool(args.model) + bool(args.llm) + bool(args.mlx) != 1:
+        if args.write_train and not args.model and not args.llm and not args.mlx:
             return
-        ap.error("give exactly one of --model and --llm, or --write-train alone")
+        ap.error("give exactly one of --model, --llm and --mlx, or --write-train alone")
     if bool(args.llm) != bool(args.prompt):
         ap.error("--llm and --prompt go together")
+    if args.adapter and not args.mlx:
+        ap.error("--adapter needs --mlx")
 
     shots = None
     if args.split == "dev":
@@ -138,7 +150,18 @@ def main():
         if args.prompt == "fewshot":
             _, _, shots = dev_and_shots(names)
 
-    if args.llm:
+    invalid = None
+    if args.mlx:
+        classifier = f"{args.mlx} prompt {MLX_PROMPT}"
+        stem = f"{os.path.basename(os.path.normpath(args.mlx))}-{MLX_PROMPT}"
+        if args.adapter:
+            classifier += f" adapter {args.adapter}"
+            stem = os.path.basename(os.path.normpath(args.adapter))
+        answers = classify(texts, args.set, args.mlx, MLX_PROMPT, mlx=True, adapter=args.adapter)
+        preds = [-1 if label is None else names.index(label) for label, _ in answers]
+        seconds = [s for _, s in answers]
+        invalid = preds.count(-1)
+    elif args.llm:
         classifier = f"{args.llm} prompt {args.prompt}"
         stem = f"{args.llm.replace(':', '-')}-{args.prompt}"
         answers = classify(texts, args.set, args.llm, args.prompt, shots)
@@ -149,7 +172,7 @@ def main():
         stem = os.path.basename(os.path.normpath(args.model))
         preds, seconds = predict(args.model, texts, names)
 
-    text = report(classifier, args.split, gold, preds, seconds, names)
+    text = report(classifier, args.split, gold, preds, seconds, names, invalid)
     sys.stdout.write(text)
     out = os.path.join("results", args.set, args.split, stem + ".txt")
     os.makedirs(os.path.dirname(out), exist_ok=True)

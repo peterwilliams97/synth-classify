@@ -9,6 +9,7 @@ import json
 import os
 import random
 import sys
+import time
 
 from classes import CLASS_SETS
 
@@ -24,6 +25,22 @@ def read_jsonl(path, names):
     if unknown:
         sys.exit(f"{path}: labels not in the class set: {unknown}")
     return [r["text"] for r in rows], [names.index(r["label"]) for r in rows]
+
+
+def write_minutes(class_set, out, train, rows, seconds):
+    """write_minutes records how long a training run took, base model load included, in
+    results/<class_set>/train/<name>.txt, `name` being the last component of `out` as in
+    score.py's reports. finetune.py calls it too, so both kinds of training are timed alike."""
+    text = (
+        f"model     {out}\n"
+        f"train     {train} ({rows} rows)\n"
+        f"minutes   {seconds / 60:.1f} (base model load to save)\n"
+    )
+    sys.stderr.write(text)
+    path = os.path.join("results", class_set, "train", os.path.basename(os.path.normpath(out)))
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path + ".txt", "w") as f:
+        f.write(text)
 
 
 def train_tfidf(texts, labels, out):
@@ -105,6 +122,7 @@ def main():
     texts, labels = read_jsonl(args.train, names)
     os.makedirs(args.out, exist_ok=True)
     random.seed(args.seed)
+    start = time.perf_counter()
     if args.tfidf:
         train_tfidf(texts, labels, args.out)
     else:
@@ -112,7 +130,7 @@ def main():
 
         torch.manual_seed(args.seed)
         train_modernbert(texts, labels, names, args.out, args.epochs, args.lr, args.batch_size)
-    print(f"trained on {len(texts)} rows, saved to {args.out}", file=sys.stderr)
+    write_minutes(args.set, args.out, args.train, len(texts), time.perf_counter() - start)
 
 
 if __name__ == "__main__":

@@ -1,0 +1,30 @@
+model     mlx-community/gemma-4-e4b-it-4bit prompt definitions
+test rows 400 (mteb/banking77, 10 classes)
+accuracy  0.8500
+macro F1  0.8858
+seconds   0.258 (median per message, one message per call)
+invalid   34 (replies that are not a class name; counted as wrong)
+recall
+  card_arrival                            0.5750
+  card_delivery_estimate                  0.9500
+  declined_transfer                       0.8000
+  failed_transfer                         0.9250
+  card_payment_wrong_exchange_rate        0.8000
+  wrong_exchange_rate_for_cash_withdrawal 0.8250
+  getting_virtual_card                    0.7750
+  get_disposable_virtual_card             0.9250
+  verify_my_identity                      0.9750
+  why_verify_identity                     0.9500
+confusion (row: true class, column: predicted class, numbered as the rows are)
+  invalid replies are in no column, so a row can sum to less than its class
+                                               0   1   2   3   4   5   6   7   8   9
+   0 card_arrival                             23  16   0   0   0   0   0   0   0   0
+   1 card_delivery_estimate                    2  38   0   0   0   0   0   0   0   0
+   2 declined_transfer                         0   0  32   2   0   0   0   0   0   0
+   3 failed_transfer                           0   0   0  37   0   0   0   0   0   0
+   4 card_payment_wrong_exchange_rate          0   0   0   0  32   1   0   0   0   0
+   5 wrong_exchange_rate_for_cash_withdrawal   0   0   0   0   1  33   0   0   0   0
+   6 getting_virtual_card                      0   0   0   0   0   0  31   0   0   0
+   7 get_disposable_virtual_card               0   0   0   0   0   0   2  37   0   0
+   8 verify_my_identity                        0   0   0   0   0   0   0   0  39   1
+   9 why_verify_identity                       0   0   0   0   0   0   0   0   1  38
