@@ -2,6 +2,7 @@ model     models/confusable/modernbert-real
 test rows 400 (mteb/banking77, 10 classes)
 accuracy  0.9375
 macro F1  0.9376
+seconds   0.00834 (median per message, one message per call)
 recall
   card_arrival                            0.8750
   card_delivery_estimate                  0.9250

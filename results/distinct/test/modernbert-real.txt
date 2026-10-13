@@ -2,6 +2,7 @@ model     models/distinct/modernbert-real
 test rows 399 (mteb/banking77, 10 classes)
 accuracy  0.9950
 macro F1  0.9950
+seconds   0.00784 (median per message, one message per call)
 recall
   card_arrival            0.9750
   lost_or_stolen_card     0.9750
