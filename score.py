@@ -1,5 +1,9 @@
-"""score.py scores a model saved by train.py on the Banking77 test split, restricted to the
-`CLASS_SETS` entry named by `--set`, and writes the report it prints to results/<set>/<model>.txt.
+"""score.py scores a classifier on Banking77 restricted to the `CLASS_SETS` entry named by `--set`,
+and writes the report it prints to results/<set>/<split>/<classifier>.txt. The classifier is a
+model saved by train.py (`--model`) or an Ollama model with one of llm.py's `PROMPTS` (`--llm`,
+`--prompt`). `--split test` is the Banking77 test split; `--split dev` is `dev_and_shots`' sample
+of the train split, which is what prompts are chosen on.
+
 It is the only file that reads Banking77, loaded from the `mteb/banking77` parquet copy (the
 original `PolyAI/banking77` is a dataset script, which `datasets` no longer runs). `--write-train`
 exports the restricted train split as jsonl so train.py can fit the real-data comparison model."""
@@ -7,14 +11,20 @@ exports the restricted train split as jsonl so train.py can fit the real-data co
 import argparse
 import json
 import os
+import random
+import statistics
 import sys
+import time
 
 from datasets import load_dataset
 from sklearn.metrics import accuracy_score, confusion_matrix, f1_score, recall_score
 
 from classes import CLASS_SETS
+from llm import PROMPTS, classify
 
 DATASET = "mteb/banking77"
+DEV_PER_CLASS = 20
+SHOTS_PER_CLASS = 3
 
 
 def banking77(split, names):
@@ -26,44 +36,65 @@ def banking77(split, names):
     return [t for t, _ in rows], [names.index(label) for _, label in rows]
 
 
+def dev_and_shots(names):
+    """dev_and_shots draws, per class and with a fixed seed, `DEV_PER_CLASS` train rows as the dev
+    split and the next `SHOTS_PER_CLASS` as that class's `fewshot` examples, so no example is a
+    dev row. Returns dev texts, dev labels and {class name: [example text]}."""
+    texts, labels = banking77("train", names)
+    rng = random.Random(0)
+    dev, shots = [], {}
+    for i, name in enumerate(names):
+        rows = [j for j, label in enumerate(labels) if label == i]
+        rng.shuffle(rows)
+        dev += rows[:DEV_PER_CLASS]
+        shots[name] = [texts[j] for j in rows[DEV_PER_CLASS : DEV_PER_CLASS + SHOTS_PER_CLASS]]
+    return [texts[j] for j in dev], [labels[j] for j in dev], shots
+
+
 def predict(model_dir, texts, names):
+    """predict returns a label index and the seconds taken for each of `texts`. Each text is
+    classified in a call of its own, so the seconds are what one message costs and compare with
+    `classify` in llm.py, which also sends one message at a time."""
+    preds, seconds = [], []
     tfidf = os.path.join(model_dir, "tfidf.joblib")
     if os.path.exists(tfidf):
         import joblib
 
-        return list(joblib.load(tfidf).predict(texts))
+        clf = joblib.load(tfidf)
+        for text in texts:
+            start = time.perf_counter()
+            preds.append(clf.predict([text])[0])
+            seconds.append(time.perf_counter() - start)
+        return preds, seconds
 
     import torch
     from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
     device = "mps" if torch.backends.mps.is_available() else "cpu"
+    print(f"device: {device}", file=sys.stderr)
     tok = AutoTokenizer.from_pretrained(model_dir)
     model = AutoModelForSequenceClassification.from_pretrained(model_dir).to(device).eval()
     # The saved config carries train.py's label order; map through names, not positions.
     to_ours = {i: names.index(name) for i, name in model.config.id2label.items()}
-    preds = []
     with torch.no_grad():
-        for i in range(0, len(texts), 32):
-            batch = tok(
-                texts[i : i + 32],
-                padding=True,
-                truncation=True,
-                max_length=128,
-                return_tensors="pt",
-            ).to(device)
-            preds += [to_ours[p] for p in model(**batch).logits.argmax(-1).tolist()]
-    return preds
+        for text in texts:
+            start = time.perf_counter()
+            batch = tok(text, truncation=True, max_length=128, return_tensors="pt").to(device)
+            preds.append(to_ours[model(**batch).logits.argmax(-1).item()])
+            seconds.append(time.perf_counter() - start)
+    return preds, seconds
 
 
-def report(model_dir, texts, gold, preds, names):
+def report(classifier, split, gold, preds, seconds, names):
     ids = range(len(names))
     width = max(len(name) for name in names)
     recalls = recall_score(gold, preds, labels=ids, average=None)
     lines = [
-        f"model     {model_dir}",
-        f"test rows {len(texts)} ({DATASET}, {len(names)} classes)",
+        f"model     {classifier}",
+        f"{split + ' rows':<9} {len(gold)} ({DATASET}, {len(names)} classes)",
         f"accuracy  {accuracy_score(gold, preds):.4f}",
         f"macro F1  {f1_score(gold, preds, labels=ids, average='macro'):.4f}",
+        f"seconds   {statistics.median(seconds):.3g} (median per message, one message per call)",
         "recall",
     ]
     lines += [f"  {name:<{width}} {r:.4f}" for name, r in zip(names, recalls)]
@@ -77,7 +108,10 @@ def report(model_dir, texts, gold, preds, names):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--set", choices=list(CLASS_SETS), default="distinct")
+    ap.add_argument("--split", choices=["dev", "test"], default="test")
     ap.add_argument("--model", help="directory written by train.py")
+    ap.add_argument("--llm", metavar="MODEL", help="Ollama model to score in place of --model")
+    ap.add_argument("--prompt", choices=list(PROMPTS), help="required with --llm")
     ap.add_argument("--write-train", metavar="JSONL", help="export the restricted train split")
     args = ap.parse_args()
     names = list(CLASS_SETS[args.set])
@@ -89,15 +123,35 @@ def main():
             for text, label in zip(texts, labels):
                 f.write(json.dumps({"text": text, "label": names[label]}) + "\n")
         print(f"wrote {len(texts)} rows to {args.write_train}", file=sys.stderr)
-    if not args.model:
-        if not args.write_train:
-            ap.error("give --model, --write-train, or both")
-        return
+    if bool(args.model) + bool(args.llm) != 1:
+        if args.write_train and not args.model and not args.llm:
+            return
+        ap.error("give exactly one of --model and --llm, or --write-train alone")
+    if bool(args.llm) != bool(args.prompt):
+        ap.error("--llm and --prompt go together")
 
-    texts, gold = banking77("test", names)
-    text = report(args.model, texts, gold, predict(args.model, texts, names), names)
+    shots = None
+    if args.split == "dev":
+        texts, gold, shots = dev_and_shots(names)
+    else:
+        texts, gold = banking77("test", names)
+        if args.prompt == "fewshot":
+            _, _, shots = dev_and_shots(names)
+
+    if args.llm:
+        classifier = f"{args.llm} prompt {args.prompt}"
+        stem = f"{args.llm.replace(':', '-')}-{args.prompt}"
+        answers = classify(texts, args.set, args.llm, args.prompt, shots)
+        preds = [names.index(label) for label, _ in answers]
+        seconds = [s for _, s in answers]
+    else:
+        classifier = args.model
+        stem = os.path.basename(os.path.normpath(args.model))
+        preds, seconds = predict(args.model, texts, names)
+
+    text = report(classifier, args.split, gold, preds, seconds, names)
     sys.stdout.write(text)
-    out = os.path.join("results", args.set, os.path.basename(os.path.normpath(args.model)) + ".txt")
+    out = os.path.join("results", args.set, args.split, stem + ".txt")
     os.makedirs(os.path.dirname(out), exist_ok=True)
     with open(out, "w") as f:
         f.write(text)
