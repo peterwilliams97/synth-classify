@@ -9,9 +9,10 @@ A worked example, not a library: train an intent classifier on LLM-generated mes
 real Banking77, once per class set in `CLASS_SETS` (`classes.py`): `distinct`, 10 intents on
 unrelated topics, and `confusable`, 5 pairs of intents on the same topic. Local Ollama models
 prompted with the class list (`llm.py`) are scored beside the trained ones, and so is an mlx-lm
-copy of Gemma 4 E4B with and without a LoRA adapter (`finetune.py`). Six scripts and three results
-tables in `README.md`. All Python — the repository layout, file header and `test.sh` rules
-in `~/CLAUDE.md` do not apply here; its Python / ML environment section does.
+copy of Gemma 4 E4B with and without a LoRA adapter (`finetune.py`). Six scripts, and a
+`README.md` that answers four questions with one table each and keeps the three full tables (test,
+dev, training minutes) under All results. All Python — the repository layout, file header and
+`test.sh` rules in `~/CLAUDE.md` do not apply here; its Python / ML environment section does.
 
 ## Commands
 
@@ -46,7 +47,8 @@ differs on every run — a re-run that changes only `seconds` has reproduced the
 drops the parent directory: two model directories with one basename write the same report file.
 
 There is no test suite, linter or `test.sh`. The check on a change is the end-to-end run, compared
-against the test table in `README.md`, and for `llm.py` or `dev_and_shots` the dev table as well.
+against the test table under All results in `README.md`, and for `llm.py` or `dev_and_shots` the
+dev table as well.
 A change to `user_turn`, `MLX_PROMPT` or `classify_mlx` in `llm.py` means retraining the four
 adapters (about 50 minutes) before the mlx-lm rows can be compared.
 
@@ -83,7 +85,7 @@ in `refs/main`, which is the layout `HF_HUB_OFFLINE=1` loads from.
   train rows with `random.Random(0)` and takes the first `DEV_PER_CLASS` (20) as dev and the next
   `SHOTS_PER_CLASS` (3) as examples; test is the Banking77 test split. Changing the seed, either
   constant or the class order changes dev and the examples, and invalidates every `--llm` report
-  and both README tables' LLM rows.
+  and the LLM rows of the README's dev and test tables.
 - **An adapter is scored on the turn it was trained on.** `finetune.py` and `classify_mlx` in
   `llm.py` both build the user turn with `user_turn` and the `MLX_PROMPT` prompt (`definitions`);
   `score.py --mlx` takes no `--prompt`. `finetune.py` does not load the dataset either.
@@ -111,7 +113,7 @@ in `refs/main`, which is the layout `HF_HUB_OFFLINE=1` loads from.
   scores without error and the numbers are meaningless.
 - **Changing a `CLASS_SETS` entry invalidates everything downstream of that set**:
   `data/<set>/synthetic.jsonl`, the exported train split, every model under `models/<set>/`, every
-  file under `results/<set>/`, and that set's rows in both README tables. A definition is also
+  file under `results/<set>/`, and that set's rows in every README table. A definition is also
   part of the `definitions` and `fewshot` prompts. Class names must match
   `label_text` values in `mteb/banking77` exactly — `banking77` in `score.py` exits if a class has
   no rows.
@@ -147,3 +149,11 @@ Ollama 0.32.5, mlx 0.32.3 and mlx-lm 0.32.0, with `mlx-community/gemma-4-e4b-it-
 `results/<set>/train/*.txt` are the training minutes behind the README's training-minutes table.
 The `modernbert-*` ones name `xtmp/models/…` as the model: they are timing re-runs, and the models
 under `models/<set>/` that the test reports came from were not replaced.
+
+**The README states each number more than once.** Its four question sections — the headings,
+tables and sentences above Class sets — repeat numbers from the three tables under All results and
+from the reports: error counts, counts of errors inside a pair, largest confusion-matrix cells and
+invalid counts from `results/confusable/test/*.txt`, seconds as multiples of
+`results/<set>/test/modernbert-real.txt`, and the standard errors in the opening. A changed report
+means updating its All results row and every question section that cites it, in the same commit;
+a section heading is a claim taken from its table and changes with it.
