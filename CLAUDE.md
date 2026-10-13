@@ -8,9 +8,8 @@ repository.
 A worked example, not a library: train an intent classifier on LLM-generated messages, score it on
 real Banking77, once per class set in `CLASS_SETS` (`classes.py`): `distinct`, 10 intents on
 unrelated topics, and `confusable`, 5 pairs of intents on the same topic. Four scripts and a results
-table in `README.md`. Python, not Go — the Go rules in
-`~/CLAUDE.md` (layout, file headers, `test.sh`) do not apply here; its Python / ML environment
-section does.
+table in `README.md`. All Python — the repository layout, file header and `test.sh` rules in
+`~/CLAUDE.md` do not apply here; its Python / ML environment section does.
 
 ## Commands
 
