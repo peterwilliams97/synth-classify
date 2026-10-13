@@ -34,8 +34,13 @@ then `-<prompt>`. A ModernBERT fine-tune is about 3.5 minutes on MPS; the TF-IDF
 An LLM run is one Ollama request per message: about 0.5 s each for `gemma4:e4b` and 1.5–2.5 s for
 `qwen3.6:27b-q4_K_M`, so 400 test messages take 3 to 17 minutes.
 
+`score.py` overwrites the tracked report at that path. Its `model` line is the `--model` argument
+as typed, so pass `models/$S/<name>` with no `./` and no trailing slash, and its `seconds` line
+differs on every run — a re-run that changes only `seconds` has reproduced the report. `<name>`
+drops the parent directory: two model directories with one basename write the same report file.
+
 There is no test suite, linter or `test.sh`. The check on a change is the end-to-end run, compared
-against the table in `README.md`.
+against the test table in `README.md`, and for `llm.py` or `dev_and_shots` the dev table as well.
 
 ## Running inside the Claude Code sandbox
 
@@ -85,6 +90,13 @@ reachable from it.
   part of the `definitions` and `fewshot` prompts. Class names must match
   `label_text` values in `mteb/banking77` exactly — `banking77` in `score.py` exits if a class has
   no rows.
+- **`max_length=128` is written twice**, in `train_modernbert` (`train.py`) and in `predict`
+  (`score.py`). Change both or the model is scored on inputs truncated differently from the ones
+  it was trained on.
+- **Ollama is called through `/api/chat` with `urllib`, in two places**: `ask` in `generate.py`
+  and `classify` in `llm.py`. `requirements.txt` has no Ollama client. Both send `"think": False`
+  and a JSON schema as `format`; `classify`'s schema is an `enum` of the class names, which is
+  what restricts an answer to one class.
 - **A model directory is one of two shapes.** `train.py --tfidf` writes `tfidf.joblib`; without the
   flag it writes a `transformers` checkpoint. `score.py` picks the loader by whether
   `tfidf.joblib` exists.
@@ -99,8 +111,9 @@ reachable from it.
 restricted to `confusable`, 1284 and 400.
 
 `data/<set>/synthetic.jsonl` are the only tracked files under `data/`; they are the `gemma4:e4b`
-output the README table was computed from, and `results/<set>/<split>/*.txt` are the `score.py`
-reports behind each row of the dev and test tables. Regenerating a synthetic file changes the
-committed training set, so re-run and update the table in the same commit. `requirements.txt` is
+output the README test table's synthetic rows were computed from, and
+`results/<set>/<split>/*.txt` are the `score.py` reports behind each row of the dev and test
+tables. Regenerating a synthetic file changes the committed training set, so retrain, re-score and
+update the test table's synthetic rows in the same commit. `requirements.txt` is
 unpinned — the README numbers came from torch 2.14.1, transformers 5.19.0, datasets 5.1.0, and
 Ollama 0.32.5.
