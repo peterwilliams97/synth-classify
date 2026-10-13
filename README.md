@@ -55,13 +55,13 @@ for m in models/$S/*; do python score.py --set $S --model $m; done
 `confusable` is 5 pairs. Each intent's definition in `classes.py` states what separates it from the
 other intent in its pair:
 
-| Pair | What separates them |
-|---|---|
-| `card_arrival` / `card_delivery_estimate` | a card that is late or missing / a question about delivery time |
-| `declined_transfer` / `failed_transfer` | refused when attempted / sent, then failed |
+| Pair                                                   | What separates them |
+|--------------------------------------------------------|---------------------|
+| `card_arrival` / `card_delivery_estimate`              | a card that is late or missing / a question about delivery time |
+| `declined_transfer` / `failed_transfer`                | refused when attempted / sent, then failed |
 | `card_payment_wrong_exchange_rate` / `wrong_exchange_rate_for_cash_withdrawal` | a card purchase / an ATM withdrawal |
 | `getting_virtual_card` / `get_disposable_virtual_card` | the reusable virtual card / the single-use one |
-| `verify_my_identity` / `why_verify_identity` | how to verify / why it is required |
+| `verify_my_identity` / `why_verify_identity`           | how to verify / why it is required |
 
 ## Results
 
@@ -71,16 +71,16 @@ messages for the same classes (1188 for `distinct`, 1284 for `confusable`). One 
 5 epochs for ModernBERT; no hyperparameter was tuned against the test split. Each row's full report
 is `results/<class set>/<model>.txt`.
 
-| Class set | Model | Training set | Accuracy | Macro F1 |
-|---|---|---|---|---|
-| `distinct` | ModernBERT-base | synthetic (`gemma4:e4b`) | 0.9925 | 0.9925 |
-| `distinct` | ModernBERT-base | real Banking77 train | 0.9950 | 0.9950 |
-| `distinct` | TF-IDF + logistic regression | synthetic (`gemma4:e4b`) | 0.9373 | 0.9375 |
-| `distinct` | TF-IDF + logistic regression | real Banking77 train | 0.9875 | 0.9874 |
-| `confusable` | ModernBERT-base | synthetic (`gemma4:e4b`) | 0.8425 | 0.8413 |
-| `confusable` | ModernBERT-base | real Banking77 train | 0.9375 | 0.9376 |
+| Class set    | Model           | Training set                        | Accuracy | Macro F1 |
+|--------------|-----------------|---------------------------------------|--------|--------|
+| `distinct`   | ModernBERT-base | synthetic (`gemma4:e4b`)              | 0.9925 | 0.9925 |
+| `distinct`   | ModernBERT-base | real Banking77 train                  | 0.9950 | 0.9950 |
+| `distinct`   | TF-IDF + logistic regression | synthetic (`gemma4:e4b`) | 0.9373 | 0.9375 |
+| `distinct`   | TF-IDF + logistic regression | real Banking77 train     | 0.9875 | 0.9874 |
+| `confusable` | ModernBERT-base | synthetic (`gemma4:e4b`)              | 0.8425 | 0.8413 |
+| `confusable` | ModernBERT-base | real Banking77 train                  | 0.9375 | 0.9376 |
 | `confusable` | TF-IDF + logistic regression | synthetic (`gemma4:e4b`) | 0.7900 | 0.7849 |
-| `confusable` | TF-IDF + logistic regression | real Banking77 train | 0.9250 | 0.9251 |
+| `confusable` | TF-IDF + logistic regression | real Banking77 train     | 0.9250 | 0.9251 |
 
 On `confusable`, 54 of the synthetic-trained ModernBERT's 63 errors and 71 of the synthetic-trained
 TF-IDF model's 84 fall inside a pair. The largest single cell for both is `why_verify_identity`
