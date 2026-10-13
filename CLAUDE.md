@@ -10,8 +10,9 @@ real Banking77, once per class set in `CLASS_SETS` (`classes.py`): `distinct`, 1
 unrelated topics, and `confusable`, 5 pairs of intents on the same topic. Local Ollama models
 prompted with the class list (`llm.py`) are scored beside the trained ones, and so is an mlx-lm
 copy of Gemma 4 E4B with and without a LoRA adapter (`finetune.py`). Six scripts, and a
-`README.md` that answers four questions with one table each and keeps the three full tables (test,
-dev, training minutes) under All results. All Python — the repository layout, file header and
+`README.md` that lists the classifiers, states four findings, gives each finding a section with one
+`confusable`-only table, and keeps the three full tables (test, dev, training minutes) under All
+results. All Python — the repository layout, file header and
 `test.sh` rules in `~/CLAUDE.md` do not apply here; its Python / ML environment section does.
 
 ## Commands
@@ -150,10 +151,17 @@ Ollama 0.32.5, mlx 0.32.3 and mlx-lm 0.32.0, with `mlx-community/gemma-4-e4b-it-
 The `modernbert-*` ones name `xtmp/models/…` as the model: they are timing re-runs, and the models
 under `models/<set>/` that the test reports came from were not replaced.
 
-**The README states each number more than once.** Its four question sections — the headings,
-tables and sentences above Class sets — repeat numbers from the three tables under All results and
-from the reports: error counts, counts of errors inside a pair, largest confusion-matrix cells and
-invalid counts from `results/confusable/test/*.txt`, seconds as multiples of
-`results/<set>/test/modernbert-real.txt`, and the standard errors in the opening. A changed report
-means updating its All results row and every question section that cites it, in the same commit;
-a section heading is a claim taken from its table and changes with it.
+**The README states each number more than once.** Above Class sets it has Classifiers, Findings
+and four sections: LLM classifiers against the baselines, Classes that are close together, What
+raised an LLM classifier's accuracy, and Costs. Each of the four opens with its answer in one bold
+sentence, has one table of `confusable` rows with one value per cell, and at most three sentences
+under it; Findings repeats each answer in one line. Those lines, sentences and tables repeat
+numbers from the three tables under All results and from the reports: error counts, counts of
+errors inside a pair, largest confusion-matrix cells and invalid counts from
+`results/confusable/test/*.txt`, seconds as multiples of
+`results/confusable/test/modernbert-real.txt`, the `distinct` ranges in the first and last of the
+four sections, and the standard errors in the opening. The paragraphs under How it was measured
+repeat some too: the LoRA configuration, 340 of 366, and the macro F1 of the mlx-lm model with no
+adapter. A changed report means updating its All results row and every one of those places that
+cites it, in the same commit. Definitions and method detail go in Classifiers or How it was
+measured, not under a table.
