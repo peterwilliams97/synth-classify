@@ -1,10 +1,11 @@
 """CLASS_SETS holds the label sets every script in this repo selects from with `--set`. Each set is
-10 Banking77 intent names, each with the one-sentence definition that is the only description
+Banking77 intent names, each with the one-sentence definition that is the only description
 generate.py gives the LLM.
 
 `distinct` is 10 intents on unrelated topics. `confusable` is 5 pairs of intents on the same topic,
 listed pair by pair; each definition states what separates the intent from the other one in its
-pair."""
+pair. `pair` is one of those pairs, `verify_my_identity` and `why_verify_identity`, with the
+`confusable` definitions, for piloting synthetic-data generation methods on two classes."""
 
 CLASS_SETS = {
     "distinct": {
@@ -63,4 +64,8 @@ CLASS_SETS = {
             "they want the reason, not the steps."
         ),
     },
+}
+
+CLASS_SETS["pair"] = {
+    name: CLASS_SETS["confusable"][name] for name in ["verify_my_identity", "why_verify_identity"]
 }

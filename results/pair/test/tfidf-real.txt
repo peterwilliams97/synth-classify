@@ -1,0 +1,12 @@
+model     models/pair/tfidf-real
+test rows 80 (mteb/banking77, 2 classes)
+accuracy  0.9000
+macro F1  0.8997
+seconds   0.000165 (median per message, one message per call)
+recall
+  verify_my_identity  0.8500
+  why_verify_identity 0.9500
+confusion (row: true class, column: predicted class, numbered as the rows are)
+                           0   1
+   0 verify_my_identity   34   6
+   1 why_verify_identity   2  38

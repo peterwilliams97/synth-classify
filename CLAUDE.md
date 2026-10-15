@@ -7,7 +7,10 @@ repository.
 
 A worked example, not a library: train an intent classifier on LLM-generated messages, score it on
 real Banking77, once per class set in `CLASS_SETS` (`classes.py`): `distinct`, 10 intents on
-unrelated topics, and `confusable`, 5 pairs of intents on the same topic. Local Ollama models
+unrelated topics, and `confusable`, 5 pairs of intents on the same topic. A third, `pair`, is the
+`verify_my_identity` / `why_verify_identity` pair alone, a pilot for generation methods outside the
+README tables; its `data/pair/synthetic.jsonl` is written by `results/pair/filter.py` from
+`data/confusable/synthetic.jsonl`. Local Ollama models
 prompted with the class list (`llm.py`) are scored beside the trained ones, and so is an mlx-lm copy
 of Gemma 4 E4B with and without a LoRA adapter (`finetune.py`), the `convaiinnovations/laya`
 decision model zero-shot (`score.py --laya`), and logistic regression on frozen

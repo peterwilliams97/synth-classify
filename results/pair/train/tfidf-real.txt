@@ -1,0 +1,3 @@
+model     models/pair/tfidf-real
+train     data/pair/banking77_train.jsonl (225 rows)
+seconds   0.83 (base model load to save)

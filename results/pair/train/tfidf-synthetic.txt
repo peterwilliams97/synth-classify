@@ -1,0 +1,3 @@
+model     models/pair/tfidf-synthetic
+train     data/pair/synthetic.jsonl (200 rows)
+seconds   0.97 (base model load to save)

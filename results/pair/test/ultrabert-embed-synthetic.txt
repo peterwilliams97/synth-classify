@@ -1,0 +1,12 @@
+model     models/pair/ultrabert-embed-synthetic
+test rows 80 (mteb/banking77, 2 classes)
+accuracy  0.8250
+macro F1  0.8195
+seconds   0.0246 (median per message, one message per call)
+recall
+  verify_my_identity  1.0000
+  why_verify_identity 0.6500
+confusion (row: true class, column: predicted class, numbered as the rows are)
+                           0   1
+   0 verify_my_identity   40   0
+   1 why_verify_identity  14  26

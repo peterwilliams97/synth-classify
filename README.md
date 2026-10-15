@@ -4,7 +4,9 @@ Trained classifiers and local LLMs prompted with the class list are each scored 
 assigning a Banking77 customer message to one of 10 intents, on the Banking77 test split. That is
 done for two class sets in `CLASS_SETS`, chosen with `--set`: `distinct`, 10 intents on unrelated
 topics, and `confusable`, 5 pairs of intents on the same topic. The test split restricted to the
-class set is 399 messages for `distinct` and 400 for `confusable`, 39 or 40 per class.
+class set is 399 messages for `distinct` and 400 for `confusable`, 39 or 40 per class. A third set,
+`pair`, is the `verify_my_identity` / `why_verify_identity` pair of `confusable` alone, a pilot for
+generation methods; its reports are under `results/pair/` and no table below includes it.
 
 Every row below is one run with seed 0, and the binomial standard error √(p(1−p)/n) of the
 accuracies reported is 0.012 to 0.020 on `confusable` (5 to 8 messages of 400) and 0.003 to 0.012
@@ -332,8 +334,8 @@ adapter carries the whole prompt.
 
 ## Files
 
-- `classes.py` — `CLASS_SETS`: for each class set, the 10 intent names and their definitions,
-  shared by every script.
+- `classes.py` — `CLASS_SETS`: for each class set, the intent names and their definitions, shared
+  by every script.
 - `generate.py` — asks an Ollama model (`--model`, default `gemma4:e4b`) for 100 messages per class
   and writes `data/<set>/synthetic.jsonl` with fields `text`, `label`.
 - `train.py` — fine-tunes `answerdotai/ModernBERT-base` on a jsonl file (`--train`) and saves it to
