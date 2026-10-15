@@ -72,13 +72,14 @@ def predict(model_dir, texts, names):
     if os.path.exists(frozen):
         import joblib
 
-        from train import embed, load_embedder
+        from train import EMBED_PROMPT, NO_PROMPT, embed, load_embedder
 
         clf = joblib.load(frozen)
+        prompt = "" if os.path.exists(os.path.join(model_dir, NO_PROMPT)) else EMBED_PROMPT
         tok, model, device = load_embedder()
         for text in texts:
             start = time.perf_counter()
-            preds.append(clf.predict(embed([text], tok, model, device))[0])
+            preds.append(clf.predict(embed([text], prompt, tok, model, device))[0])
             seconds.append(time.perf_counter() - start)
         return preds, seconds
 

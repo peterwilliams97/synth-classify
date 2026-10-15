@@ -34,7 +34,9 @@ S=distinct   # or confusable; every script takes --set, default distinct
 .venv/bin/python score.py --set $S --mlx mlx-community/gemma-4-e4b-it-4bit --adapter models/$S/gemma-4-e4b-lora-synthetic
 ```
 
-The same three `train.py` lines with `data/$S/banking77_train.jsonl` give the real-data models.
+Adding `--no-prompt` to the `--embed` line, with `--out models/$S/ultrabert-embed-noprompt-synthetic`,
+gives the model without the instruction prefix. The same `train.py` lines with
+`data/$S/banking77_train.jsonl` give the real-data models.
 `score.py` prints its report and writes the same text to `results/$S/<split>/<name>.txt`, where
 `<name>` is the model directory name, or for `--llm` the Ollama model with `:` replaced by `-`, then
 `-<prompt>`, or for `--mlx` the adapter directory name, and without `--adapter` the last component
@@ -136,7 +138,9 @@ in `refs/main`, which is the layout `HF_HUB_OFFLINE=1` loads from.
   encoder is `EMBED_BASE` at `EMBED_REVISION` with `EMBED_PROMPT`, all in `train.py`, and
   `predict` imports `embed` and `load_embedder` from there, so changing any of the three means
   retraining every `--embed` model. The revision is pinned because the model's code runs with
-  `trust_remote_code`.
+  `trust_remote_code`. `--embed --no-prompt` also writes an empty `no-prompt` file (`NO_PROMPT`
+  in `train.py`), and `predict` embeds without `EMBED_PROMPT` when it is there; the
+  `ultrabert-embed-noprompt-*` models are these.
 - **Nothing is tuned on the test split.** `train.py` has no validation set and fixed defaults
   (5 epochs, lr 5e-5, batch 16, seed 0). Keep it that way, or the README numbers stop meaning what
   they say.

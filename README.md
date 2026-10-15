@@ -235,7 +235,9 @@ the 34 cut-off replies, which take several seconds each. Training minutes are th
 
 ### Test
 
-Each row's full report is `results/<class set>/test/<model>.txt`.
+Each row's full report is `results/<class set>/test/<model>.txt`. The "no prompt" rows
+(`ultrabert-embed-noprompt-*`) embed each message without MTEB's Banking77Classification
+instruction before it, to measure what that instruction adds to the UltraBERT-Embed-150M + LR rows.
 
 | Class set    | Model                | Training set or prompt   | Accuracy | Macro F1 | Seconds |
 |--------------|----------------------|--------------------------|----------|----------|---------|
@@ -245,6 +247,8 @@ Each row's full report is `results/<class set>/test/<model>.txt`.
 | `distinct`   | TF-IDF + logistic regression | real Banking77 train     | 0.9875 | 0.9874 | 0.00015 |
 | `distinct`   | UltraBERT-Embed-150M + LR | synthetic (`gemma4:e4b`) | 0.9925 | 0.9925 | 0.0112 |
 | `distinct`   | UltraBERT-Embed-150M + LR | real Banking77 train     | 0.9975 | 0.9975 | 0.0106 |
+| `distinct`   | UltraBERT-Embed-150M + LR, no prompt | synthetic (`gemma4:e4b`) | 0.9950 | 0.9950 | 0.0100 |
+| `distinct`   | UltraBERT-Embed-150M + LR, no prompt | real Banking77 train     | 0.9975 | 0.9975 | 0.0107 |
 | `distinct`   | `gemma4:e4b`         | `names` prompt           | 0.9825   | 0.9822   | 0.49    |
 | `distinct`   | `gemma4:e4b`         | `fewshot` prompt         | 0.9875   | 0.9874   | 0.44    |
 | `distinct`   | `qwen3.6:27b-q4_K_M` | `names` prompt           | 0.9900   | 0.9899   | 1.6     |
@@ -258,6 +262,8 @@ Each row's full report is `results/<class set>/test/<model>.txt`.
 | `confusable` | TF-IDF + logistic regression | real Banking77 train     | 0.9250 | 0.9251 | 0.00015 |
 | `confusable` | UltraBERT-Embed-150M + LR | synthetic (`gemma4:e4b`) | 0.8475 | 0.8456 | 0.0107 |
 | `confusable` | UltraBERT-Embed-150M + LR | real Banking77 train     | 0.9575 | 0.9576 | 0.0109 |
+| `confusable` | UltraBERT-Embed-150M + LR, no prompt | synthetic (`gemma4:e4b`) | 0.8275 | 0.8245 | 0.0100 |
+| `confusable` | UltraBERT-Embed-150M + LR, no prompt | real Banking77 train     | 0.9325 | 0.9326 | 0.0102 |
 | `confusable` | `gemma4:e4b`             | `definitions` prompt     | 0.9125   | 0.9126   | 0.63    |
 | `confusable` | `gemma4:e4b`             | `fewshot` prompt         | 0.9300   | 0.9302   | 0.47    |
 | `confusable` | `qwen3.6:27b-q4_K_M`     | `names` prompt           | 0.8775   | 0.8756   | 1.5     |
@@ -294,6 +300,8 @@ models were scored, and are mostly embedding the train set. A time under a minut
 | `distinct`   | TF-IDF + logistic regression | real Banking77 train     | 1188 | 0.60 s  |
 | `distinct`   | UltraBERT-Embed-150M + LR | synthetic (`gemma4:e4b`) | 1000 | 6.92 s  |
 | `distinct`   | UltraBERT-Embed-150M + LR | real Banking77 train     | 1188 | 6.40 s  |
+| `distinct`   | UltraBERT-Embed-150M + LR, no prompt | synthetic (`gemma4:e4b`) | 1000 | 5.19 s  |
+| `distinct`   | UltraBERT-Embed-150M + LR, no prompt | real Banking77 train     | 1188 | 6.86 s  |
 | `distinct`   | Gemma 4 E4B (MLX) + LoRA | synthetic (`gemma4:e4b`) | 1000 | 7.8     |
 | `distinct`   | Gemma 4 E4B (MLX) + LoRA | real Banking77 train     | 1188 | 9.1     |
 | `confusable` | ModernBERT-base          | synthetic (`gemma4:e4b`) | 1000 | 1.7     |
@@ -302,6 +310,8 @@ models were scored, and are mostly embedding the train set. A time under a minut
 | `confusable` | TF-IDF + logistic regression | real Banking77 train     | 1284 | 0.65 s  |
 | `confusable` | UltraBERT-Embed-150M + LR | synthetic (`gemma4:e4b`) | 1000 | 5.86 s  |
 | `confusable` | UltraBERT-Embed-150M + LR | real Banking77 train     | 1284 | 6.52 s  |
+| `confusable` | UltraBERT-Embed-150M + LR, no prompt | synthetic (`gemma4:e4b`) | 1000 | 4.60 s  |
+| `confusable` | UltraBERT-Embed-150M + LR, no prompt | real Banking77 train     | 1284 | 5.57 s  |
 | `confusable` | Gemma 4 E4B (MLX) + LoRA | synthetic (`gemma4:e4b`) | 1000 | 13.6    |
 | `confusable` | Gemma 4 E4B (MLX) + LoRA | real Banking77 train     | 1284 | 17.9    |
 
@@ -358,6 +368,8 @@ python train.py --set $S --train data/$S/synthetic.jsonl       --out models/$S/t
 python train.py --set $S --train data/$S/banking77_train.jsonl --out models/$S/tfidf-real      --tfidf
 python train.py --set $S --train data/$S/synthetic.jsonl       --out models/$S/ultrabert-embed-synthetic --embed
 python train.py --set $S --train data/$S/banking77_train.jsonl --out models/$S/ultrabert-embed-real      --embed
+python train.py --set $S --train data/$S/synthetic.jsonl       --out models/$S/ultrabert-embed-noprompt-synthetic --embed --no-prompt
+python train.py --set $S --train data/$S/banking77_train.jsonl --out models/$S/ultrabert-embed-noprompt-real      --embed --no-prompt
 
 for m in models/$S/*; do python score.py --set $S --model $m; done
 

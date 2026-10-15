@@ -1,7 +1,8 @@
 """train.py fits a classifier over the `CLASS_SETS` entry named by `--set` on a jsonl file of
 {text, label} rows and saves it to `--out`. The default is a fine-tune of
 answerdotai/ModernBERT-base; `--tfidf` fits the TF-IDF + logistic regression baseline instead, and
-`--embed` fits logistic regression on frozen `EMBED_BASE` embeddings. None looks at a test set:
+`--embed` fits logistic regression on frozen `EMBED_BASE` embeddings, of the message with
+`EMBED_PROMPT` before it or, with `--no-prompt`, of the message alone. None looks at a test set:
 epochs, learning rate and regularisation are fixed, so score.py's numbers are not tuned on what they
 measure."""
 
@@ -23,6 +24,9 @@ EMBED_REVISION = "367d5343b5a0164d57b810cedf5de4b8983d5984"
 # The model card wants a task instruction on the query side; this is MTEB's Banking77Classification
 # instruction, which names the domain and the task and no class.
 EMBED_PROMPT = "Instruct: Given a online banking query, find the corresponding intents\nQuery: "
+# NO_PROMPT is the file `train_embed` writes into a `--no-prompt` model directory; `predict` in
+# score.py embeds without `EMBED_PROMPT` when it is there.
+NO_PROMPT = "no-prompt"
 
 
 def read_jsonl(path, names):
@@ -87,15 +91,15 @@ def load_embedder():
     return tok, model.to(device).eval(), device
 
 
-def embed(texts, tok, model, device):
-    """embed returns one row per text: the final hidden state at position 0, `EMBED_PROMPT`
-    prepended, unnormalised. That is the model card's Sentence Transformers pipeline (CLS pooling,
-    prompt included, no Normalize module) without the sentence-transformers dependency. score.py's
-    `predict` calls it with one text at a time; train.py with a batch."""
+def embed(texts, prompt, tok, model, device):
+    """embed returns one row per text: the final hidden state at position 0, `prompt` prepended,
+    unnormalised. With `EMBED_PROMPT` that is the model card's Sentence Transformers pipeline (CLS
+    pooling, prompt included, no Normalize module) without the sentence-transformers dependency.
+    score.py's `predict` calls it with one text at a time; train.py with a batch."""
     import torch
 
     batch = tok(
-        [EMBED_PROMPT + t for t in texts],
+        [prompt + t for t in texts],
         padding=True,
         truncation=True,
         max_length=128,
@@ -105,18 +109,28 @@ def embed(texts, tok, model, device):
         return model(**batch).last_hidden_state[:, 0].float().cpu().numpy()
 
 
-def train_embed(texts, labels, out, batch_size):
+def train_embed(texts, labels, out, batch_size, prompt):
     """train_embed fits logistic regression on frozen embeddings; the encoder is not updated. C is
-    sklearn's default, as in MTEB's classification evaluator, and is not tuned."""
+    sklearn's default, as in MTEB's classification evaluator, and is not tuned. An empty `prompt`
+    writes `NO_PROMPT` beside the classifier, so the model is scored on the embeddings it was
+    trained on."""
     import joblib
     import numpy as np
     from sklearn.linear_model import LogisticRegression
 
     tok, model, device = load_embedder()
     starts = range(0, len(texts), batch_size)
-    x = np.concatenate([embed(texts[i : i + batch_size], tok, model, device) for i in starts])
+    x = np.concatenate(
+        [embed(texts[i : i + batch_size], prompt, tok, model, device) for i in starts]
+    )
     clf = LogisticRegression(max_iter=1000).fit(x, labels)
     joblib.dump(clf, os.path.join(out, "embed.joblib"))
+    marker = os.path.join(out, NO_PROMPT)
+    if prompt:
+        if os.path.exists(marker):
+            os.remove(marker)
+    else:
+        open(marker, "w").close()
 
 
 def train_modernbert(texts, labels, names, out, epochs, lr, batch_size):
@@ -175,6 +189,7 @@ def main():
     ap.add_argument("--set", choices=list(CLASS_SETS), default="distinct")
     ap.add_argument("--tfidf", action="store_true")
     ap.add_argument("--embed", action="store_true", help=f"frozen {EMBED_BASE} + logistic regression")
+    ap.add_argument("--no-prompt", action="store_true", help="--embed without EMBED_PROMPT")
     ap.add_argument("--epochs", type=int, default=5)
     ap.add_argument("--lr", type=float, default=5e-5)
     ap.add_argument("--batch-size", type=int, default=16)
@@ -182,6 +197,8 @@ def main():
     args = ap.parse_args()
     if args.tfidf and args.embed:
         ap.error("--tfidf and --embed are two different models; give one")
+    if args.no_prompt and not args.embed:
+        ap.error("--no-prompt applies to --embed only")
 
     names = list(CLASS_SETS[args.set])
     texts, labels = read_jsonl(args.train, names)
@@ -191,7 +208,8 @@ def main():
     if args.tfidf:
         train_tfidf(texts, labels, args.out)
     elif args.embed:
-        train_embed(texts, labels, args.out, args.batch_size)
+        prompt = "" if args.no_prompt else EMBED_PROMPT
+        train_embed(texts, labels, args.out, args.batch_size, prompt)
     else:
         import torch
 
