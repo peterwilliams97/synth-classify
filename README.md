@@ -12,7 +12,7 @@ on `distinct` (1 to 5 messages of 399).
 
 ## Classifiers
 
-Six kinds are scored. A **synthetic train set** is 1000 messages, 100 per class, that `gemma4:e4b`
+Seven kinds are scored. A **synthetic train set** is 1000 messages, 100 per class, that `gemma4:e4b`
 wrote from each class's name and definition in `CLASS_SETS`, never seeing Banking77. A **real train
 set** is the Banking77 train rows of the same classes: 1188 for `distinct`, 1284 for `confusable`.
 
@@ -31,6 +31,8 @@ set** is the Banking77 train rows of the same classes: 1188 for `distinct`, 1284
   invalid and counted as wrong.
 - **Gemma 4 E4B (MLX) + LoRA adapter** — the same model and prompt, with a LoRA adapter trained on
   a synthetic or a real train set.
+- **Laya** — `convaiinnovations/laya`, asked one `choice` question per message with the class
+  names as the options, not trained.
 
 ## Findings
 
@@ -271,11 +273,18 @@ instruction before it, to measure what that instruction adds to the UltraBERT-Em
 | `confusable` | Gemma 4 E4B (MLX)        | `definitions` prompt     | 0.8500   | 0.8858   | 0.258   |
 | `confusable` | Gemma 4 E4B (MLX) + LoRA | synthetic (`gemma4:e4b`) | 0.8500 | 0.8510 | 0.235   |
 | `confusable` | Gemma 4 E4B (MLX) + LoRA | real Banking77 train     | 0.8575 | 0.8513 | 0.235   |
+| `distinct`   | Laya                     | `names` prompt           | 0.9123   | 0.9139   | 0.0225  |
+| `confusable` | Laya                     | `names` prompt           | 0.7075   | 0.6750   | 0.0241  |
+
+On `confusable` Laya scores below TF-IDF + logistic regression trained on the synthetic set, 0.7075
+against 0.7900, so it has no rows in the four sections above All results. Of its answers whose top
+probability is above 0.9, 338 of 399 on `distinct` are 0.9734 accurate and 273 of 400 on
+`confusable` 0.7912.
 
 ### Prompts on dev
 
-Accuracy of each Ollama model with each prompt on the 200 dev messages; full reports are
-`results/<class set>/dev/<model>-<prompt>.txt`.
+Accuracy of each Ollama model and of Laya with each prompt on the 200 dev messages; full reports
+are `results/<class set>/dev/<model>-<prompt>.txt`. Laya takes no `fewshot` prompt.
 
 | Class set    | Model                | `names` | `definitions` | `fewshot` |
 |--------------|----------------------|---------|---------------|-----------|
@@ -283,6 +292,8 @@ Accuracy of each Ollama model with each prompt on the 200 dev messages; full rep
 | `distinct`   | `qwen3.6:27b-q4_K_M` | 0.9900  | 0.9900        | 1.0000    |
 | `confusable` | `gemma4:e4b`         | 0.8500  | 0.8750        | 0.9000    |
 | `confusable` | `qwen3.6:27b-q4_K_M` | 0.8650  | 0.8500        | 0.8950    |
+| `distinct`   | Laya                 | 0.8650  | 0.7600        | —         |
+| `confusable` | Laya                 | 0.6700  | 0.2950        | —         |
 
 ### Training minutes
 

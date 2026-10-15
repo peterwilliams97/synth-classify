@@ -109,7 +109,10 @@ in `refs/main`, which is the layout `HF_HUB_OFFLINE=1` loads from.
 - **Laya is asked one `choice` question per message**, built by `laya_question` (`llm.py`) from
   the `names` or `definitions` prompt; it takes no `fewshot`. `classify_laya` passes
   `LAYA_MAX_LEN` and `LAYA_HEAD_MAX_LEN`, under which no option is cut; changing either, or
-  `LAYA_REVISION`, invalidates every `laya-*` report.
+  `LAYA_REVISION`, invalidates every `laya-*` report. The package defaults, 512 and 192, cut each
+  `confusable` `definitions` option to 17 tokens. On dev the raised budgets gave 0.760 against
+  0.625 on `distinct` `definitions` and 0.295 against 0.530 on `confusable` `definitions`, from a
+  scratch run that wrote no report file.
 - **dev is drawn from the train split, so it scores only `--llm` classifiers.** The real-data
   models were trained on those rows; `--split dev --model` runs, and the number means nothing.
 - **Seconds per message are one message per call**, in `predict` (`score.py`) as in `classify`
