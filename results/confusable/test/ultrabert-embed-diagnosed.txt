@@ -2,7 +2,7 @@ model     models/confusable/ultrabert-embed-diagnosed
 test rows 400 (mteb/banking77, 10 classes)
 accuracy  0.9125
 macro F1  0.9134
-seconds   0.0217 (median per message, one message per call)
+seconds   0.0109 (median per message, one message per call)
 recall
   card_arrival                            0.7500
   card_delivery_estimate                  0.8000

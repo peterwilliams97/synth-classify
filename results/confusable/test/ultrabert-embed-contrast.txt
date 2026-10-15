@@ -2,7 +2,7 @@ model     models/confusable/ultrabert-embed-contrast
 test rows 400 (mteb/banking77, 10 classes)
 accuracy  0.8375
 macro F1  0.8353
-seconds   0.0245 (median per message, one message per call)
+seconds   0.0109 (median per message, one message per call)
 recall
   card_arrival                            0.8500
   card_delivery_estimate                  0.7250

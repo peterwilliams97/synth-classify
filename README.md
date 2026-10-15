@@ -6,7 +6,8 @@ done for two class sets in `CLASS_SETS`, chosen with `--set`: `distinct`, 10 int
 topics, and `confusable`, 5 pairs of intents on the same topic. The test split restricted to the
 class set is 399 messages for `distinct` and 400 for `confusable`, 39 or 40 per class. A third set,
 `pair`, is the `verify_my_identity` / `why_verify_identity` pair of `confusable` alone, a pilot for
-generation methods; its reports are under `results/pair/` and no table below includes it.
+generation methods that no table below includes. Its reports are under `results/pair/`, and the
+`contrast` method it piloted was superseded by the `confusable` diagnosed run.
 
 Every row below is one run with seed 0, and the binomial standard error √(p(1−p)/n) of the
 accuracies reported is 0.012 to 0.020 on `confusable` (5 to 8 messages of 400) and 0.003 to 0.012
@@ -17,12 +18,19 @@ on `distinct` (1 to 5 messages of 399).
 Seven kinds are scored. A **synthetic train set** is 1000 messages, 100 per class, that `gemma4:e4b`
 wrote from each class's name and definition in `CLASS_SETS`, never seeing Banking77. A **real train
 set** is the Banking77 train rows of the same classes: 1188 for `distinct`, 1284 for `confusable`.
+A **diagnosed train set**, `confusable` only, is 1000 messages from the same generator with the
+definition of the other class in the pair added to each request and, for the class in each pair
+that loses more of the 200 dev messages to the other in the confusion matrix of
+UltraBERT-Embed-150M + LR trained on the synthetic set, one note saying what that class's messages
+must cover. The
+generator is shown no dev or train text; the 200 dev labels enter only as counts in that matrix.
 
-- **TF-IDF + logistic regression** — a bag-of-words baseline, trained on a synthetic or a real
-  train set.
-- **ModernBERT-base** — an encoder fine-tuned on a synthetic or a real train set.
+- **TF-IDF + logistic regression** — a bag-of-words baseline, trained on a synthetic, diagnosed
+  or real train set.
+- **ModernBERT-base** — an encoder fine-tuned on a synthetic, diagnosed or real train set.
 - **UltraBERT-Embed-150M + logistic regression** — `dmis-lab/UltraBERT-Embed-150M` embeddings,
-  frozen, with logistic regression trained on them from a synthetic or a real train set; "+ LR" in
+  frozen, with logistic regression trained on them from a synthetic, diagnosed or real train set;
+  "+ LR" in
   the tables.
 - **An Ollama model with a prompt from `PROMPTS`** — `gemma4:e4b` or `qwen3.6:27b-q4_K_M`, not
   trained. The prompt is `names` (the class names), `definitions` (names and definitions) or
@@ -42,9 +50,11 @@ set** is the Banking77 train rows of the same classes: 1188 for `distinct`, 1284
   logistic regression on frozen UltraBERT-Embed-150M embeddings trained on real data makes 17
   errors of 400, ModernBERT trained on real data 25, the two `fewshot` prompts 27 and 28, and the
   other LLM classifiers 35 to 60.
-- [Classes that are close together](#classes-that-are-close-together): a classifier needed real
-  labelled examples, 1284 to train on or 30 in the prompt, to score above 0.92 on `confusable`; the
-  LoRA adapter trained on the real train set used 1284 and scored 0.8575.
+- [Classes that are close together](#classes-that-are-close-together): 200 real labels used as
+  counts took the classifiers trained on generated messages from 61 to 35 errors of 400
+  (UltraBERT-Embed-150M + LR), 63 to 53 (ModernBERT) and 84 to 83 (TF-IDF), against 17, 25 and 30
+  with 1284 to train on and 27 and 28 with 30 in the prompt; every classifier above 0.92 on
+  `confusable` had the 1284 or the 30.
 - [What raised an LLM classifier's accuracy](#what-raised-an-llm-classifiers-accuracy): restricting
   the reply to a class name (+25 messages of 400) and 3 real examples per class in the prompt (+7
   and +22); the 27B model and the LoRA adapters, one configuration with nothing tuned, added 0 to
@@ -60,10 +70,13 @@ data; every other LLM classifier makes at least 10 more.**
 | Classifier                       | Training set or prompt | Real labelled examples used | Accuracy | Errors of 400 |
 |----------------------------------|------------------------|-----------------------------|----------|---------------|
 | TF-IDF + logistic regression     | synthetic              | 0                           | 0.7900   | 84            |
+| TF-IDF + logistic regression     | diagnosed              | 200, as counts              | 0.7925   | 83            |
 | TF-IDF + logistic regression     | real                   | 1284                        | 0.9250   | 30            |
 | ModernBERT-base                  | synthetic              | 0                           | 0.8425   | 63            |
+| ModernBERT-base                  | diagnosed              | 200, as counts              | 0.8675   | 53            |
 | ModernBERT-base                  | real                   | 1284                        | 0.9375   | 25            |
 | UltraBERT-Embed-150M + LR        | synthetic              | 0                           | 0.8475   | 61            |
+| UltraBERT-Embed-150M + LR        | diagnosed              | 200, as counts              | 0.9125   | 35            |
 | UltraBERT-Embed-150M + LR        | real                   | 1284                        | 0.9575   | 17            |
 | `gemma4:e4b`                     | `definitions`          | 0                           | 0.9125   | 35            |
 | `gemma4:e4b`                     | `fewshot`              | 30                          | 0.9300   | 28            |
@@ -80,16 +93,20 @@ ModernBERT trained on real data.
 
 ## Classes that are close together
 
-**A classifier needed real labelled examples, 1284 to train on or 30 in the prompt, to score above
-0.92 on `confusable`.**
+**200 real labels used as counts took UltraBERT-Embed-150M + LR trained on generated messages from
+61 errors of 400 to 35, short of the 17 it makes with 1284 to train on and of the 27 and 28 of the
+two prompts with 30 in them; every classifier above 0.92 on `confusable` had the 1284 or the 30.**
 
 | Classifier                       | Training set or prompt | Real labelled examples used | Errors | Inside a pair | Most frequent error (true → predicted)        | Messages, of 40 |
 |----------------------------------|------------------------|-----------------------------|--------|---------------|-----------------------------------------------|-----------------|
 | TF-IDF + logistic regression     | synthetic              | 0                           | 84     | 71            | `why_verify_identity` → `verify_my_identity`  | 23              |
+| TF-IDF + logistic regression     | diagnosed              | 200, as counts              | 83     | 71            | `why_verify_identity` → `verify_my_identity`  | 24              |
 | TF-IDF + logistic regression     | real                   | 1284                        | 30     | 26            | `verify_my_identity` → `why_verify_identity`  | 7               |
 | ModernBERT-base                  | synthetic              | 0                           | 63     | 54            | `why_verify_identity` → `verify_my_identity`  | 15              |
+| ModernBERT-base                  | diagnosed              | 200, as counts              | 53     | 48            | `why_verify_identity` → `verify_my_identity`  | 14              |
 | ModernBERT-base                  | real                   | 1284                        | 25     | 24            | `card_arrival` → `card_delivery_estimate`     | 5               |
 | UltraBERT-Embed-150M + LR        | synthetic              | 0                           | 61     | 53            | `why_verify_identity` → `verify_my_identity`  | 13              |
+| UltraBERT-Embed-150M + LR        | diagnosed              | 200, as counts              | 35     | 31            | `card_arrival` → `card_delivery_estimate`     | 10              |
 | UltraBERT-Embed-150M + LR        | real                   | 1284                        | 17     | 15            | `declined_transfer` → `failed_transfer`       | 3               |
 | `gemma4:e4b`                     | `definitions`          | 0                           | 35     | 32            | `card_arrival` → `card_delivery_estimate`     | 13              |
 | `gemma4:e4b`                     | `fewshot`              | 30                          | 28     | 25            | `card_arrival` → `card_delivery_estimate`     | 7               |
@@ -105,7 +122,11 @@ The LoRA adapter trained on the real train
 set is the exception at 57. With no adapter, the 34 errors outside a pair are the invalid replies.
 56 of the real-trained adapter's 57 errors are inside a pair, 24 of them `declined_transfer`
 predicted as `failed_transfer`. The synthetic-trained adapter's 26 errors outside a pair are all
-predictions of `getting_virtual_card`.
+predictions of `getting_virtual_card`. From the synthetic set to the diagnosed one,
+UltraBERT-Embed-150M + LR's errors inside a pair went from 13 to 1 for the identity pair, 13 to 7
+for the transfers, 9 to 2 for the virtual cards and 5 to 3 for the exchange rates, and from 13 to
+18 for the card pair, where `card_arrival` → `card_delivery_estimate` rose from 4 to 10. The notes
+are one draft, written once and not revised after any score.
 
 ## What raised an LLM classifier's accuracy
 
@@ -123,6 +144,9 @@ by 0 to 3.**
 | `qwen3.6:27b-q4_K_M` in place of `gemma4:e4b`, `fewshot`                 | 0.9300 | 0.9325 | +1       | test, 400 |
 | LoRA adapter trained on the synthetic set, against no adapter            | 0.8500 | 0.8500 | 0        | test, 400 |
 | LoRA adapter trained on the real train set, against no adapter           | 0.8500 | 0.8575 | +3       | test, 400 |
+| Diagnosed train set in place of synthetic, TF-IDF + logistic regression  | 0.7900 | 0.7925 | +1       | test, 400 |
+| Diagnosed train set in place of synthetic, ModernBERT-base               | 0.8425 | 0.8675 | +10      | test, 400 |
+| Diagnosed train set in place of synthetic, UltraBERT-Embed-150M + LR     | 0.8475 | 0.9125 | +26      | test, 400 |
 
 The first row changes the runtime and the quantisation as well as the reply rule, and the mlx-lm
 model is right on 340 of the 366 messages it answered with a class name. The two dev rows are
@@ -138,10 +162,13 @@ LoRA adapter 13.6 to 17.9 training minutes against ModernBERT's 1.7 to 2.0.**
 | Classifier                       | Training set or prompt | Training minutes | Seconds per message | × ModernBERT |
 |----------------------------------|------------------------|------------------|---------------------|--------------|
 | TF-IDF + logistic regression     | synthetic              | 0.71 s           | 0.00015             | 0.02         |
+| TF-IDF + logistic regression     | diagnosed              | 0.85 s           | 0.00016             | 0.02         |
 | TF-IDF + logistic regression     | real                   | 0.65 s           | 0.00015             | 0.02         |
 | ModernBERT-base                  | synthetic              | 1.7              | 0.0073              | 1            |
+| ModernBERT-base                  | diagnosed              | 1.8              | 0.0077              | 1.0          |
 | ModernBERT-base                  | real                   | 2.0              | 0.0073              | 1            |
 | UltraBERT-Embed-150M + LR        | synthetic              | 5.86 s           | 0.0107              | 1.5          |
+| UltraBERT-Embed-150M + LR        | diagnosed              | 5.50 s           | 0.0109              | 1.5          |
 | UltraBERT-Embed-150M + LR        | real                   | 6.52 s           | 0.0109              | 1.5          |
 | `gemma4:e4b`                     | `definitions`          | none             | 0.63                | 85           |
 | `gemma4:e4b`                     | `fewshot`              | none             | 0.47                | 63           |
@@ -180,10 +207,22 @@ name and its one-sentence definition from `CLASS_SETS` and never any Banking77 t
 messages are `data/<set>/synthetic.jsonl`. The real train set is the Banking77 train split
 restricted to the class set: 1188 messages for `distinct`, 1284 for `confusable`.
 
+**The diagnosed notes.** `generate.py --method diagnosed` sends the synthetic set's request plus
+the other class's definition, under "Do not write messages with this other intent", and for one
+class in each `confusable` pair a note from `DIAGNOSED_NOTES` in `generate.py`. That class is the
+one losing more of its 20 dev messages to the other in
+`results/confusable/dev/ultrabert-embed-synthetic.txt`, UltraBERT-Embed-150M + LR trained on the
+synthetic set; the comment above each note gives the two dev cells it came from. Each note was
+written from those counts and that class's rows in `data/confusable/synthetic.jsonl`, not from any
+Banking77 message, names the kind of message those rows lack, and asks the model to avoid no words.
+The requests are `data/confusable/synthetic-diagnosed.prompt.txt`, the 1000 messages
+`data/confusable/synthetic-diagnosed.jsonl`.
+
 **dev and test.** Test is the Banking77 test split restricted to the class set. dev is 200 messages
 per class set: 20 per class sampled with a fixed seed from the Banking77 train split. The 3 examples
 per class in a `fewshot` prompt, 30 in all, are train messages outside dev. dev scores only the
-Ollama and mlx-lm models and Laya; the classifiers trained on the real train set saw those rows.
+Ollama and mlx-lm models, Laya, and UltraBERT-Embed-150M + LR trained on the synthetic set, for the
+diagnosed notes; the classifiers trained on the real train set saw those rows.
 
 **How prompts were chosen.** Each Ollama model was run on dev with every prompt in `PROMPTS`. Test
 was run with `fewshot` and with whichever of `names` and `definitions` scored higher on dev. On
@@ -261,10 +300,15 @@ instruction before it, to measure what that instruction adds to the UltraBERT-Em
 | `distinct`   | Gemma 4 E4B (MLX) + LoRA | synthetic (`gemma4:e4b`) | 0.9950 | 0.9950 | 0.163   |
 | `distinct`   | Gemma 4 E4B (MLX) + LoRA | real Banking77 train     | 0.9950 | 0.9950 | 0.167   |
 | `confusable` | ModernBERT-base      | synthetic (`gemma4:e4b`) | 0.8425   | 0.8413   | 0.0073  |
+| `confusable` | ModernBERT-base      | diagnosed (`gemma4:e4b`) | 0.8675   | 0.8674   | 0.0077  |
 | `confusable` | ModernBERT-base      | real Banking77 train     | 0.9375   | 0.9376   | 0.0073  |
 | `confusable` | TF-IDF + logistic regression | synthetic (`gemma4:e4b`) | 0.7900 | 0.7849 | 0.00015 |
+| `confusable` | TF-IDF + logistic regression | diagnosed (`gemma4:e4b`) | 0.7925 | 0.7887 | 0.00016 |
+| `confusable` | TF-IDF + logistic regression | contrast (`gemma4:e4b`)  | 0.6825 | 0.6681 | 0.00015 |
 | `confusable` | TF-IDF + logistic regression | real Banking77 train     | 0.9250 | 0.9251 | 0.00015 |
 | `confusable` | UltraBERT-Embed-150M + LR | synthetic (`gemma4:e4b`) | 0.8475 | 0.8456 | 0.0107 |
+| `confusable` | UltraBERT-Embed-150M + LR | diagnosed (`gemma4:e4b`) | 0.9125 | 0.9134 | 0.0109 |
+| `confusable` | UltraBERT-Embed-150M + LR | contrast (`gemma4:e4b`)  | 0.8375 | 0.8353 | 0.0109 |
 | `confusable` | UltraBERT-Embed-150M + LR | real Banking77 train     | 0.9575 | 0.9576 | 0.0109 |
 | `confusable` | UltraBERT-Embed-150M + LR, no prompt | synthetic (`gemma4:e4b`) | 0.8275 | 0.8245 | 0.0100 |
 | `confusable` | UltraBERT-Embed-150M + LR, no prompt | real Banking77 train     | 0.9325 | 0.9326 | 0.0102 |
@@ -283,6 +327,11 @@ against 0.7900, so it has no rows in the four sections above All results. Of its
 probability is above 0.9, 338 of 399 on `distinct` are 0.9734 accurate and 273 of 400 on
 `confusable` 0.7912.
 
+The contrast rows are `generate.py --method contrast`, which shows both definitions in a pair and
+asks for at least half the messages to avoid the words of the class name; that rule made both
+classifiers worse than the synthetic set, 84 to 127 errors of 400 for TF-IDF and 61 to 65 for
+UltraBERT-Embed-150M + LR, so they have no rows in the four sections above All results.
+
 ### Prompts on dev
 
 Accuracy of each Ollama model and of Laya with each prompt on the 200 dev messages; full reports
@@ -300,10 +349,11 @@ are `results/<class set>/dev/<model>-<prompt>.txt`. Laya takes no `fewshot` prom
 ### Training minutes
 
 Wall time of one `train.py` or `finetune.py` run on the same M5 Pro, from loading the base model to
-saving, with nothing else on the GPU; files are `results/<class set>/train/<model>.txt`. The
-ModernBERT and TF-IDF times are from re-running the training commands into a scratch directory; the
-models scored in the test table were not replaced. The UltraBERT-Embed-150M times are the runs whose
-models were scored, and are mostly embedding the train set. A time under a minute is in seconds.
+saving, with nothing else on the GPU; files are `results/<class set>/train/<model>.txt`. A file
+whose `model` line is under `xtmp/` is a re-run of the training command into a scratch directory,
+and the model scored in the test table was not replaced; one under `models/` is the run whose model
+was scored. The UltraBERT-Embed-150M times are mostly embedding the train set. A time under a
+minute is in seconds.
 
 | Class set    | Model                    | Training set             | Rows | Minutes |
 |--------------|--------------------------|--------------------------|------|---------|
@@ -318,10 +368,13 @@ models were scored, and are mostly embedding the train set. A time under a minut
 | `distinct`   | Gemma 4 E4B (MLX) + LoRA | synthetic (`gemma4:e4b`) | 1000 | 7.8     |
 | `distinct`   | Gemma 4 E4B (MLX) + LoRA | real Banking77 train     | 1188 | 9.1     |
 | `confusable` | ModernBERT-base          | synthetic (`gemma4:e4b`) | 1000 | 1.7     |
+| `confusable` | ModernBERT-base          | diagnosed (`gemma4:e4b`) | 1000 | 1.8     |
 | `confusable` | ModernBERT-base          | real Banking77 train     | 1284 | 2.0     |
 | `confusable` | TF-IDF + logistic regression | synthetic (`gemma4:e4b`) | 1000 | 0.71 s  |
+| `confusable` | TF-IDF + logistic regression | diagnosed (`gemma4:e4b`) | 1000 | 0.85 s  |
 | `confusable` | TF-IDF + logistic regression | real Banking77 train     | 1284 | 0.65 s  |
 | `confusable` | UltraBERT-Embed-150M + LR | synthetic (`gemma4:e4b`) | 1000 | 5.86 s  |
+| `confusable` | UltraBERT-Embed-150M + LR | diagnosed (`gemma4:e4b`) | 1000 | 5.50 s  |
 | `confusable` | UltraBERT-Embed-150M + LR | real Banking77 train     | 1284 | 6.52 s  |
 | `confusable` | UltraBERT-Embed-150M + LR, no prompt | synthetic (`gemma4:e4b`) | 1000 | 4.60 s  |
 | `confusable` | UltraBERT-Embed-150M + LR, no prompt | real Banking77 train     | 1284 | 5.57 s  |
@@ -337,7 +390,8 @@ adapter carries the whole prompt.
 - `classes.py` — `CLASS_SETS`: for each class set, the intent names and their definitions, shared
   by every script.
 - `generate.py` — asks an Ollama model (`--model`, default `gemma4:e4b`) for 100 messages per class
-  and writes `data/<set>/synthetic.jsonl` with fields `text`, `label`.
+  and writes `data/<set>/synthetic.jsonl` with fields `text`, `label`; `--method contrast` or
+  `diagnosed` changes the request and writes `synthetic-<method>.jsonl`.
 - `train.py` — fine-tunes `answerdotai/ModernBERT-base` on a jsonl file (`--train`) and saves it to
   `--out`; runs on Apple MPS. `--tfidf` fits the TF-IDF + logistic regression baseline instead, and
   `--embed` logistic regression on frozen `dmis-lab/UltraBERT-Embed-150M` embeddings.
