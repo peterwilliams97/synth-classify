@@ -5,7 +5,7 @@ Banking77 text, or the synthetic-vs-real comparison is void.
 
 `--method` picks the request: `plain` (`plain_prompt`) gives one class's name and definition;
 `contrast` (`contrast_prompt`) gives the class and the other one in its pair, for a set listed pair
-by pair, writes data/<set>/synthetic-contrast.jsonl, and writes every distinct request text beside
+by pair (`confusable`, `pair`), writes data/<set>/synthetic-contrast.jsonl, and writes every distinct request text beside
 it as synthetic-contrast.prompt.txt."""
 
 import argparse
@@ -37,24 +37,28 @@ SCHEMA = {
 }
 
 
-# CONTRAST_NOTES is what `contrast_prompt` adds for a class, keyed by class name: the ways a
-# message of that class can be told from the other one in its pair. A class with no entry gets none.
+# CONTRAST_NOTES is what `contrast_prompt` adds for a class, keyed by class set and then class name:
+# the ways a message of that class can be told from the other one in its pair. Only `pair` has
+# notes; `confusable` gets the general prompt alone, so its other four pairs are not shaped by
+# anything written for the identity pair.
 CONTRAST_NOTES = {
-    "why_verify_identity": (
-        'At least half of the messages must not contain the words "why", "reason", "purpose", '
-        '"rationale" or "explain". Those messages should question whether verification is needed, '
-        "complain about it, or ask what happens without it."
-    ),
-    "verify_my_identity": (
-        "A message may mention that verification was asked for, but it asks only how to do it, "
-        "what to submit, or where the customer is in the process."
-    ),
+    "pair": {
+        "why_verify_identity": (
+            "The messages without those words should question whether verification is needed, "
+            "complain about it, or ask what happens without it."
+        ),
+        "verify_my_identity": (
+            "A message may mention that verification was asked for, but it asks only how to do it, "
+            "what to submit, or where the customer is in the process."
+        ),
+    },
 }
 
 
-def plain_prompt(classes, name, style):
-    """plain_prompt asks for messages of class `name` given only its name, definition and
-    `style`."""
+def plain_prompt(class_set, name, style):
+    """plain_prompt asks for messages of class `name` of `CLASS_SETS[class_set]` given only its
+    name, definition and `style`."""
+    classes = CLASS_SETS[class_set]
     return (
         f"Write {BATCH} different messages that customers of a banking app might send to "
         f"customer support.\n"
@@ -64,13 +68,16 @@ def plain_prompt(classes, name, style):
     )
 
 
-def contrast_prompt(classes, name, style):
+def contrast_prompt(class_set, name, style):
     """contrast_prompt asks for messages of class `name` that could not be read as the other class
-    in its pair, showing both definitions. `classes` is listed pair by pair, as `confusable` and
-    `pair` are, so the other class is the neighbour at index `i ^ 1`."""
+    in its pair, showing both definitions, and for at least half of them to avoid the words that
+    signal the class most obviously, the words of its name among them."""
+    classes = CLASS_SETS[class_set]
     names = list(classes)
+    # Assumes the set lists its classes pair by pair, as `confusable` and `pair` do, so the other
+    # class in a pair is the neighbour at index `i ^ 1`.
     other = names[names.index(name) ^ 1]
-    note = CONTRAST_NOTES.get(name, "")
+    note = CONTRAST_NOTES.get(class_set, {}).get(name, "")
     return (
         f"Write {BATCH} different messages that customers of a banking app might send to "
         f"customer support.\n"
@@ -79,6 +86,8 @@ def contrast_prompt(classes, name, style):
         f"- {other}: {classes[other]}\n"
         f"Every message has the intent {name}. Each message must belong to {name} and could not be "
         f"read as {other}.\n"
+        f"At least half of the messages must express the intent without the words that most "
+        f"obviously signal it, in particular the words that make up the name {name}.\n"
         + (f"{note}\n" if note else "")
         + f"Vary the length from 4 to 30 words.\n"
         f"Style for this batch: {style}.\n"
@@ -125,16 +134,15 @@ def main():
         ap.error("--method contrast needs a set listed pair by pair; distinct is not")
     suffix = "" if args.method == "plain" else f"-{args.method}"
     out = args.out or f"data/{args.set}/synthetic{suffix}.jsonl"
-    classes = CLASS_SETS[args.set]
 
     rows, prompts = [], {}
-    for name in classes:
+    for name in CLASS_SETS[args.set]:
         seen = {}  # lowercased text -> text, so near-identical repeats are dropped
         for attempt in range(4 * args.per_class // BATCH):
             if len(seen) >= args.per_class:
                 break
             style = STYLES[attempt % len(STYLES)]
-            prompt = METHODS[args.method](classes, name, style)
+            prompt = METHODS[args.method](args.set, name, style)
             prompts.setdefault(prompt)
             for text in ask(args.url, args.model, prompt, seed=attempt):
                 seen.setdefault(text.lower(), text)

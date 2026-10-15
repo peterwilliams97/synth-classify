@@ -1,0 +1,3 @@
+model     models/confusable/ultrabert-embed-contrast
+train     data/confusable/synthetic-contrast.jsonl (1000 rows)
+seconds   7.52 (base model load to save)
