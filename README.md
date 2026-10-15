@@ -144,9 +144,6 @@ by 0 to 3.**
 | `qwen3.6:27b-q4_K_M` in place of `gemma4:e4b`, `fewshot`                 | 0.9300 | 0.9325 | +1       | test, 400 |
 | LoRA adapter trained on the synthetic set, against no adapter            | 0.8500 | 0.8500 | 0        | test, 400 |
 | LoRA adapter trained on the real train set, against no adapter           | 0.8500 | 0.8575 | +3       | test, 400 |
-| Diagnosed train set in place of synthetic, TF-IDF + logistic regression  | 0.7900 | 0.7925 | +1       | test, 400 |
-| Diagnosed train set in place of synthetic, ModernBERT-base               | 0.8425 | 0.8675 | +10      | test, 400 |
-| Diagnosed train set in place of synthetic, UltraBERT-Embed-150M + LR     | 0.8475 | 0.9125 | +26      | test, 400 |
 
 The first row changes the runtime and the quantisation as well as the reply rule, and the mlx-lm
 model is right on 340 of the 366 messages it answered with a class name. The two dev rows are
@@ -429,6 +426,10 @@ source .venv/bin/activate
 S=distinct   # or confusable
 
 python generate.py --set $S                           # needs `ollama serve`
+python generate.py --set confusable --method diagnosed   # confusable only
+python train.py --set confusable --train data/confusable/synthetic-diagnosed.jsonl --out models/confusable/modernbert-diagnosed
+python train.py --set confusable --train data/confusable/synthetic-diagnosed.jsonl --out models/confusable/tfidf-diagnosed --tfidf
+python train.py --set confusable --train data/confusable/synthetic-diagnosed.jsonl --out models/confusable/ultrabert-embed-diagnosed --embed
 python score.py --set $S --write-train data/$S/banking77_train.jsonl
 
 python train.py --set $S --train data/$S/synthetic.jsonl       --out models/$S/modernbert-synthetic
