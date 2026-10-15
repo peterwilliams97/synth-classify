@@ -165,7 +165,8 @@ in `refs/main`, which is the layout `HF_HUB_OFFLINE=1` loads from.
 `datasets` 5.x refuses those. Restricted to `distinct` it is 1188 train and 399 test rows;
 restricted to `confusable`, 1284 and 400.
 
-`data/<set>/synthetic.jsonl` are the only tracked files under `data/`; they are the `gemma4:e4b`
+`data/<set>/synthetic.jsonl` are the only tracked files under `data/` besides `pair`'s
+`synthetic-<method>.jsonl` and `.prompt.txt` from `generate.py --method`; they are the `gemma4:e4b`
 output the README test table's synthetic rows were computed from, and
 `results/<set>/<split>/*.txt` are the `score.py` reports behind each row of the dev and test
 tables. Regenerating a synthetic file changes the committed training set, so retrain, re-score and

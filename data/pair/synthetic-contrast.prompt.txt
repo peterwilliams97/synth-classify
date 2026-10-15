@@ -1,0 +1,129 @@
+Write 20 different messages that customers of a banking app might send to customer support.
+These two intents are easy to confuse:
+- verify_my_identity: The customer asks how to verify their identity or what documents and steps are needed — they accept that it must be done and want to know how, not why.
+- why_verify_identity: The customer asks why they have to verify their identity at all, or objects to being asked — they want the reason, not the steps.
+Every message has the intent verify_my_identity. Each message must belong to verify_my_identity and could not be read as why_verify_identity.
+A message may mention that verification was asked for, but it asks only how to do it, what to submit, or where the customer is in the process.
+Vary the length from 4 to 30 words.
+Style for this batch: short and blunt, a few words to one sentence.
+Vary the wording and situation. One message per array item, no numbering.
+
+----
+
+Write 20 different messages that customers of a banking app might send to customer support.
+These two intents are easy to confuse:
+- verify_my_identity: The customer asks how to verify their identity or what documents and steps are needed — they accept that it must be done and want to know how, not why.
+- why_verify_identity: The customer asks why they have to verify their identity at all, or objects to being asked — they want the reason, not the steps.
+Every message has the intent verify_my_identity. Each message must belong to verify_my_identity and could not be read as why_verify_identity.
+A message may mention that verification was asked for, but it asks only how to do it, what to submit, or where the customer is in the process.
+Vary the length from 4 to 30 words.
+Style for this batch: polite and complete sentences.
+Vary the wording and situation. One message per array item, no numbering.
+
+----
+
+Write 20 different messages that customers of a banking app might send to customer support.
+These two intents are easy to confuse:
+- verify_my_identity: The customer asks how to verify their identity or what documents and steps are needed — they accept that it must be done and want to know how, not why.
+- why_verify_identity: The customer asks why they have to verify their identity at all, or objects to being asked — they want the reason, not the steps.
+Every message has the intent verify_my_identity. Each message must belong to verify_my_identity and could not be read as why_verify_identity.
+A message may mention that verification was asked for, but it asks only how to do it, what to submit, or where the customer is in the process.
+Vary the length from 4 to 30 words.
+Style for this batch: casual, lowercase, the way people type on a phone.
+Vary the wording and situation. One message per array item, no numbering.
+
+----
+
+Write 20 different messages that customers of a banking app might send to customer support.
+These two intents are easy to confuse:
+- verify_my_identity: The customer asks how to verify their identity or what documents and steps are needed — they accept that it must be done and want to know how, not why.
+- why_verify_identity: The customer asks why they have to verify their identity at all, or objects to being asked — they want the reason, not the steps.
+Every message has the intent verify_my_identity. Each message must belong to verify_my_identity and could not be read as why_verify_identity.
+A message may mention that verification was asked for, but it asks only how to do it, what to submit, or where the customer is in the process.
+Vary the length from 4 to 30 words.
+Style for this batch: phrased as direct questions.
+Vary the wording and situation. One message per array item, no numbering.
+
+----
+
+Write 20 different messages that customers of a banking app might send to customer support.
+These two intents are easy to confuse:
+- verify_my_identity: The customer asks how to verify their identity or what documents and steps are needed — they accept that it must be done and want to know how, not why.
+- why_verify_identity: The customer asks why they have to verify their identity at all, or objects to being asked — they want the reason, not the steps.
+Every message has the intent verify_my_identity. Each message must belong to verify_my_identity and could not be read as why_verify_identity.
+A message may mention that verification was asked for, but it asks only how to do it, what to submit, or where the customer is in the process.
+Vary the length from 4 to 30 words.
+Style for this batch: frustrated or worried in tone.
+Vary the wording and situation. One message per array item, no numbering.
+
+----
+
+Write 20 different messages that customers of a banking app might send to customer support.
+These two intents are easy to confuse:
+- verify_my_identity: The customer asks how to verify their identity or what documents and steps are needed — they accept that it must be done and want to know how, not why.
+- why_verify_identity: The customer asks why they have to verify their identity at all, or objects to being asked — they want the reason, not the steps.
+Every message has the intent verify_my_identity. Each message must belong to verify_my_identity and could not be read as why_verify_identity.
+A message may mention that verification was asked for, but it asks only how to do it, what to submit, or where the customer is in the process.
+Vary the length from 4 to 30 words.
+Style for this batch: a little rambling, with some background before the point.
+Vary the wording and situation. One message per array item, no numbering.
+
+----
+
+Write 20 different messages that customers of a banking app might send to customer support.
+These two intents are easy to confuse:
+- why_verify_identity: The customer asks why they have to verify their identity at all, or objects to being asked — they want the reason, not the steps.
+- verify_my_identity: The customer asks how to verify their identity or what documents and steps are needed — they accept that it must be done and want to know how, not why.
+Every message has the intent why_verify_identity. Each message must belong to why_verify_identity and could not be read as verify_my_identity.
+At least half of the messages must not contain the words "why", "reason", "purpose", "rationale" or "explain". Those messages should question whether verification is needed, complain about it, or ask what happens without it.
+Vary the length from 4 to 30 words.
+Style for this batch: short and blunt, a few words to one sentence.
+Vary the wording and situation. One message per array item, no numbering.
+
+----
+
+Write 20 different messages that customers of a banking app might send to customer support.
+These two intents are easy to confuse:
+- why_verify_identity: The customer asks why they have to verify their identity at all, or objects to being asked — they want the reason, not the steps.
+- verify_my_identity: The customer asks how to verify their identity or what documents and steps are needed — they accept that it must be done and want to know how, not why.
+Every message has the intent why_verify_identity. Each message must belong to why_verify_identity and could not be read as verify_my_identity.
+At least half of the messages must not contain the words "why", "reason", "purpose", "rationale" or "explain". Those messages should question whether verification is needed, complain about it, or ask what happens without it.
+Vary the length from 4 to 30 words.
+Style for this batch: polite and complete sentences.
+Vary the wording and situation. One message per array item, no numbering.
+
+----
+
+Write 20 different messages that customers of a banking app might send to customer support.
+These two intents are easy to confuse:
+- why_verify_identity: The customer asks why they have to verify their identity at all, or objects to being asked — they want the reason, not the steps.
+- verify_my_identity: The customer asks how to verify their identity or what documents and steps are needed — they accept that it must be done and want to know how, not why.
+Every message has the intent why_verify_identity. Each message must belong to why_verify_identity and could not be read as verify_my_identity.
+At least half of the messages must not contain the words "why", "reason", "purpose", "rationale" or "explain". Those messages should question whether verification is needed, complain about it, or ask what happens without it.
+Vary the length from 4 to 30 words.
+Style for this batch: casual, lowercase, the way people type on a phone.
+Vary the wording and situation. One message per array item, no numbering.
+
+----
+
+Write 20 different messages that customers of a banking app might send to customer support.
+These two intents are easy to confuse:
+- why_verify_identity: The customer asks why they have to verify their identity at all, or objects to being asked — they want the reason, not the steps.
+- verify_my_identity: The customer asks how to verify their identity or what documents and steps are needed — they accept that it must be done and want to know how, not why.
+Every message has the intent why_verify_identity. Each message must belong to why_verify_identity and could not be read as verify_my_identity.
+At least half of the messages must not contain the words "why", "reason", "purpose", "rationale" or "explain". Those messages should question whether verification is needed, complain about it, or ask what happens without it.
+Vary the length from 4 to 30 words.
+Style for this batch: phrased as direct questions.
+Vary the wording and situation. One message per array item, no numbering.
+
+----
+
+Write 20 different messages that customers of a banking app might send to customer support.
+These two intents are easy to confuse:
+- why_verify_identity: The customer asks why they have to verify their identity at all, or objects to being asked — they want the reason, not the steps.
+- verify_my_identity: The customer asks how to verify their identity or what documents and steps are needed — they accept that it must be done and want to know how, not why.
+Every message has the intent why_verify_identity. Each message must belong to why_verify_identity and could not be read as verify_my_identity.
+At least half of the messages must not contain the words "why", "reason", "purpose", "rationale" or "explain". Those messages should question whether verification is needed, complain about it, or ask what happens without it.
+Vary the length from 4 to 30 words.
+Style for this batch: frustrated or worried in tone.
+Vary the wording and situation. One message per array item, no numbering.

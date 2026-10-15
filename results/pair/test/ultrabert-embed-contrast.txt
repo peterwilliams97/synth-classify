@@ -1,0 +1,12 @@
+model     models/pair/ultrabert-embed-contrast
+test rows 80 (mteb/banking77, 2 classes)
+accuracy  0.9375
+macro F1  0.9373
+seconds   0.0101 (median per message, one message per call)
+recall
+  verify_my_identity  1.0000
+  why_verify_identity 0.8750
+confusion (row: true class, column: predicted class, numbered as the rows are)
+                           0   1
+   0 verify_my_identity   40   0
+   1 why_verify_identity   5  35

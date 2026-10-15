@@ -4,4 +4,6 @@ __pycache__/
 # Downloads, exports and model outputs; the generated training sets are the tracked artifacts.
 data/*/*
 !data/*/synthetic.jsonl
+!data/*/synthetic-*.jsonl
+!data/*/synthetic-*.prompt.txt
 models/

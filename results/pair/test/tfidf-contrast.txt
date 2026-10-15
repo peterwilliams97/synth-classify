@@ -1,0 +1,12 @@
+model     models/pair/tfidf-contrast
+test rows 80 (mteb/banking77, 2 classes)
+accuracy  0.6375
+macro F1  0.5909
+seconds   0.000162 (median per message, one message per call)
+recall
+  verify_my_identity  0.9750
+  why_verify_identity 0.3000
+confusion (row: true class, column: predicted class, numbered as the rows are)
+                           0   1
+   0 verify_my_identity   39   1
+   1 why_verify_identity  28  12
