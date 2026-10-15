@@ -1,0 +1,29 @@
+model     convaiinnovations/laya prompt definitions
+dev rows  200 (mteb/banking77, 10 classes)
+accuracy  0.7600
+macro F1  0.7910
+seconds   0.0391 (median per message, one message per call)
+p > 0.9   accuracy 0.9677 on 93 of 200 messages (top probability above it)
+recall
+  card_arrival            1.0000
+  lost_or_stolen_card     0.6000
+  exchange_rate           1.0000
+  change_pin              0.9000
+  terminate_account       0.9000
+  age_limit               0.4000
+  atm_support             0.8000
+  apple_pay_or_google_pay 0.6500
+  request_refund          0.8000
+  edit_personal_details   0.5500
+confusion (row: true class, column: predicted class, numbered as the rows are)
+                               0   1   2   3   4   5   6   7   8   9
+   0 card_arrival             20   0   0   0   0   0   0   0   0   0
+   1 lost_or_stolen_card       8  12   0   0   0   0   0   0   0   0
+   2 exchange_rate             0   0  20   0   0   0   0   0   0   0
+   3 change_pin                1   0   0  18   0   0   1   0   0   0
+   4 terminate_account         1   0   0   0  18   0   0   0   0   1
+   5 age_limit                12   0   0   0   0   8   0   0   0   0
+   6 atm_support               4   0   0   0   0   0  16   0   0   0
+   7 apple_pay_or_google_pay   7   0   0   0   0   0   0  13   0   0
+   8 request_refund            4   0   0   0   0   0   0   0  16   0
+   9 edit_personal_details     9   0   0   0   0   0   0   0   0  11

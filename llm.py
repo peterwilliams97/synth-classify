@@ -1,7 +1,8 @@
 """llm.py classifies messages with a local LLM: `PROMPTS` builds the instructions, `classify` sends
 them with one message at a time and gets back one class name. The LLM is an Ollama model, or an
-mlx-lm model with an optional LoRA adapter trained by finetune.py. Like generate.py it must not
-import `datasets` or read Banking77 — the `fewshot` examples are chosen by score.py and passed
+mlx-lm model with an optional LoRA adapter trained by finetune.py. `classify_laya` asks the same of
+the Laya decision model, which scores options instead of generating text. Like generate.py it must
+not import `datasets` or read Banking77 — the `fewshot` examples are chosen by score.py and passed
 in."""
 
 import json
@@ -51,6 +52,36 @@ def user_turn(instructions, text):
     """user_turn is the single user message an mlx-lm model sees: a `PROMPTS` result, then the
     message to classify. finetune.py trains on it and `classify_mlx` sends it, so both call this."""
     return f"{instructions}\n\nMessage: {text}"
+
+
+# The Laya checkpoint `classify_laya` loads: the English one at the repo root, pinned at laya's own
+# reviewed commit (`PINNED_REVISIONS` in the `laya` package).
+LAYA_MODEL = "convaiinnovations/laya"
+LAYA_REVISION = "55cf4c4ebb4ebe31b2550e8bdf3bd21b99753851"
+
+# Laya's token budgets, per its model card's advice for questions with many options. Its defaults
+# (512 and 192) cut every `definitions` option to 17 tokens, dropping the clause that separates the
+# two intents of a `confusable` pair; at these values no option or message is cut.
+LAYA_MAX_LEN = 1024
+LAYA_HEAD_MAX_LEN = 512
+
+# The `PROMPTS` keys `laya_question` builds; Laya has no examples to give, so no `fewshot`.
+LAYA_PROMPTS = ["names", "definitions"]
+
+
+def laya_question(classes, prompt):
+    """laya_question is the one `choice` question Laya is asked about each message, for a
+    `CLASS_SETS` entry and a `LAYA_PROMPTS` key: `names` gives the class names as the options,
+    `definitions` each class name with its definition, which Laya renders as `name: definition`."""
+    criteria = {
+        name: definition if prompt == "definitions" else None
+        for name, definition in classes.items()
+    }
+    return {
+        "type": "choice",
+        "instructions": "Which intent does this message sent to a banking app's customer support express?",
+        "criteria": criteria,
+    }
 
 
 def classify(
@@ -135,4 +166,25 @@ def classify_mlx(texts, classes, instructions, model, adapter):
             print(f"invalid reply {reply[-80:]!r} to {text!r}", file=sys.stderr)
             reply = None
         out.append((reply, seconds))
+    return out
+
+
+def classify_laya(texts, class_set, prompt):
+    """classify_laya returns a (class name, probability, seconds) triple for each of `texts`: the
+    option of `laya_question` with the highest probability, that probability, and the wall time of
+    the `predict` call for that one message. Laya picks MPS when there is one."""
+    import laya
+
+    question = laya_question(CLASS_SETS[class_set], prompt)
+    agent = laya.load(LAYA_MODEL, revision=LAYA_REVISION)
+    print(f"device: {agent.device}", file=sys.stderr)
+    out = []
+    for text in texts:
+        start = time.perf_counter()
+        result = agent.predict(
+            text, {"intent": question}, max_len=LAYA_MAX_LEN, head_max_len=LAYA_HEAD_MAX_LEN
+        )
+        seconds = time.perf_counter() - start
+        answer = result["answers"]["intent"]
+        out.append((answer["choice"], answer["probabilities"][answer["choice"]], seconds))
     return out

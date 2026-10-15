@@ -1,0 +1,29 @@
+model     convaiinnovations/laya prompt names
+dev rows  200 (mteb/banking77, 10 classes)
+accuracy  0.6700
+macro F1  0.6274
+seconds   0.0241 (median per message, one message per call)
+p > 0.9   accuracy 0.7643 on 140 of 200 messages (top probability above it)
+recall
+  card_arrival                            0.9500
+  card_delivery_estimate                  0.2500
+  declined_transfer                       1.0000
+  failed_transfer                         0.4000
+  card_payment_wrong_exchange_rate        0.5500
+  wrong_exchange_rate_for_cash_withdrawal 0.9000
+  getting_virtual_card                    0.9000
+  get_disposable_virtual_card             0.7000
+  verify_my_identity                      1.0000
+  why_verify_identity                     0.0500
+confusion (row: true class, column: predicted class, numbered as the rows are)
+                                               0   1   2   3   4   5   6   7   8   9
+   0 card_arrival                             19   1   0   0   0   0   0   0   0   0
+   1 card_delivery_estimate                   15   5   0   0   0   0   0   0   0   0
+   2 declined_transfer                         0   0  20   0   0   0   0   0   0   0
+   3 failed_transfer                           0   0  11   8   1   0   0   0   0   0
+   4 card_payment_wrong_exchange_rate          0   0   2   1  11   6   0   0   0   0
+   5 wrong_exchange_rate_for_cash_withdrawal   0   0   0   0   1  18   1   0   0   0
+   6 getting_virtual_card                      2   0   0   0   0   0  18   0   0   0
+   7 get_disposable_virtual_card               3   0   0   0   0   0   3  14   0   0
+   8 verify_my_identity                        0   0   0   0   0   0   0   0  20   0
+   9 why_verify_identity                       0   0   0   0   0   0   0   0  19   1

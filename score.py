@@ -2,8 +2,10 @@
 and writes the report it prints to results/<set>/<split>/<classifier>.txt. The classifier is a model
 saved by train.py (`--model`: ModernBERT, TF-IDF or frozen embeddings), an Ollama model with one
 of llm.py's `PROMPTS` (`--llm`, `--prompt`), or an mlx-lm model with llm.py's `MLX_PROMPT` and
-optionally a LoRA adapter trained by finetune.py (`--mlx`, `--adapter`). `--split test` is the Banking77 test split; `--split dev` is
-`dev_and_shots`' sample of the train split, which is what prompts are chosen on.
+optionally a LoRA adapter trained by finetune.py (`--mlx`, `--adapter`), or the Laya decision model
+zero-shot with one of llm.py's `LAYA_PROMPTS` (`--laya`, `--prompt`). `--split test` is the
+Banking77 test split; `--split dev` is `dev_and_shots`' sample of the train split, which is what
+prompts are chosen on.
 
 It is the only file that reads Banking77, loaded from the `mteb/banking77` parquet copy (the
 original `PolyAI/banking77` is a dataset script, which `datasets` no longer runs). `--write-train`
@@ -21,11 +23,14 @@ from datasets import load_dataset
 from sklearn.metrics import accuracy_score, confusion_matrix, f1_score, recall_score
 
 from classes import CLASS_SETS
-from llm import MLX_PROMPT, PROMPTS, classify
+from llm import LAYA_MODEL, LAYA_PROMPTS, MLX_PROMPT, PROMPTS, classify, classify_laya
 
 DATASET = "mteb/banking77"
 DEV_PER_CLASS = 20
 SHOTS_PER_CLASS = 3
+# The top probability above which a Laya answer counts as high-confidence on the report's `p > 0.9`
+# line.
+HIGH_CONFIDENCE = 0.9
 
 
 def banking77(split, names):
@@ -101,10 +106,11 @@ def predict(model_dir, texts, names):
     return preds, seconds
 
 
-def report(classifier, split, gold, preds, seconds, names, invalid=None):
+def report(classifier, split, gold, preds, seconds, names, invalid=None, probs=None):
     """report formats the scores. `invalid` is the number of `preds` that are -1, an mlx-lm reply
     that is no class name, or None for a classifier that cannot give one; the line is printed only
-    for the former."""
+    for the former. `probs` is the probability a Laya answer gave its choice, one per message, and
+    adds the accuracy on the messages where it is above `HIGH_CONFIDENCE`."""
     ids = range(len(names))
     width = max(len(name) for name in names)
     recalls = recall_score(gold, preds, labels=ids, average=None)
@@ -117,6 +123,13 @@ def report(classifier, split, gold, preds, seconds, names, invalid=None):
     ]
     if invalid is not None:
         lines.append(f"invalid   {invalid} (replies that are not a class name; counted as wrong)")
+    if probs is not None:
+        high = [i for i, p in enumerate(probs) if p > HIGH_CONFIDENCE]
+        acc = accuracy_score([gold[i] for i in high], [preds[i] for i in high]) if high else 0.0
+        lines.append(
+            f"p > {HIGH_CONFIDENCE}   accuracy {acc:.4f} on {len(high)} of {len(gold)} messages "
+            "(top probability above it)"
+        )
     lines.append("recall")
     lines += [f"  {name:<{width}} {r:.4f}" for name, r in zip(names, recalls)]
     lines.append("confusion (row: true class, column: predicted class, numbered as the rows are)")
@@ -134,7 +147,8 @@ def main():
     ap.add_argument("--split", choices=["dev", "test"], default="test")
     ap.add_argument("--model", help="directory written by train.py")
     ap.add_argument("--llm", metavar="MODEL", help="Ollama model to score in place of --model")
-    ap.add_argument("--prompt", choices=list(PROMPTS), help="required with --llm")
+    ap.add_argument("--laya", action="store_true", help="score the Laya decision model zero-shot")
+    ap.add_argument("--prompt", choices=list(PROMPTS), help="required with --llm and --laya")
     ap.add_argument("--mlx", metavar="MODEL", help=f"mlx-lm model to score, {MLX_PROMPT} prompt")
     ap.add_argument("--adapter", metavar="DIR", help="LoRA adapter from finetune.py, with --mlx")
     ap.add_argument("--write-train", metavar="JSONL", help="export the restricted train split")
@@ -148,12 +162,14 @@ def main():
             for text, label in zip(texts, labels):
                 f.write(json.dumps({"text": text, "label": names[label]}) + "\n")
         print(f"wrote {len(texts)} rows to {args.write_train}", file=sys.stderr)
-    if bool(args.model) + bool(args.llm) + bool(args.mlx) != 1:
-        if args.write_train and not args.model and not args.llm and not args.mlx:
+    if bool(args.model) + bool(args.llm) + bool(args.mlx) + args.laya != 1:
+        if args.write_train and not args.model and not args.llm and not args.mlx and not args.laya:
             return
-        ap.error("give exactly one of --model, --llm and --mlx, or --write-train alone")
-    if bool(args.llm) != bool(args.prompt):
-        ap.error("--llm and --prompt go together")
+        ap.error("give exactly one of --model, --llm, --mlx and --laya, or --write-train alone")
+    if bool(args.llm or args.laya) != bool(args.prompt):
+        ap.error("--prompt goes with --llm or --laya, and they need it")
+    if args.laya and args.prompt not in LAYA_PROMPTS:
+        ap.error(f"--laya takes --prompt {' or '.join(LAYA_PROMPTS)}")
     if args.adapter and not args.mlx:
         ap.error("--adapter needs --mlx")
 
@@ -165,8 +181,15 @@ def main():
         if args.prompt == "fewshot":
             _, _, shots = dev_and_shots(names)
 
-    invalid = None
-    if args.mlx:
+    invalid = probs = None
+    if args.laya:
+        classifier = f"{LAYA_MODEL} prompt {args.prompt}"
+        stem = f"laya-{args.prompt}"
+        answers = classify_laya(texts, args.set, args.prompt)
+        preds = [names.index(label) for label, _, _ in answers]
+        probs = [p for _, p, _ in answers]
+        seconds = [s for _, _, s in answers]
+    elif args.mlx:
         classifier = f"{args.mlx} prompt {MLX_PROMPT}"
         stem = f"{os.path.basename(os.path.normpath(args.mlx))}-{MLX_PROMPT}"
         if args.adapter:
@@ -187,7 +210,7 @@ def main():
         stem = os.path.basename(os.path.normpath(args.model))
         preds, seconds = predict(args.model, texts, names)
 
-    text = report(classifier, args.split, gold, preds, seconds, names, invalid)
+    text = report(classifier, args.split, gold, preds, seconds, names, invalid, probs)
     sys.stdout.write(text)
     out = os.path.join("results", args.set, args.split, stem + ".txt")
     os.makedirs(os.path.dirname(out), exist_ok=True)

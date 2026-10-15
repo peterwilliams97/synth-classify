@@ -32,6 +32,7 @@ S=distinct   # or confusable; every script takes --set, default distinct
 .venv/bin/python score.py --set $S --split dev --llm gemma4:e4b --prompt names   # ~2 min
 .venv/bin/python finetune.py --set $S --train data/$S/synthetic.jsonl --out models/$S/gemma-4-e4b-lora-synthetic
 .venv/bin/python score.py --set $S --mlx mlx-community/gemma-4-e4b-it-4bit --adapter models/$S/gemma-4-e4b-lora-synthetic
+.venv/bin/python score.py --set $S --split dev --laya --prompt names   # ~10 s; not in the sandbox
 ```
 
 Adding `--no-prompt` to the `--embed` line, with `--out models/$S/ultrabert-embed-noprompt-synthetic`,
@@ -40,7 +41,7 @@ gives the model without the instruction prefix. The same `train.py` lines with
 `score.py` prints its report and writes the same text to `results/$S/<split>/<name>.txt`, where
 `<name>` is the model directory name, or for `--llm` the Ollama model with `:` replaced by `-`, then
 `-<prompt>`, or for `--mlx` the adapter directory name, and without `--adapter` the last component
-of the mlx-lm model then `-definitions`. `train.py` and `finetune.py` write the minutes a run took,
+of the mlx-lm model then `-definitions`, or for `--laya` `laya-<prompt>`. `train.py` and `finetune.py` write the minutes a run took,
 or the seconds if under a minute, to `results/$S/train/<name>.txt`, `<name>` being the `--out`
 directory name. A ModernBERT fine-tune is 1.6 to 2.0 minutes on MPS, a LoRA adapter 8 to 18; the
 TF-IDF model is under a second, an `--embed` model about 6 seconds. An LLM run is one
@@ -105,6 +106,10 @@ in `refs/main`, which is the layout `HF_HUB_OFFLINE=1` loads from.
 - **Prompts are chosen on dev, never on test.** For each Ollama model and class set, test is run
   with `fewshot` and with whichever of `names` and `definitions` has the higher dev accuracy,
   `names` on a tie. Do not run the third prompt on test.
+- **Laya is asked one `choice` question per message**, built by `laya_question` (`llm.py`) from
+  the `names` or `definitions` prompt; it takes no `fewshot`. `classify_laya` passes
+  `LAYA_MAX_LEN` and `LAYA_HEAD_MAX_LEN`, under which no option is cut; changing either, or
+  `LAYA_REVISION`, invalidates every `laya-*` report.
 - **dev is drawn from the train split, so it scores only `--llm` classifiers.** The real-data
   models were trained on those rows; `--split dev --model` runs, and the number means nothing.
 - **Seconds per message are one message per call**, in `predict` (`score.py`) as in `classify`
