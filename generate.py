@@ -33,6 +33,11 @@ SCHEMA = {
 
 
 def ask(url, model, name, definition, style, seed):
+    """ask makes one `/api/chat` request for `BATCH` messages of class `name`, given only `name`,
+    `definition` and `style`. `SCHEMA` as `format` makes the reply a JSON object whose `messages`
+    is an array of strings, and `seed` varies across a class's requests so they don't repeat one
+    another at temperature 1.0. Returns the stripped, non-empty messages, which can repeat; `main`
+    drops repeats."""
     prompt = (
         f"Write {BATCH} different messages that customers of a banking app might send to "
         f"customer support.\n"
