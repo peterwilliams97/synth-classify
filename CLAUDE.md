@@ -9,7 +9,8 @@ A worked example, not a library: train an intent classifier on LLM-generated mes
 real Banking77, once per class set in `CLASS_SETS` (`classes.py`): `distinct`, 10 intents on
 unrelated topics, and `confusable`, 5 pairs of intents on the same topic. Local Ollama models
 prompted with the class list (`llm.py`) are scored beside the trained ones, and so is an mlx-lm
-copy of Gemma 4 E4B with and without a LoRA adapter (`finetune.py`). Six scripts, and a
+copy of Gemma 4 E4B with and without a LoRA adapter (`finetune.py`), and logistic regression on
+frozen `dmis-lab/UltraBERT-Embed-150M` embeddings (`train.py --embed`). Six scripts, and a
 `README.md` that lists the classifiers, states four findings, gives each finding a section with one
 `confusable`-only table, and keeps the three full tables (test, dev, training minutes) under All
 results. All Python — the repository layout, file header and
@@ -26,20 +27,21 @@ S=distinct   # or confusable; every script takes --set, default distinct
 .venv/bin/python score.py --set $S --write-train data/$S/banking77_train.jsonl
 .venv/bin/python train.py --set $S --train data/$S/synthetic.jsonl --out models/$S/modernbert-synthetic
 .venv/bin/python train.py --set $S --train data/$S/synthetic.jsonl --out models/$S/tfidf-synthetic --tfidf
+.venv/bin/python train.py --set $S --train data/$S/synthetic.jsonl --out models/$S/ultrabert-embed-synthetic --embed
 .venv/bin/python score.py --set $S --model models/$S/modernbert-synthetic
 .venv/bin/python score.py --set $S --split dev --llm gemma4:e4b --prompt names   # ~2 min
 .venv/bin/python finetune.py --set $S --train data/$S/synthetic.jsonl --out models/$S/gemma-4-e4b-lora-synthetic
 .venv/bin/python score.py --set $S --mlx mlx-community/gemma-4-e4b-it-4bit --adapter models/$S/gemma-4-e4b-lora-synthetic
 ```
 
-The same two `train.py` lines with `data/$S/banking77_train.jsonl` give the real-data models.
+The same three `train.py` lines with `data/$S/banking77_train.jsonl` give the real-data models.
 `score.py` prints its report and writes the same text to `results/$S/<split>/<name>.txt`, where
 `<name>` is the model directory name, or for `--llm` the Ollama model with `:` replaced by `-`, then
 `-<prompt>`, or for `--mlx` the adapter directory name, and without `--adapter` the last component
 of the mlx-lm model then `-definitions`. `train.py` and `finetune.py` write the minutes a run took,
 or the seconds if under a minute, to `results/$S/train/<name>.txt`, `<name>` being the `--out`
 directory name. A ModernBERT fine-tune is 1.6 to 2.0 minutes on MPS, a LoRA adapter 8 to 18; the
-TF-IDF model is under a second. An LLM run is one
+TF-IDF model is under a second, an `--embed` model about 6 seconds. An LLM run is one
 Ollama request per message: about 0.5 s each for `gemma4:e4b` and 1.5–2.5 s for
 `qwen3.6:27b-q4_K_M`, so 400 test messages take 3 to 17 minutes.
 
@@ -109,9 +111,9 @@ in `refs/main`, which is the layout `HF_HUB_OFFLINE=1` loads from.
 - **Label order is `list(CLASS_SETS[<set>])`**, computed independently as `names` in `main` of
   `train.py` and of `score.py`. `score.py`'s `predict` maps a ModernBERT model's outputs through the
   saved `id2label` names, so reordering a class set does not break saved ModernBERT models; a saved
-  `tfidf.joblib` stores bare indices and must be retrained.
+  `tfidf.joblib` or `embed.joblib` stores bare indices and must be retrained.
 - **`--set` must be the same for a model's train and score runs.** Scoring a ModernBERT model
-  under the other set fails on the `id2label` lookup; a `tfidf.joblib` holds bare indices, so it
+  under the other set fails on the `id2label` lookup; a `tfidf.joblib` or `embed.joblib` holds bare indices, so it
   scores without error and the numbers are meaningless.
 - **Changing a `CLASS_SETS` entry invalidates everything downstream of that set**:
   `data/<set>/synthetic.jsonl`, the exported train split, every model under `models/<set>/`, every
@@ -121,14 +123,20 @@ in `refs/main`, which is the layout `HF_HUB_OFFLINE=1` loads from.
   no rows.
 - **`max_length=128` is written twice**, in `train_modernbert` (`train.py`) and in `predict`
   (`score.py`). Change both or the model is scored on inputs truncated differently from the ones
-  it was trained on.
+  it was trained on. The `max_length=128` in `embed` (`train.py`) is a third, which trains and
+  scores `--embed` models alike.
 - **Ollama is called through `/api/chat` with `urllib`, in two places**: `ask` in `generate.py`
   and `classify` in `llm.py`. `requirements.txt` has no Ollama client. Both send `"think": False`
   and a JSON schema as `format`; `classify`'s schema is an `enum` of the class names, which is
   what restricts an answer to one class.
-- **A model directory is one of two shapes.** `train.py --tfidf` writes `tfidf.joblib`; without the
-  flag it writes a `transformers` checkpoint. `score.py` picks the loader by whether
-  `tfidf.joblib` exists.
+- **A model directory is one of three shapes.** `train.py --tfidf` writes `tfidf.joblib`, `--embed`
+  writes `embed.joblib`, and with neither flag it writes a `transformers` checkpoint. `predict` in
+  `score.py` picks the loader by which `.joblib` file exists.
+- **An `--embed` model is the classifier only.** `embed.joblib` holds the logistic regression; the
+  encoder is `EMBED_BASE` at `EMBED_REVISION` with `EMBED_PROMPT`, all in `train.py`, and
+  `predict` imports `embed` and `load_embedder` from there, so changing any of the three means
+  retraining every `--embed` model. The revision is pinned because the model's code runs with
+  `trust_remote_code`.
 - **Nothing is tuned on the test split.** `train.py` has no validation set and fixed defaults
   (5 epochs, lr 5e-5, batch 16, seed 0). Keep it that way, or the README numbers stop meaning what
   they say.
@@ -146,7 +154,8 @@ tables. Regenerating a synthetic file changes the committed training set, so ret
 update the test table's synthetic rows in the same commit. `requirements.txt` is
 unpinned — the README numbers came from torch 2.14.1, transformers 5.19.0, datasets 5.1.0,
 Ollama 0.32.5, mlx 0.32.3 and mlx-lm 0.32.0, with `mlx-community/gemma-4-e4b-it-4bit` at revision
-`475b9088d29754a3379866cf5aeb6b41acd313c2`.
+`475b9088d29754a3379866cf5aeb6b41acd313c2` and `dmis-lab/UltraBERT-Embed-150M` at `EMBED_REVISION`
+(`train.py`), fetched with `curl` into `data/hf` the same way.
 
 `results/<set>/train/*.txt` are the training minutes behind the README's training-minutes table.
 The `modernbert-*` and `tfidf-*` ones name `xtmp/models/…` as the model: they are timing re-runs,

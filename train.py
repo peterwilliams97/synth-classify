@@ -1,8 +1,9 @@
 """train.py fits a classifier over the `CLASS_SETS` entry named by `--set` on a jsonl file of
 {text, label} rows and saves it to `--out`. The default is a fine-tune of
-answerdotai/ModernBERT-base; `--tfidf` fits the TF-IDF + logistic regression baseline instead.
-Neither looks at a test set: epochs and learning rate are fixed, so score.py's numbers are not tuned
-on what they measure."""
+answerdotai/ModernBERT-base; `--tfidf` fits the TF-IDF + logistic regression baseline instead, and
+`--embed` fits logistic regression on frozen `EMBED_BASE` embeddings. None looks at a test set:
+epochs, learning rate and regularisation are fixed, so score.py's numbers are not tuned on what they
+measure."""
 
 import argparse
 import json
@@ -14,6 +15,14 @@ import time
 from classes import CLASS_SETS
 
 BASE = "answerdotai/ModernBERT-base"
+
+# The embedding model is pinned: its modeling code is fetched from the Hub and run
+# (trust_remote_code), so a revision that moves would change what runs as well as the weights.
+EMBED_BASE = "dmis-lab/UltraBERT-Embed-150M"
+EMBED_REVISION = "367d5343b5a0164d57b810cedf5de4b8983d5984"
+# The model card wants a task instruction on the query side; this is MTEB's Banking77Classification
+# instruction, which names the domain and the task and no class.
+EMBED_PROMPT = "Instruct: Given a online banking query, find the corresponding intents\nQuery: "
 
 
 def read_jsonl(path, names):
@@ -57,6 +66,57 @@ def train_tfidf(texts, labels, out):
     )
     model.fit(texts, labels)
     joblib.dump(model, os.path.join(out, "tfidf.joblib"))
+
+
+def load_embedder():
+    """load_embedder returns the tokenizer, model and device `embed` takes. SDPA attention in
+    float32: FlashAttention does not run on MPS, and MPS has no float64."""
+    import torch
+    from transformers import AutoModel, AutoTokenizer
+
+    device = "mps" if torch.backends.mps.is_available() else "cpu"
+    print(f"device: {device}", file=sys.stderr)
+    tok = AutoTokenizer.from_pretrained(EMBED_BASE, revision=EMBED_REVISION, trust_remote_code=True)
+    model = AutoModel.from_pretrained(
+        EMBED_BASE,
+        revision=EMBED_REVISION,
+        trust_remote_code=True,
+        attn_implementation="sdpa",
+        dtype=torch.float32,
+    )
+    return tok, model.to(device).eval(), device
+
+
+def embed(texts, tok, model, device):
+    """embed returns one row per text: the final hidden state at position 0, `EMBED_PROMPT`
+    prepended, unnormalised. That is the model card's Sentence Transformers pipeline (CLS pooling,
+    prompt included, no Normalize module) without the sentence-transformers dependency. score.py's
+    `predict` calls it with one text at a time; train.py with a batch."""
+    import torch
+
+    batch = tok(
+        [EMBED_PROMPT + t for t in texts],
+        padding=True,
+        truncation=True,
+        max_length=128,
+        return_tensors="pt",
+    ).to(device)
+    with torch.no_grad():
+        return model(**batch).last_hidden_state[:, 0].float().cpu().numpy()
+
+
+def train_embed(texts, labels, out, batch_size):
+    """train_embed fits logistic regression on frozen embeddings; the encoder is not updated. C is
+    sklearn's default, as in MTEB's classification evaluator, and is not tuned."""
+    import joblib
+    import numpy as np
+    from sklearn.linear_model import LogisticRegression
+
+    tok, model, device = load_embedder()
+    starts = range(0, len(texts), batch_size)
+    x = np.concatenate([embed(texts[i : i + batch_size], tok, model, device) for i in starts])
+    clf = LogisticRegression(max_iter=1000).fit(x, labels)
+    joblib.dump(clf, os.path.join(out, "embed.joblib"))
 
 
 def train_modernbert(texts, labels, names, out, epochs, lr, batch_size):
@@ -114,11 +174,14 @@ def main():
     ap.add_argument("--out", required=True)
     ap.add_argument("--set", choices=list(CLASS_SETS), default="distinct")
     ap.add_argument("--tfidf", action="store_true")
+    ap.add_argument("--embed", action="store_true", help=f"frozen {EMBED_BASE} + logistic regression")
     ap.add_argument("--epochs", type=int, default=5)
     ap.add_argument("--lr", type=float, default=5e-5)
     ap.add_argument("--batch-size", type=int, default=16)
     ap.add_argument("--seed", type=int, default=0)
     args = ap.parse_args()
+    if args.tfidf and args.embed:
+        ap.error("--tfidf and --embed are two different models; give one")
 
     names = list(CLASS_SETS[args.set])
     texts, labels = read_jsonl(args.train, names)
@@ -127,6 +190,8 @@ def main():
     start = time.perf_counter()
     if args.tfidf:
         train_tfidf(texts, labels, args.out)
+    elif args.embed:
+        train_embed(texts, labels, args.out, args.batch_size)
     else:
         import torch
 

@@ -1,8 +1,8 @@
 """score.py scores a classifier on Banking77 restricted to the `CLASS_SETS` entry named by `--set`,
 and writes the report it prints to results/<set>/<split>/<classifier>.txt. The classifier is a model
-saved by train.py (`--model`), an Ollama model with one of llm.py's `PROMPTS` (`--llm`, `--prompt`),
-or an mlx-lm model with llm.py's `MLX_PROMPT` and optionally a LoRA adapter trained by finetune.py
-(`--mlx`, `--adapter`). `--split test` is the Banking77 test split; `--split dev` is
+saved by train.py (`--model`: ModernBERT, TF-IDF or frozen embeddings), an Ollama model with one
+of llm.py's `PROMPTS` (`--llm`, `--prompt`), or an mlx-lm model with llm.py's `MLX_PROMPT` and
+optionally a LoRA adapter trained by finetune.py (`--mlx`, `--adapter`). `--split test` is the Banking77 test split; `--split dev` is
 `dev_and_shots`' sample of the train split, which is what prompts are chosen on.
 
 It is the only file that reads Banking77, loaded from the `mteb/banking77` parquet copy (the
@@ -65,6 +65,20 @@ def predict(model_dir, texts, names):
         for text in texts:
             start = time.perf_counter()
             preds.append(clf.predict([text])[0])
+            seconds.append(time.perf_counter() - start)
+        return preds, seconds
+
+    frozen = os.path.join(model_dir, "embed.joblib")
+    if os.path.exists(frozen):
+        import joblib
+
+        from train import embed, load_embedder
+
+        clf = joblib.load(frozen)
+        tok, model, device = load_embedder()
+        for text in texts:
+            start = time.perf_counter()
+            preds.append(clf.predict(embed([text], tok, model, device))[0])
             seconds.append(time.perf_counter() - start)
         return preds, seconds
 

@@ -1,0 +1,3 @@
+model     models/distinct/ultrabert-embed-synthetic
+train     data/distinct/synthetic.jsonl (1000 rows)
+seconds   6.92 (base model load to save)

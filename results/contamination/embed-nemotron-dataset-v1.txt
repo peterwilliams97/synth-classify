@@ -1,0 +1,44 @@
+banking77 unique texts 13062 labels 77
+queries 1044212 corpus 382227
+literal banking77/banking_data/polyai in queries: 0 in corpus: 0
+exact Banking77 text matches: 18
+   ('Instruct: Detect whether a text is a duplicate of another\nQuery: How do I reset my password?', {('train', 'passcode_forgotten')})
+   ('Instruct: Detecting the presence of sensitive information in text messages\nQuery: My card expires soon', {('train', 'card_about_to_expire')})
+   ('Instruct: Detect if a user’s comment contains a request for customer service assistance.\nQuery: Can you help me reset my password?', {('test', 'passcode_forgotten')})
+   ('Instruct: Identifying the category of a FAQ question\nQuery: How do I reset my password?', {('train', 'passcode_forgotten')})
+   ('Instruct: Determine the intent behind customer service chat logs\nQuery: Can I get a refund?', {('train', 'request_refund')})
+   ('Instruct: Identifying the intent of a dialog utterance\nQuery: When can I expect delivery?', {('train', 'card_delivery_estimate')})
+   ('Instruct: Categorizing text by the type of action it is requesting\nQuery: Can you help me reset my password?', {('test', 'passcode_forgotten')})
+   ("Instruct: Identify the intent behind a user's query like booking, cancellation, or inquiry.\nQuery: Can I get a refund?", {('train', 'request_refund')})
+   ('Instruct: Classify support logs by issue area: billing, technical, account\nQuery: Why is my payment pending?', {('test', 'pending_card_payment')})
+   ('Instruct: Intent detection in customer service chats\nQuery: How do I reset my password?', {('train', 'passcode_forgotten')})
+   ('Instruct: Identify if a user query is a question asking for information or a request for action.\nQuery: How do I reset my password?', {('train', 'passcode_forgotten')})
+   ('Instruct: Categorize emails by intent: inquiry, complaint, feedback, or request.\nQuery: Can you help me reset my password?', {('test', 'passcode_forgotten')})
+   ('Instruct: Identifying whether a text is a duplicate of another\nQuery: How do I reset my password?', {('train', 'passcode_forgotten')})
+   ('Instruct: Assign a customer email to the relevant support department: billing, technical, shipping, or returns.\nQuery: Why did my payment fail?', {('train', 'declined_card_payment')})
+   ("Instruct: Identifying the intent of a customer's email\nQuery: Can I get a refund?", {('train', 'request_refund')})
+   ('Instruct: Intent classification in customer service queries\nQuery: I want a refund for my purchase', {('test', 'request_refund')})
+   ('Instruct: Predicting the type of response in a customer service conversation\nQuery: Can you help me reset my password?', {('test', 'passcode_forgotten')})
+   ('Instruct: Classify messages in a chatbot conversation as on-topic or off-topic.\nQuery: How do I reset my password?', {('train', 'passcode_forgotten')})
+  of which Banking77 test: 6  test in a CLASS_SETS class: 1
+queries with 'bank' in the instruction: 690 distinct instructions: 141
+     20 'Instruct: Classifying bank transactions by type'
+     19 'Instruct: Classifying bank transactions as legitimate or suspicious'
+     19 'Instruct: Classifying court documents as bankruptcy-related or not'
+     19 'Instruct: Predicting company bankruptcy from financial text'
+     17 'Instruct: Categorizing financial news based on the type of industry (banking, insurance, real estate, etc.)'
+     16 'Instruct: Classifying bank transactions based on their type'
+     16 'Instruct: Determining the risk level of a bank transaction description'
+     15 'Instruct: Identifying the risk level of a bank transaction'
+     15 'Instruct: Determining the type of expense (food, entertainment, travel, etc.) from a bank transaction description'
+     14 'Instruct: Categorizing legal documents into different case types (civil, criminal, family, bankruptcy)'
+     14 "Instruct: Determining the type of fraud from a bank's alert"
+     14 'Instruct: Classifying financial news articles into sectors like technology, healthcare, or banking'
+     14 'Instruct: Identifying the type of financial news (e.g., stock market, banking)'
+     14 'Instruct: Identifying potential fraud in banking transactions'
+     14 'Instruct: Bankruptcy prediction from financial reports'
+Banking77 label names present as corpus label texts: 4 ['change_pin', 'exchange_rate', 'lost_or_stolen_card', 'request_refund']
+our-class test texts sharing an 8-gram with a bank-instruction query: 0 of 759
+our-class Banking77 test texts matched exactly: [('Instruct: Intent classification in customer service queries\nQuery: I want a refund for my purchase', {('test', 'request_refund')})]
+corpus label texts equal to a Banking77 label name: ['Exchange Rate', 'Lost or stolen card', 'Request Refund', 'Request refund', 'Request_Refund', 'change_pin', 'exchange_rate', 'request refund', 'request_refund']
+queries by number of distinct Banking77 label names among their candidates: {0: 1044036, 1: 176}
