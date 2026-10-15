@@ -6,7 +6,10 @@ Banking77 text, or the synthetic-vs-real comparison is void.
 `--method` picks the request: `plain` (`plain_prompt`) gives one class's name and definition;
 `contrast` (`contrast_prompt`) gives the class and the other one in its pair, for a set listed pair
 by pair (`confusable`, `pair`), writes data/<set>/synthetic-contrast.jsonl, and writes every distinct request text beside
-it as synthetic-contrast.prompt.txt."""
+it as synthetic-contrast.prompt.txt. `diagnosed` (`diagnosed_prompt`) is the `plain` request plus
+the other class's definition and, for the class in each pair that loses dev messages to the other,
+an instruction from `DIAGNOSED_NOTES`; it writes synthetic-diagnosed.jsonl and .prompt.txt the same
+way."""
 
 import argparse
 import json
@@ -55,6 +58,44 @@ CONTRAST_NOTES = {
 }
 
 
+# DIAGNOSED_NOTES is what `diagnosed_prompt` adds for the class in each `confusable` pair that loses
+# more dev messages to the other than it takes from it, in
+# results/confusable/dev/ultrabert-embed-synthetic.txt (row: true class, column: predicted class).
+# Each note was written from those counts and from that class's rows in
+# data/confusable/synthetic.jsonl, not from any Banking77 message: it names the kind of message the
+# synthetic rows lack. None of them asks the model to avoid any words.
+DIAGNOSED_NOTES = {
+    # card_delivery_estimate → card_arrival 4 of 20, card_arrival → card_delivery_estimate 1.
+    "card_delivery_estimate": (
+        "Include messages asked before or just after ordering — how long delivery takes in general, "
+        "delivery to a particular country, faster or express delivery, whether it can be tracked — "
+        "and not only questions about one card's arrival date."
+    ),
+    # failed_transfer → declined_transfer 6 of 20, declined_transfer → failed_transfer 1.
+    "failed_transfer": (
+        "Include short plain messages about a transfer already sent: it did not work, did not go "
+        "through, the money came back, or the recipient never got it."
+    ),
+    # wrong_exchange_rate_for_cash_withdrawal → card_payment_wrong_exchange_rate 4 of 20,
+    # card_payment_wrong_exchange_rate → wrong_exchange_rate_for_cash_withdrawal 0.
+    "wrong_exchange_rate_for_cash_withdrawal": (
+        "Include messages that only say they took out or got cash in another currency, with no "
+        "machine or country mentioned, and messages that only say they were charged more than "
+        "expected for that cash."
+    ),
+    # getting_virtual_card → get_disposable_virtual_card 3 of 20, the reverse 2.
+    "getting_virtual_card": (
+        "Most messages should just ask for a virtual card, whether one can be had, or where it is, "
+        "as someone would who does not know there is more than one kind."
+    ),
+    # why_verify_identity → verify_my_identity 8 of 20, verify_my_identity → why_verify_identity 2.
+    "why_verify_identity": (
+        "Include messages that name the check itself — a photo of an ID, a selfie, a document "
+        "upload — and ask whether it is really needed or what it is for."
+    ),
+}
+
+
 def plain_prompt(class_set, name, style):
     """plain_prompt asks for messages of class `name` of `CLASS_SETS[class_set]` given only its
     name, definition and `style`."""
@@ -95,7 +136,23 @@ def contrast_prompt(class_set, name, style):
     )
 
 
-METHODS = {"plain": plain_prompt, "contrast": contrast_prompt}
+def diagnosed_prompt(class_set, name, style):
+    """diagnosed_prompt is `plain_prompt` plus the definition of the other class in `name`'s pair
+    and `name`'s entry in `DIAGNOSED_NOTES`, if it has one. Unlike `contrast_prompt` it sets no rule
+    about which words to avoid."""
+    classes = CLASS_SETS[class_set]
+    names = list(classes)
+    # The set is listed pair by pair, as in `contrast_prompt`.
+    other = names[names.index(name) ^ 1]
+    note = DIAGNOSED_NOTES.get(name, "")
+    return (
+        plain_prompt(class_set, name, style)
+        + f"\nDo not write messages with this other intent: {other} — {classes[other]}"
+        + (f"\n{note}" if note else "")
+    )
+
+
+METHODS = {"plain": plain_prompt, "contrast": contrast_prompt, "diagnosed": diagnosed_prompt}
 
 
 def ask(url, model, prompt, seed):
@@ -130,8 +187,8 @@ def main():
     ap.add_argument("--out", help="default data/<set>/synthetic.jsonl, or synthetic-<method>.jsonl")
     ap.add_argument("--url", default="http://localhost:11434")
     args = ap.parse_args()
-    if args.method == "contrast" and args.set == "distinct":
-        ap.error("--method contrast needs a set listed pair by pair; distinct is not")
+    if args.method != "plain" and args.set == "distinct":
+        ap.error(f"--method {args.method} needs a set listed pair by pair; distinct is not")
     suffix = "" if args.method == "plain" else f"-{args.method}"
     out = args.out or f"data/{args.set}/synthetic{suffix}.jsonl"
 

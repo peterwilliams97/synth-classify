@@ -1,0 +1,3 @@
+model     models/confusable/ultrabert-embed-diagnosed
+train     data/confusable/synthetic-diagnosed.jsonl (1000 rows)
+seconds   15.92 (base model load to save)

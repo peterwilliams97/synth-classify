@@ -1,0 +1,482 @@
+Write 20 different messages that customers of a banking app might send to customer support.
+Every message has this intent: card_arrival — The customer has already waited for a card they ordered, it has not come, and they ask where it is — a complaint about a card that is late or missing, not a question about normal delivery times.
+Style for this batch: short and blunt, a few words to one sentence.
+Vary the wording, length and situation. One message per array item, no numbering.
+Do not write messages with this other intent: card_delivery_estimate — The customer asks how long card delivery takes or when a card will arrive, as a question about timing or delivery options — they are not complaining that a card is late or missing.
+
+----
+
+Write 20 different messages that customers of a banking app might send to customer support.
+Every message has this intent: card_arrival — The customer has already waited for a card they ordered, it has not come, and they ask where it is — a complaint about a card that is late or missing, not a question about normal delivery times.
+Style for this batch: polite and complete sentences.
+Vary the wording, length and situation. One message per array item, no numbering.
+Do not write messages with this other intent: card_delivery_estimate — The customer asks how long card delivery takes or when a card will arrive, as a question about timing or delivery options — they are not complaining that a card is late or missing.
+
+----
+
+Write 20 different messages that customers of a banking app might send to customer support.
+Every message has this intent: card_arrival — The customer has already waited for a card they ordered, it has not come, and they ask where it is — a complaint about a card that is late or missing, not a question about normal delivery times.
+Style for this batch: casual, lowercase, the way people type on a phone.
+Vary the wording, length and situation. One message per array item, no numbering.
+Do not write messages with this other intent: card_delivery_estimate — The customer asks how long card delivery takes or when a card will arrive, as a question about timing or delivery options — they are not complaining that a card is late or missing.
+
+----
+
+Write 20 different messages that customers of a banking app might send to customer support.
+Every message has this intent: card_arrival — The customer has already waited for a card they ordered, it has not come, and they ask where it is — a complaint about a card that is late or missing, not a question about normal delivery times.
+Style for this batch: phrased as direct questions.
+Vary the wording, length and situation. One message per array item, no numbering.
+Do not write messages with this other intent: card_delivery_estimate — The customer asks how long card delivery takes or when a card will arrive, as a question about timing or delivery options — they are not complaining that a card is late or missing.
+
+----
+
+Write 20 different messages that customers of a banking app might send to customer support.
+Every message has this intent: card_arrival — The customer has already waited for a card they ordered, it has not come, and they ask where it is — a complaint about a card that is late or missing, not a question about normal delivery times.
+Style for this batch: frustrated or worried in tone.
+Vary the wording, length and situation. One message per array item, no numbering.
+Do not write messages with this other intent: card_delivery_estimate — The customer asks how long card delivery takes or when a card will arrive, as a question about timing or delivery options — they are not complaining that a card is late or missing.
+
+----
+
+Write 20 different messages that customers of a banking app might send to customer support.
+Every message has this intent: card_arrival — The customer has already waited for a card they ordered, it has not come, and they ask where it is — a complaint about a card that is late or missing, not a question about normal delivery times.
+Style for this batch: a little rambling, with some background before the point.
+Vary the wording, length and situation. One message per array item, no numbering.
+Do not write messages with this other intent: card_delivery_estimate — The customer asks how long card delivery takes or when a card will arrive, as a question about timing or delivery options — they are not complaining that a card is late or missing.
+
+----
+
+Write 20 different messages that customers of a banking app might send to customer support.
+Every message has this intent: card_delivery_estimate — The customer asks how long card delivery takes or when a card will arrive, as a question about timing or delivery options — they are not complaining that a card is late or missing.
+Style for this batch: short and blunt, a few words to one sentence.
+Vary the wording, length and situation. One message per array item, no numbering.
+Do not write messages with this other intent: card_arrival — The customer has already waited for a card they ordered, it has not come, and they ask where it is — a complaint about a card that is late or missing, not a question about normal delivery times.
+Include messages asked before or just after ordering — how long delivery takes in general, delivery to a particular country, faster or express delivery, whether it can be tracked — and not only questions about one card's arrival date.
+
+----
+
+Write 20 different messages that customers of a banking app might send to customer support.
+Every message has this intent: card_delivery_estimate — The customer asks how long card delivery takes or when a card will arrive, as a question about timing or delivery options — they are not complaining that a card is late or missing.
+Style for this batch: polite and complete sentences.
+Vary the wording, length and situation. One message per array item, no numbering.
+Do not write messages with this other intent: card_arrival — The customer has already waited for a card they ordered, it has not come, and they ask where it is — a complaint about a card that is late or missing, not a question about normal delivery times.
+Include messages asked before or just after ordering — how long delivery takes in general, delivery to a particular country, faster or express delivery, whether it can be tracked — and not only questions about one card's arrival date.
+
+----
+
+Write 20 different messages that customers of a banking app might send to customer support.
+Every message has this intent: card_delivery_estimate — The customer asks how long card delivery takes or when a card will arrive, as a question about timing or delivery options — they are not complaining that a card is late or missing.
+Style for this batch: casual, lowercase, the way people type on a phone.
+Vary the wording, length and situation. One message per array item, no numbering.
+Do not write messages with this other intent: card_arrival — The customer has already waited for a card they ordered, it has not come, and they ask where it is — a complaint about a card that is late or missing, not a question about normal delivery times.
+Include messages asked before or just after ordering — how long delivery takes in general, delivery to a particular country, faster or express delivery, whether it can be tracked — and not only questions about one card's arrival date.
+
+----
+
+Write 20 different messages that customers of a banking app might send to customer support.
+Every message has this intent: card_delivery_estimate — The customer asks how long card delivery takes or when a card will arrive, as a question about timing or delivery options — they are not complaining that a card is late or missing.
+Style for this batch: phrased as direct questions.
+Vary the wording, length and situation. One message per array item, no numbering.
+Do not write messages with this other intent: card_arrival — The customer has already waited for a card they ordered, it has not come, and they ask where it is — a complaint about a card that is late or missing, not a question about normal delivery times.
+Include messages asked before or just after ordering — how long delivery takes in general, delivery to a particular country, faster or express delivery, whether it can be tracked — and not only questions about one card's arrival date.
+
+----
+
+Write 20 different messages that customers of a banking app might send to customer support.
+Every message has this intent: card_delivery_estimate — The customer asks how long card delivery takes or when a card will arrive, as a question about timing or delivery options — they are not complaining that a card is late or missing.
+Style for this batch: frustrated or worried in tone.
+Vary the wording, length and situation. One message per array item, no numbering.
+Do not write messages with this other intent: card_arrival — The customer has already waited for a card they ordered, it has not come, and they ask where it is — a complaint about a card that is late or missing, not a question about normal delivery times.
+Include messages asked before or just after ordering — how long delivery takes in general, delivery to a particular country, faster or express delivery, whether it can be tracked — and not only questions about one card's arrival date.
+
+----
+
+Write 20 different messages that customers of a banking app might send to customer support.
+Every message has this intent: declined_transfer — The customer tried to send a transfer and it was declined or rejected at the moment they attempted it, and they ask why — the transfer was refused up front, not sent and then failed.
+Style for this batch: short and blunt, a few words to one sentence.
+Vary the wording, length and situation. One message per array item, no numbering.
+Do not write messages with this other intent: failed_transfer — The customer's transfer did not go through or came back as failed after they had sent it, and they ask what went wrong — the transfer was attempted and failed, not refused up front as declined.
+
+----
+
+Write 20 different messages that customers of a banking app might send to customer support.
+Every message has this intent: declined_transfer — The customer tried to send a transfer and it was declined or rejected at the moment they attempted it, and they ask why — the transfer was refused up front, not sent and then failed.
+Style for this batch: polite and complete sentences.
+Vary the wording, length and situation. One message per array item, no numbering.
+Do not write messages with this other intent: failed_transfer — The customer's transfer did not go through or came back as failed after they had sent it, and they ask what went wrong — the transfer was attempted and failed, not refused up front as declined.
+
+----
+
+Write 20 different messages that customers of a banking app might send to customer support.
+Every message has this intent: declined_transfer — The customer tried to send a transfer and it was declined or rejected at the moment they attempted it, and they ask why — the transfer was refused up front, not sent and then failed.
+Style for this batch: casual, lowercase, the way people type on a phone.
+Vary the wording, length and situation. One message per array item, no numbering.
+Do not write messages with this other intent: failed_transfer — The customer's transfer did not go through or came back as failed after they had sent it, and they ask what went wrong — the transfer was attempted and failed, not refused up front as declined.
+
+----
+
+Write 20 different messages that customers of a banking app might send to customer support.
+Every message has this intent: declined_transfer — The customer tried to send a transfer and it was declined or rejected at the moment they attempted it, and they ask why — the transfer was refused up front, not sent and then failed.
+Style for this batch: phrased as direct questions.
+Vary the wording, length and situation. One message per array item, no numbering.
+Do not write messages with this other intent: failed_transfer — The customer's transfer did not go through or came back as failed after they had sent it, and they ask what went wrong — the transfer was attempted and failed, not refused up front as declined.
+
+----
+
+Write 20 different messages that customers of a banking app might send to customer support.
+Every message has this intent: declined_transfer — The customer tried to send a transfer and it was declined or rejected at the moment they attempted it, and they ask why — the transfer was refused up front, not sent and then failed.
+Style for this batch: frustrated or worried in tone.
+Vary the wording, length and situation. One message per array item, no numbering.
+Do not write messages with this other intent: failed_transfer — The customer's transfer did not go through or came back as failed after they had sent it, and they ask what went wrong — the transfer was attempted and failed, not refused up front as declined.
+
+----
+
+Write 20 different messages that customers of a banking app might send to customer support.
+Every message has this intent: failed_transfer — The customer's transfer did not go through or came back as failed after they had sent it, and they ask what went wrong — the transfer was attempted and failed, not refused up front as declined.
+Style for this batch: short and blunt, a few words to one sentence.
+Vary the wording, length and situation. One message per array item, no numbering.
+Do not write messages with this other intent: declined_transfer — The customer tried to send a transfer and it was declined or rejected at the moment they attempted it, and they ask why — the transfer was refused up front, not sent and then failed.
+Include short plain messages about a transfer already sent: it did not work, did not go through, the money came back, or the recipient never got it.
+
+----
+
+Write 20 different messages that customers of a banking app might send to customer support.
+Every message has this intent: failed_transfer — The customer's transfer did not go through or came back as failed after they had sent it, and they ask what went wrong — the transfer was attempted and failed, not refused up front as declined.
+Style for this batch: polite and complete sentences.
+Vary the wording, length and situation. One message per array item, no numbering.
+Do not write messages with this other intent: declined_transfer — The customer tried to send a transfer and it was declined or rejected at the moment they attempted it, and they ask why — the transfer was refused up front, not sent and then failed.
+Include short plain messages about a transfer already sent: it did not work, did not go through, the money came back, or the recipient never got it.
+
+----
+
+Write 20 different messages that customers of a banking app might send to customer support.
+Every message has this intent: failed_transfer — The customer's transfer did not go through or came back as failed after they had sent it, and they ask what went wrong — the transfer was attempted and failed, not refused up front as declined.
+Style for this batch: casual, lowercase, the way people type on a phone.
+Vary the wording, length and situation. One message per array item, no numbering.
+Do not write messages with this other intent: declined_transfer — The customer tried to send a transfer and it was declined or rejected at the moment they attempted it, and they ask why — the transfer was refused up front, not sent and then failed.
+Include short plain messages about a transfer already sent: it did not work, did not go through, the money came back, or the recipient never got it.
+
+----
+
+Write 20 different messages that customers of a banking app might send to customer support.
+Every message has this intent: failed_transfer — The customer's transfer did not go through or came back as failed after they had sent it, and they ask what went wrong — the transfer was attempted and failed, not refused up front as declined.
+Style for this batch: phrased as direct questions.
+Vary the wording, length and situation. One message per array item, no numbering.
+Do not write messages with this other intent: declined_transfer — The customer tried to send a transfer and it was declined or rejected at the moment they attempted it, and they ask why — the transfer was refused up front, not sent and then failed.
+Include short plain messages about a transfer already sent: it did not work, did not go through, the money came back, or the recipient never got it.
+
+----
+
+Write 20 different messages that customers of a banking app might send to customer support.
+Every message has this intent: failed_transfer — The customer's transfer did not go through or came back as failed after they had sent it, and they ask what went wrong — the transfer was attempted and failed, not refused up front as declined.
+Style for this batch: frustrated or worried in tone.
+Vary the wording, length and situation. One message per array item, no numbering.
+Do not write messages with this other intent: declined_transfer — The customer tried to send a transfer and it was declined or rejected at the moment they attempted it, and they ask why — the transfer was refused up front, not sent and then failed.
+Include short plain messages about a transfer already sent: it did not work, did not go through, the money came back, or the recipient never got it.
+
+----
+
+Write 20 different messages that customers of a banking app might send to customer support.
+Every message has this intent: failed_transfer — The customer's transfer did not go through or came back as failed after they had sent it, and they ask what went wrong — the transfer was attempted and failed, not refused up front as declined.
+Style for this batch: a little rambling, with some background before the point.
+Vary the wording, length and situation. One message per array item, no numbering.
+Do not write messages with this other intent: declined_transfer — The customer tried to send a transfer and it was declined or rejected at the moment they attempted it, and they ask why — the transfer was refused up front, not sent and then failed.
+Include short plain messages about a transfer already sent: it did not work, did not go through, the money came back, or the recipient never got it.
+
+----
+
+Write 20 different messages that customers of a banking app might send to customer support.
+Every message has this intent: card_payment_wrong_exchange_rate — The customer paid with their card in a shop or online in a foreign currency and says the exchange rate applied was wrong — a card purchase, not a cash withdrawal.
+Style for this batch: short and blunt, a few words to one sentence.
+Vary the wording, length and situation. One message per array item, no numbering.
+Do not write messages with this other intent: wrong_exchange_rate_for_cash_withdrawal — The customer withdrew cash from an ATM in a foreign currency and says the exchange rate applied was wrong — a cash withdrawal, not a card purchase.
+
+----
+
+Write 20 different messages that customers of a banking app might send to customer support.
+Every message has this intent: card_payment_wrong_exchange_rate — The customer paid with their card in a shop or online in a foreign currency and says the exchange rate applied was wrong — a card purchase, not a cash withdrawal.
+Style for this batch: polite and complete sentences.
+Vary the wording, length and situation. One message per array item, no numbering.
+Do not write messages with this other intent: wrong_exchange_rate_for_cash_withdrawal — The customer withdrew cash from an ATM in a foreign currency and says the exchange rate applied was wrong — a cash withdrawal, not a card purchase.
+
+----
+
+Write 20 different messages that customers of a banking app might send to customer support.
+Every message has this intent: card_payment_wrong_exchange_rate — The customer paid with their card in a shop or online in a foreign currency and says the exchange rate applied was wrong — a card purchase, not a cash withdrawal.
+Style for this batch: casual, lowercase, the way people type on a phone.
+Vary the wording, length and situation. One message per array item, no numbering.
+Do not write messages with this other intent: wrong_exchange_rate_for_cash_withdrawal — The customer withdrew cash from an ATM in a foreign currency and says the exchange rate applied was wrong — a cash withdrawal, not a card purchase.
+
+----
+
+Write 20 different messages that customers of a banking app might send to customer support.
+Every message has this intent: card_payment_wrong_exchange_rate — The customer paid with their card in a shop or online in a foreign currency and says the exchange rate applied was wrong — a card purchase, not a cash withdrawal.
+Style for this batch: phrased as direct questions.
+Vary the wording, length and situation. One message per array item, no numbering.
+Do not write messages with this other intent: wrong_exchange_rate_for_cash_withdrawal — The customer withdrew cash from an ATM in a foreign currency and says the exchange rate applied was wrong — a cash withdrawal, not a card purchase.
+
+----
+
+Write 20 different messages that customers of a banking app might send to customer support.
+Every message has this intent: card_payment_wrong_exchange_rate — The customer paid with their card in a shop or online in a foreign currency and says the exchange rate applied was wrong — a card purchase, not a cash withdrawal.
+Style for this batch: frustrated or worried in tone.
+Vary the wording, length and situation. One message per array item, no numbering.
+Do not write messages with this other intent: wrong_exchange_rate_for_cash_withdrawal — The customer withdrew cash from an ATM in a foreign currency and says the exchange rate applied was wrong — a cash withdrawal, not a card purchase.
+
+----
+
+Write 20 different messages that customers of a banking app might send to customer support.
+Every message has this intent: card_payment_wrong_exchange_rate — The customer paid with their card in a shop or online in a foreign currency and says the exchange rate applied was wrong — a card purchase, not a cash withdrawal.
+Style for this batch: a little rambling, with some background before the point.
+Vary the wording, length and situation. One message per array item, no numbering.
+Do not write messages with this other intent: wrong_exchange_rate_for_cash_withdrawal — The customer withdrew cash from an ATM in a foreign currency and says the exchange rate applied was wrong — a cash withdrawal, not a card purchase.
+
+----
+
+Write 20 different messages that customers of a banking app might send to customer support.
+Every message has this intent: wrong_exchange_rate_for_cash_withdrawal — The customer withdrew cash from an ATM in a foreign currency and says the exchange rate applied was wrong — a cash withdrawal, not a card purchase.
+Style for this batch: short and blunt, a few words to one sentence.
+Vary the wording, length and situation. One message per array item, no numbering.
+Do not write messages with this other intent: card_payment_wrong_exchange_rate — The customer paid with their card in a shop or online in a foreign currency and says the exchange rate applied was wrong — a card purchase, not a cash withdrawal.
+Include messages that only say they took out or got cash in another currency, with no machine or country mentioned, and messages that only say they were charged more than expected for that cash.
+
+----
+
+Write 20 different messages that customers of a banking app might send to customer support.
+Every message has this intent: wrong_exchange_rate_for_cash_withdrawal — The customer withdrew cash from an ATM in a foreign currency and says the exchange rate applied was wrong — a cash withdrawal, not a card purchase.
+Style for this batch: polite and complete sentences.
+Vary the wording, length and situation. One message per array item, no numbering.
+Do not write messages with this other intent: card_payment_wrong_exchange_rate — The customer paid with their card in a shop or online in a foreign currency and says the exchange rate applied was wrong — a card purchase, not a cash withdrawal.
+Include messages that only say they took out or got cash in another currency, with no machine or country mentioned, and messages that only say they were charged more than expected for that cash.
+
+----
+
+Write 20 different messages that customers of a banking app might send to customer support.
+Every message has this intent: wrong_exchange_rate_for_cash_withdrawal — The customer withdrew cash from an ATM in a foreign currency and says the exchange rate applied was wrong — a cash withdrawal, not a card purchase.
+Style for this batch: casual, lowercase, the way people type on a phone.
+Vary the wording, length and situation. One message per array item, no numbering.
+Do not write messages with this other intent: card_payment_wrong_exchange_rate — The customer paid with their card in a shop or online in a foreign currency and says the exchange rate applied was wrong — a card purchase, not a cash withdrawal.
+Include messages that only say they took out or got cash in another currency, with no machine or country mentioned, and messages that only say they were charged more than expected for that cash.
+
+----
+
+Write 20 different messages that customers of a banking app might send to customer support.
+Every message has this intent: wrong_exchange_rate_for_cash_withdrawal — The customer withdrew cash from an ATM in a foreign currency and says the exchange rate applied was wrong — a cash withdrawal, not a card purchase.
+Style for this batch: phrased as direct questions.
+Vary the wording, length and situation. One message per array item, no numbering.
+Do not write messages with this other intent: card_payment_wrong_exchange_rate — The customer paid with their card in a shop or online in a foreign currency and says the exchange rate applied was wrong — a card purchase, not a cash withdrawal.
+Include messages that only say they took out or got cash in another currency, with no machine or country mentioned, and messages that only say they were charged more than expected for that cash.
+
+----
+
+Write 20 different messages that customers of a banking app might send to customer support.
+Every message has this intent: wrong_exchange_rate_for_cash_withdrawal — The customer withdrew cash from an ATM in a foreign currency and says the exchange rate applied was wrong — a cash withdrawal, not a card purchase.
+Style for this batch: frustrated or worried in tone.
+Vary the wording, length and situation. One message per array item, no numbering.
+Do not write messages with this other intent: card_payment_wrong_exchange_rate — The customer paid with their card in a shop or online in a foreign currency and says the exchange rate applied was wrong — a card purchase, not a cash withdrawal.
+Include messages that only say they took out or got cash in another currency, with no machine or country mentioned, and messages that only say they were charged more than expected for that cash.
+
+----
+
+Write 20 different messages that customers of a banking app might send to customer support.
+Every message has this intent: wrong_exchange_rate_for_cash_withdrawal — The customer withdrew cash from an ATM in a foreign currency and says the exchange rate applied was wrong — a cash withdrawal, not a card purchase.
+Style for this batch: a little rambling, with some background before the point.
+Vary the wording, length and situation. One message per array item, no numbering.
+Do not write messages with this other intent: card_payment_wrong_exchange_rate — The customer paid with their card in a shop or online in a foreign currency and says the exchange rate applied was wrong — a card purchase, not a cash withdrawal.
+Include messages that only say they took out or got cash in another currency, with no machine or country mentioned, and messages that only say they were charged more than expected for that cash.
+
+----
+
+Write 20 different messages that customers of a banking app might send to customer support.
+Every message has this intent: getting_virtual_card — The customer asks how to get or where to find a virtual card, the ordinary one that is kept and reused — not a disposable card that expires after one use.
+Style for this batch: short and blunt, a few words to one sentence.
+Vary the wording, length and situation. One message per array item, no numbering.
+Do not write messages with this other intent: get_disposable_virtual_card — The customer asks how to get a disposable virtual card, the single-use kind that expires after one payment — not the ordinary virtual card that is kept and reused.
+Most messages should just ask for a virtual card, whether one can be had, or where it is, as someone would who does not know there is more than one kind.
+
+----
+
+Write 20 different messages that customers of a banking app might send to customer support.
+Every message has this intent: getting_virtual_card — The customer asks how to get or where to find a virtual card, the ordinary one that is kept and reused — not a disposable card that expires after one use.
+Style for this batch: polite and complete sentences.
+Vary the wording, length and situation. One message per array item, no numbering.
+Do not write messages with this other intent: get_disposable_virtual_card — The customer asks how to get a disposable virtual card, the single-use kind that expires after one payment — not the ordinary virtual card that is kept and reused.
+Most messages should just ask for a virtual card, whether one can be had, or where it is, as someone would who does not know there is more than one kind.
+
+----
+
+Write 20 different messages that customers of a banking app might send to customer support.
+Every message has this intent: getting_virtual_card — The customer asks how to get or where to find a virtual card, the ordinary one that is kept and reused — not a disposable card that expires after one use.
+Style for this batch: casual, lowercase, the way people type on a phone.
+Vary the wording, length and situation. One message per array item, no numbering.
+Do not write messages with this other intent: get_disposable_virtual_card — The customer asks how to get a disposable virtual card, the single-use kind that expires after one payment — not the ordinary virtual card that is kept and reused.
+Most messages should just ask for a virtual card, whether one can be had, or where it is, as someone would who does not know there is more than one kind.
+
+----
+
+Write 20 different messages that customers of a banking app might send to customer support.
+Every message has this intent: getting_virtual_card — The customer asks how to get or where to find a virtual card, the ordinary one that is kept and reused — not a disposable card that expires after one use.
+Style for this batch: phrased as direct questions.
+Vary the wording, length and situation. One message per array item, no numbering.
+Do not write messages with this other intent: get_disposable_virtual_card — The customer asks how to get a disposable virtual card, the single-use kind that expires after one payment — not the ordinary virtual card that is kept and reused.
+Most messages should just ask for a virtual card, whether one can be had, or where it is, as someone would who does not know there is more than one kind.
+
+----
+
+Write 20 different messages that customers of a banking app might send to customer support.
+Every message has this intent: getting_virtual_card — The customer asks how to get or where to find a virtual card, the ordinary one that is kept and reused — not a disposable card that expires after one use.
+Style for this batch: frustrated or worried in tone.
+Vary the wording, length and situation. One message per array item, no numbering.
+Do not write messages with this other intent: get_disposable_virtual_card — The customer asks how to get a disposable virtual card, the single-use kind that expires after one payment — not the ordinary virtual card that is kept and reused.
+Most messages should just ask for a virtual card, whether one can be had, or where it is, as someone would who does not know there is more than one kind.
+
+----
+
+Write 20 different messages that customers of a banking app might send to customer support.
+Every message has this intent: getting_virtual_card — The customer asks how to get or where to find a virtual card, the ordinary one that is kept and reused — not a disposable card that expires after one use.
+Style for this batch: a little rambling, with some background before the point.
+Vary the wording, length and situation. One message per array item, no numbering.
+Do not write messages with this other intent: get_disposable_virtual_card — The customer asks how to get a disposable virtual card, the single-use kind that expires after one payment — not the ordinary virtual card that is kept and reused.
+Most messages should just ask for a virtual card, whether one can be had, or where it is, as someone would who does not know there is more than one kind.
+
+----
+
+Write 20 different messages that customers of a banking app might send to customer support.
+Every message has this intent: get_disposable_virtual_card — The customer asks how to get a disposable virtual card, the single-use kind that expires after one payment — not the ordinary virtual card that is kept and reused.
+Style for this batch: short and blunt, a few words to one sentence.
+Vary the wording, length and situation. One message per array item, no numbering.
+Do not write messages with this other intent: getting_virtual_card — The customer asks how to get or where to find a virtual card, the ordinary one that is kept and reused — not a disposable card that expires after one use.
+
+----
+
+Write 20 different messages that customers of a banking app might send to customer support.
+Every message has this intent: get_disposable_virtual_card — The customer asks how to get a disposable virtual card, the single-use kind that expires after one payment — not the ordinary virtual card that is kept and reused.
+Style for this batch: polite and complete sentences.
+Vary the wording, length and situation. One message per array item, no numbering.
+Do not write messages with this other intent: getting_virtual_card — The customer asks how to get or where to find a virtual card, the ordinary one that is kept and reused — not a disposable card that expires after one use.
+
+----
+
+Write 20 different messages that customers of a banking app might send to customer support.
+Every message has this intent: get_disposable_virtual_card — The customer asks how to get a disposable virtual card, the single-use kind that expires after one payment — not the ordinary virtual card that is kept and reused.
+Style for this batch: casual, lowercase, the way people type on a phone.
+Vary the wording, length and situation. One message per array item, no numbering.
+Do not write messages with this other intent: getting_virtual_card — The customer asks how to get or where to find a virtual card, the ordinary one that is kept and reused — not a disposable card that expires after one use.
+
+----
+
+Write 20 different messages that customers of a banking app might send to customer support.
+Every message has this intent: get_disposable_virtual_card — The customer asks how to get a disposable virtual card, the single-use kind that expires after one payment — not the ordinary virtual card that is kept and reused.
+Style for this batch: phrased as direct questions.
+Vary the wording, length and situation. One message per array item, no numbering.
+Do not write messages with this other intent: getting_virtual_card — The customer asks how to get or where to find a virtual card, the ordinary one that is kept and reused — not a disposable card that expires after one use.
+
+----
+
+Write 20 different messages that customers of a banking app might send to customer support.
+Every message has this intent: get_disposable_virtual_card — The customer asks how to get a disposable virtual card, the single-use kind that expires after one payment — not the ordinary virtual card that is kept and reused.
+Style for this batch: frustrated or worried in tone.
+Vary the wording, length and situation. One message per array item, no numbering.
+Do not write messages with this other intent: getting_virtual_card — The customer asks how to get or where to find a virtual card, the ordinary one that is kept and reused — not a disposable card that expires after one use.
+
+----
+
+Write 20 different messages that customers of a banking app might send to customer support.
+Every message has this intent: verify_my_identity — The customer asks how to verify their identity or what documents and steps are needed — they accept that it must be done and want to know how, not why.
+Style for this batch: short and blunt, a few words to one sentence.
+Vary the wording, length and situation. One message per array item, no numbering.
+Do not write messages with this other intent: why_verify_identity — The customer asks why they have to verify their identity at all, or objects to being asked — they want the reason, not the steps.
+
+----
+
+Write 20 different messages that customers of a banking app might send to customer support.
+Every message has this intent: verify_my_identity — The customer asks how to verify their identity or what documents and steps are needed — they accept that it must be done and want to know how, not why.
+Style for this batch: polite and complete sentences.
+Vary the wording, length and situation. One message per array item, no numbering.
+Do not write messages with this other intent: why_verify_identity — The customer asks why they have to verify their identity at all, or objects to being asked — they want the reason, not the steps.
+
+----
+
+Write 20 different messages that customers of a banking app might send to customer support.
+Every message has this intent: verify_my_identity — The customer asks how to verify their identity or what documents and steps are needed — they accept that it must be done and want to know how, not why.
+Style for this batch: casual, lowercase, the way people type on a phone.
+Vary the wording, length and situation. One message per array item, no numbering.
+Do not write messages with this other intent: why_verify_identity — The customer asks why they have to verify their identity at all, or objects to being asked — they want the reason, not the steps.
+
+----
+
+Write 20 different messages that customers of a banking app might send to customer support.
+Every message has this intent: verify_my_identity — The customer asks how to verify their identity or what documents and steps are needed — they accept that it must be done and want to know how, not why.
+Style for this batch: phrased as direct questions.
+Vary the wording, length and situation. One message per array item, no numbering.
+Do not write messages with this other intent: why_verify_identity — The customer asks why they have to verify their identity at all, or objects to being asked — they want the reason, not the steps.
+
+----
+
+Write 20 different messages that customers of a banking app might send to customer support.
+Every message has this intent: verify_my_identity — The customer asks how to verify their identity or what documents and steps are needed — they accept that it must be done and want to know how, not why.
+Style for this batch: frustrated or worried in tone.
+Vary the wording, length and situation. One message per array item, no numbering.
+Do not write messages with this other intent: why_verify_identity — The customer asks why they have to verify their identity at all, or objects to being asked — they want the reason, not the steps.
+
+----
+
+Write 20 different messages that customers of a banking app might send to customer support.
+Every message has this intent: verify_my_identity — The customer asks how to verify their identity or what documents and steps are needed — they accept that it must be done and want to know how, not why.
+Style for this batch: a little rambling, with some background before the point.
+Vary the wording, length and situation. One message per array item, no numbering.
+Do not write messages with this other intent: why_verify_identity — The customer asks why they have to verify their identity at all, or objects to being asked — they want the reason, not the steps.
+
+----
+
+Write 20 different messages that customers of a banking app might send to customer support.
+Every message has this intent: why_verify_identity — The customer asks why they have to verify their identity at all, or objects to being asked — they want the reason, not the steps.
+Style for this batch: short and blunt, a few words to one sentence.
+Vary the wording, length and situation. One message per array item, no numbering.
+Do not write messages with this other intent: verify_my_identity — The customer asks how to verify their identity or what documents and steps are needed — they accept that it must be done and want to know how, not why.
+Include messages that name the check itself — a photo of an ID, a selfie, a document upload — and ask whether it is really needed or what it is for.
+
+----
+
+Write 20 different messages that customers of a banking app might send to customer support.
+Every message has this intent: why_verify_identity — The customer asks why they have to verify their identity at all, or objects to being asked — they want the reason, not the steps.
+Style for this batch: polite and complete sentences.
+Vary the wording, length and situation. One message per array item, no numbering.
+Do not write messages with this other intent: verify_my_identity — The customer asks how to verify their identity or what documents and steps are needed — they accept that it must be done and want to know how, not why.
+Include messages that name the check itself — a photo of an ID, a selfie, a document upload — and ask whether it is really needed or what it is for.
+
+----
+
+Write 20 different messages that customers of a banking app might send to customer support.
+Every message has this intent: why_verify_identity — The customer asks why they have to verify their identity at all, or objects to being asked — they want the reason, not the steps.
+Style for this batch: casual, lowercase, the way people type on a phone.
+Vary the wording, length and situation. One message per array item, no numbering.
+Do not write messages with this other intent: verify_my_identity — The customer asks how to verify their identity or what documents and steps are needed — they accept that it must be done and want to know how, not why.
+Include messages that name the check itself — a photo of an ID, a selfie, a document upload — and ask whether it is really needed or what it is for.
+
+----
+
+Write 20 different messages that customers of a banking app might send to customer support.
+Every message has this intent: why_verify_identity — The customer asks why they have to verify their identity at all, or objects to being asked — they want the reason, not the steps.
+Style for this batch: phrased as direct questions.
+Vary the wording, length and situation. One message per array item, no numbering.
+Do not write messages with this other intent: verify_my_identity — The customer asks how to verify their identity or what documents and steps are needed — they accept that it must be done and want to know how, not why.
+Include messages that name the check itself — a photo of an ID, a selfie, a document upload — and ask whether it is really needed or what it is for.
+
+----
+
+Write 20 different messages that customers of a banking app might send to customer support.
+Every message has this intent: why_verify_identity — The customer asks why they have to verify their identity at all, or objects to being asked — they want the reason, not the steps.
+Style for this batch: frustrated or worried in tone.
+Vary the wording, length and situation. One message per array item, no numbering.
+Do not write messages with this other intent: verify_my_identity — The customer asks how to verify their identity or what documents and steps are needed — they accept that it must be done and want to know how, not why.
+Include messages that name the check itself — a photo of an ID, a selfie, a document upload — and ask whether it is really needed or what it is for.
+
+----
+
+Write 20 different messages that customers of a banking app might send to customer support.
+Every message has this intent: why_verify_identity — The customer asks why they have to verify their identity at all, or objects to being asked — they want the reason, not the steps.
+Style for this batch: a little rambling, with some background before the point.
+Vary the wording, length and situation. One message per array item, no numbering.
+Do not write messages with this other intent: verify_my_identity — The customer asks how to verify their identity or what documents and steps are needed — they accept that it must be done and want to know how, not why.
+Include messages that name the check itself — a photo of an ID, a selfie, a document upload — and ask whether it is really needed or what it is for.

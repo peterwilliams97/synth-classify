@@ -118,9 +118,10 @@ in `refs/main`, which is the layout `HF_HUB_OFFLINE=1` loads from.
   `confusable` ones; no `names` option is cut. On dev the raised budgets gave 0.760 against 0.625 on
   `distinct` `definitions` and 0.295 against 0.530 on `confusable` `definitions`, from a scratch run
   that wrote no report file.
-- **dev is drawn from the train split, so it scores only `--llm` and `--laya` classifiers.** The
-  real-data models were trained on those rows; `--split dev --model` runs, and the number means
-  nothing.
+- **dev is drawn from the train split, so `--split dev --model` is valid only for a model trained
+  on a synthetic file.** A model trained on `data/<set>/banking77_train.jsonl` saw the dev rows;
+  `--split dev --model` runs on it, and the number means nothing. `--llm`, `--laya` and models
+  trained on `data/<set>/synthetic*.jsonl` saw none of them.
 - **Seconds per message are one message per call**, in `predict` (`score.py`) as in `classify`
   (`llm.py`), so the two are comparable. Time them with nothing else on the GPU: Ollama and MPS
   share it.
@@ -165,7 +166,7 @@ in `refs/main`, which is the layout `HF_HUB_OFFLINE=1` loads from.
 `datasets` 5.x refuses those. Restricted to `distinct` it is 1188 train and 399 test rows;
 restricted to `confusable`, 1284 and 400.
 
-`data/<set>/synthetic.jsonl` are the only tracked files under `data/` besides `pair`'s
+`data/<set>/synthetic.jsonl` are the only tracked files under `data/` besides `pair`'s and `confusable`'s
 `synthetic-<method>.jsonl` and `.prompt.txt` from `generate.py --method`; they are the `gemma4:e4b`
 output the README test table's synthetic rows were computed from, and
 `results/<set>/<split>/*.txt` are the `score.py` reports behind each row of the dev and test
