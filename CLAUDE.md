@@ -8,13 +8,14 @@ repository.
 A worked example, not a library: train an intent classifier on LLM-generated messages, score it on
 real Banking77, once per class set in `CLASS_SETS` (`classes.py`): `distinct`, 10 intents on
 unrelated topics, and `confusable`, 5 pairs of intents on the same topic. Local Ollama models
-prompted with the class list (`llm.py`) are scored beside the trained ones, and so is an mlx-lm
-copy of Gemma 4 E4B with and without a LoRA adapter (`finetune.py`), and logistic regression on
-frozen `dmis-lab/UltraBERT-Embed-150M` embeddings (`train.py --embed`). Six scripts, and a
-`README.md` that lists the classifiers, states four findings, gives each finding a section with one
-`confusable`-only table, and keeps the three full tables (test, dev, training minutes) under All
-results. All Python — the repository layout, file header and
-`test.sh` rules in `~/CLAUDE.md` do not apply here; its Python / ML environment section does.
+prompted with the class list (`llm.py`) are scored beside the trained ones, and so is an mlx-lm copy
+of Gemma 4 E4B with and without a LoRA adapter (`finetune.py`), the `convaiinnovations/laya`
+decision model zero-shot (`score.py --laya`), and logistic regression on frozen
+`dmis-lab/UltraBERT-Embed-150M` embeddings (`train.py --embed`). Six scripts, and a `README.md` that
+lists the classifiers, states four findings, gives each finding a section with one `confusable`-only
+table, and keeps the three full tables (test, dev, training minutes) under All results. All Python
+— the repository layout, file header and `test.sh` rules in `~/CLAUDE.md` do not apply here; its
+Python / ML environment section does.
 
 ## Commands
 
@@ -106,15 +107,17 @@ in `refs/main`, which is the layout `HF_HUB_OFFLINE=1` loads from.
 - **Prompts are chosen on dev, never on test.** For each Ollama model and class set, test is run
   with `fewshot` and with whichever of `names` and `definitions` has the higher dev accuracy,
   `names` on a tie. Do not run the third prompt on test.
-- **Laya is asked one `choice` question per message**, built by `laya_question` (`llm.py`) from
-  the `names` or `definitions` prompt; it takes no `fewshot`. `classify_laya` passes
-  `LAYA_MAX_LEN` and `LAYA_HEAD_MAX_LEN`, under which no option is cut; changing either, or
-  `LAYA_REVISION`, invalidates every `laya-*` report. The package defaults, 512 and 192, cut each
-  `confusable` `definitions` option to 17 tokens. On dev the raised budgets gave 0.760 against
-  0.625 on `distinct` `definitions` and 0.295 against 0.530 on `confusable` `definitions`, from a
-  scratch run that wrote no report file.
-- **dev is drawn from the train split, so it scores only `--llm` classifiers.** The real-data
-  models were trained on those rows; `--split dev --model` runs, and the number means nothing.
+- **Laya is asked one `choice` question per message**, built by `laya_question` (`llm.py`) from the
+  `names` or `definitions` prompt; it takes no `fewshot`. `classify_laya` passes `LAYA_MAX_LEN` and
+  `LAYA_HEAD_MAX_LEN`, under which no option is cut; changing either, or `LAYA_REVISION`,
+  invalidates every `laya-*` report. The package defaults, 512 and 192, cap every `definitions`
+  option at 17 tokens in both class sets, which cuts 8 of the 10 `distinct` options and all 10
+  `confusable` ones; no `names` option is cut. On dev the raised budgets gave 0.760 against 0.625 on
+  `distinct` `definitions` and 0.295 against 0.530 on `confusable` `definitions`, from a scratch run
+  that wrote no report file.
+- **dev is drawn from the train split, so it scores only `--llm` and `--laya` classifiers.** The
+  real-data models were trained on those rows; `--split dev --model` runs, and the number means
+  nothing.
 - **Seconds per message are one message per call**, in `predict` (`score.py`) as in `classify`
   (`llm.py`), so the two are comparable. Time them with nothing else on the GPU: Ollama and MPS
   share it.

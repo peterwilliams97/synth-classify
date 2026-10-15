@@ -60,8 +60,9 @@ LAYA_MODEL = "convaiinnovations/laya"
 LAYA_REVISION = "55cf4c4ebb4ebe31b2550e8bdf3bd21b99753851"
 
 # Laya's token budgets, per its model card's advice for questions with many options. Its defaults
-# (512 and 192) cut every `definitions` option to 17 tokens, dropping the clause that separates the
-# two intents of a `confusable` pair; at these values no option or message is cut.
+# (512 and 192) cap every `definitions` option at 17 tokens in both class sets, which cuts 8 of the
+# 10 `distinct` options and all 10 `confusable` ones, dropping the clause that separates the two
+# intents of a `confusable` pair; at these values no option or message is cut.
 LAYA_MAX_LEN = 1024
 LAYA_HEAD_MAX_LEN = 512
 

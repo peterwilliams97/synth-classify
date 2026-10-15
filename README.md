@@ -179,9 +179,9 @@ messages are `data/<set>/synthetic.jsonl`. The real train set is the Banking77 t
 restricted to the class set: 1188 messages for `distinct`, 1284 for `confusable`.
 
 **dev and test.** Test is the Banking77 test split restricted to the class set. dev is 200 messages
-per class set: 20 per class sampled with a fixed seed from the Banking77 train split. The 3
-examples per class in a `fewshot` prompt, 30 in all, are train messages outside dev. dev scores
-only the Ollama and mlx-lm models; the classifiers trained on the real train set saw those rows.
+per class set: 20 per class sampled with a fixed seed from the Banking77 train split. The 3 examples
+per class in a `fewshot` prompt, 30 in all, are train messages outside dev. dev scores only the
+Ollama and mlx-lm models and Laya; the classifiers trained on the real train set saw those rows.
 
 **How prompts were chosen.** Each Ollama model was run on dev with every prompt in `PROMPTS`. Test
 was run with `fewshot` and with whichever of `names` and `definitions` scored higher on dev. On
@@ -344,15 +344,17 @@ adapter carries the whole prompt.
   names only), `definitions` (names and the definitions from `CLASS_SETS`) and `fewshot`
   (definitions plus 3 real Banking77 train messages per class).
   With `mlx=True` it runs an mlx-lm model instead, with an optional LoRA adapter; nothing restricts
-  that reply, so one that is not a class name is returned as invalid.
+  that reply, so one that is not a class name is returned as invalid. `laya_question` builds the
+  one `choice` question Laya is asked from the `names` or `definitions` prompt, and `classify_laya`
+  asks it of each message and returns the highest-probability option.
 - `finetune.py` — trains a LoRA adapter for `mlx-community/gemma-4-e4b-it-4bit` on a jsonl file
   (`--train`) and saves it to `--out`. Each row is a chat: the `definitions` prompt and the message
   as the user turn, the class name as the assistant turn.
-- `score.py` — scores a saved model (`--model`), an Ollama model (`--llm MODEL --prompt NAME`) or
-  an mlx-lm model with the `definitions` prompt (`--mlx MODEL`, and `--adapter DIR` for a LoRA
-  adapter) on Banking77 restricted to the class set: accuracy, macro F1, median seconds per
-  message, per-class recall and a confusion matrix, printed and written to
-  `results/<set>/<split>/<name>.txt`. An `--mlx` report also counts the invalid replies.
+- `score.py` — scores a saved model (`--model`), an Ollama model (`--llm MODEL --prompt NAME`), an
+  mlx-lm model with the `definitions` prompt (`--mlx MODEL`, and `--adapter DIR` for a LoRA adapter)
+  or Laya (`--laya --prompt names|definitions`) on Banking77 restricted to the class set: accuracy,
+  macro F1, median seconds per message, per-class recall and a confusion matrix, printed and written
+  to `results/<set>/<split>/<name>.txt`. An `--mlx` report also counts the invalid replies.
   `--split test` (the default) is the Banking77 test split. `--split dev` is 20 messages per class
   sampled with a fixed seed from the Banking77 train split; the `fewshot` examples are train
   messages outside dev. `--write-train` exports the restricted train split as jsonl.
@@ -388,6 +390,10 @@ for p in names definitions fewshot; do
   python score.py --set $S --split dev --llm gemma4:e4b --prompt $p
 done
 python score.py --set $S --llm gemma4:e4b --prompt fewshot      # test, with the prompts chosen on dev
+
+python score.py --set $S --split dev --laya --prompt names
+python score.py --set $S --split dev --laya --prompt definitions
+python score.py --set $S --laya --prompt names                  # test, with the prompt chosen on dev
 
 M=mlx-community/gemma-4-e4b-it-4bit
 python finetune.py --set $S --train data/$S/synthetic.jsonl       --out models/$S/gemma-4-e4b-lora-synthetic
