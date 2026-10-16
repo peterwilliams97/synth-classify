@@ -2,7 +2,8 @@
 and writes the report it prints to results/<set>/<split>/<classifier>.txt. The classifier is a model
 saved by train.py (`--model`: ModernBERT, TF-IDF or frozen embeddings), an Ollama model with one
 of llm.py's `PROMPTS` (`--llm`, `--prompt`), or an mlx-lm model with llm.py's `MLX_PROMPT` and
-optionally a LoRA adapter trained by finetune.py (`--mlx`, `--adapter`), or the Laya decision model
+optionally a LoRA adapter trained by finetune.py (`--mlx`, `--adapter`; with `--reply logits`, no
+adapter and the class read off the letter logits of one forward pass), or the Laya decision model
 zero-shot with one of llm.py's `LAYA_PROMPTS` (`--laya`, `--prompt`). `--split test` is the
 Banking77 test split; `--split dev` is `dev_and_shots`' sample of the train split, which is what
 prompts are chosen on.
@@ -23,13 +24,21 @@ from datasets import load_dataset
 from sklearn.metrics import accuracy_score, confusion_matrix, f1_score, recall_score
 
 from classes import CLASS_SETS
-from llm import LAYA_MODEL, LAYA_PROMPTS, MLX_PROMPT, PROMPTS, classify, classify_laya
+from llm import (
+    LAYA_MODEL,
+    LAYA_PROMPTS,
+    MLX_PROMPT,
+    PROMPTS,
+    classify,
+    classify_laya,
+    classify_mlx_logits,
+)
 
 DATASET = "mteb/banking77"
 DEV_PER_CLASS = 20
 SHOTS_PER_CLASS = 3
-# The top probability above which a Laya answer counts as high-confidence on the report's `p > 0.9`
-# line.
+# The top probability above which a Laya or `--reply logits` answer counts as high-confidence on
+# the report's `p > 0.9` line.
 HIGH_CONFIDENCE = 0.9
 
 
@@ -109,8 +118,8 @@ def predict(model_dir, texts, names):
 def report(classifier, split, gold, preds, seconds, names, invalid=None, probs=None):
     """report formats the scores. `invalid` is the number of `preds` that are -1, an mlx-lm reply
     that is no class name, or None for a classifier that cannot give one; the line is printed only
-    for the former. `probs` is the probability a Laya answer gave its choice, one per message, and
-    adds the accuracy on the messages where it is above `HIGH_CONFIDENCE`."""
+    for the former. `probs` is the probability a Laya or `--reply logits` answer gave its choice,
+    one per message, and adds the accuracy on the messages where it is above `HIGH_CONFIDENCE`."""
     ids = range(len(names))
     width = max(len(name) for name in names)
     recalls = recall_score(gold, preds, labels=ids, average=None)
@@ -151,6 +160,12 @@ def main():
     ap.add_argument("--prompt", choices=list(PROMPTS), help="required with --llm and --laya")
     ap.add_argument("--mlx", metavar="MODEL", help=f"mlx-lm model to score, {MLX_PROMPT} prompt")
     ap.add_argument("--adapter", metavar="DIR", help="LoRA adapter from finetune.py, with --mlx")
+    ap.add_argument(
+        "--reply",
+        choices=["generate", "logits"],
+        default="generate",
+        help="with --mlx: generate a class name, or read a class letter off one forward pass",
+    )
     ap.add_argument("--write-train", metavar="JSONL", help="export the restricted train split")
     args = ap.parse_args()
     names = list(CLASS_SETS[args.set])
@@ -172,6 +187,8 @@ def main():
         ap.error(f"--laya takes --prompt {' or '.join(LAYA_PROMPTS)}")
     if args.adapter and not args.mlx:
         ap.error("--adapter needs --mlx")
+    if args.reply == "logits" and (not args.mlx or args.adapter):
+        ap.error("--reply logits needs --mlx and takes no --adapter")
 
     shots = None
     if args.split == "dev":
@@ -186,6 +203,13 @@ def main():
         classifier = f"{LAYA_MODEL} prompt {args.prompt}"
         stem = f"laya-{args.prompt}"
         answers = classify_laya(texts, args.set, args.prompt)
+        preds = [names.index(label) for label, _, _ in answers]
+        probs = [p for _, p, _ in answers]
+        seconds = [s for _, _, s in answers]
+    elif args.mlx and args.reply == "logits":
+        classifier = f"{args.mlx} prompt {MLX_PROMPT} reply logits"
+        stem = f"{os.path.basename(os.path.normpath(args.mlx))}-{MLX_PROMPT}-logits"
+        answers = classify_mlx_logits(texts, args.set, args.mlx)
         preds = [names.index(label) for label, _, _ in answers]
         probs = [p for _, p, _ in answers]
         seconds = [s for _, _, s in answers]

@@ -45,7 +45,8 @@ gives the model without the instruction prefix. The same `train.py` lines with
 `score.py` prints its report and writes the same text to `results/$S/<split>/<name>.txt`, where
 `<name>` is the model directory name, or for `--llm` the Ollama model with `:` replaced by `-`, then
 `-<prompt>`, or for `--mlx` the adapter directory name, and without `--adapter` the last component
-of the mlx-lm model then `-definitions`, or for `--laya` `laya-<prompt>`. `train.py` and `finetune.py` write the minutes a run took,
+of the mlx-lm model then `-definitions`, and `-definitions-logits` with `--reply logits`, which takes no
+`--adapter`, or for `--laya` `laya-<prompt>`. `train.py` and `finetune.py` write the minutes a run took,
 or the seconds if under a minute, to `results/$S/train/<name>.txt`, `<name>` being the `--out`
 directory name. A ModernBERT fine-tune is 1.6 to 2.0 minutes on MPS, a LoRA adapter 8 to 18; the
 TF-IDF model is under a second, an `--embed` model about 6 seconds. An LLM run is one

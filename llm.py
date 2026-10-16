@@ -1,7 +1,8 @@
 """llm.py classifies messages with a local LLM: `PROMPTS` builds the instructions, `classify` sends
 them with one message at a time and gets back one class name. The LLM is an Ollama model, or an
 mlx-lm model with an optional LoRA adapter trained by finetune.py. `classify_laya` asks the same of
-the Laya decision model, which scores options instead of generating text. Like generate.py it must
+the Laya decision model, which scores options instead of generating text, and `classify_mlx_logits`
+asks an mlx-lm model for a letter and reads it off one forward pass. Like generate.py it must
 not import `datasets` or read Banking77 — the `fewshot` examples are chosen by score.py and passed
 in."""
 
@@ -46,6 +47,18 @@ MLX_PROMPT = "definitions"
 # Reply length limit for an mlx-lm model, in tokens. The longest class name in `CLASS_SETS` is 11;
 # the rest is room for the reasoning Gemma 4 sometimes writes before it answers.
 MAX_REPLY_TOKENS = 512
+
+
+def lettered(classes):
+    """lettered is the `MLX_PROMPT` instructions for `classify_mlx_logits`: each class is listed
+    under a letter, "A. <name>: <definition>", in `CLASS_SETS` order, and the model is asked for
+    the letter."""
+    lines = [f"{chr(ord('A') + i)}. {name}: {d}" for i, (name, d) in enumerate(classes.items())]
+    intro = (
+        "You sort messages sent to a banking app's customer support by intent. "
+        "Answer with the letter of the one intent that fits the message best, and nothing else."
+    )
+    return intro + "\n\nIntents:\n" + "\n".join(lines)
 
 
 def user_turn(instructions, text):
@@ -167,6 +180,44 @@ def classify_mlx(texts, classes, instructions, model, adapter):
             print(f"invalid reply {reply[-80:]!r} to {text!r}", file=sys.stderr)
             reply = None
         out.append((reply, seconds))
+    return out
+
+
+def classify_mlx_logits(texts, class_set, model):
+    """classify_mlx_logits returns a (class name, probability, seconds) triple for each of `texts`,
+    from an mlx-lm model with no adapter: one forward pass over the `user_turn` of `lettered`'s
+    instructions, a softmax over the logits of the class letters' tokens alone at the last position,
+    and the class whose letter has the highest probability, with that probability. Nothing is
+    generated, so every message gets a class. The chat template is applied with thinking off;
+    with it on, Gemma 4's first reply token is the opening of a reasoning channel, not a letter."""
+    import mlx.core as mx
+    from mlx_lm import load
+
+    classes = CLASS_SETS[class_set]
+    names = list(classes)
+    instructions = lettered(classes)
+    lm, tok = load(model)
+    letters = []
+    for i in range(len(names)):
+        ids = tok.encode(chr(ord("A") + i), add_special_tokens=False)
+        if len(ids) != 1:
+            raise ValueError(f"{model}: letter {chr(ord('A') + i)} is {len(ids)} tokens, not 1")
+        letters.append(ids[0])
+    letters = mx.array(letters)
+    out = []
+    for text in texts:
+        start = time.perf_counter()
+        tokens = tok.apply_chat_template(
+            [{"role": "user", "content": user_turn(instructions, text)}],
+            add_generation_prompt=True,
+            enable_thinking=False,
+        )
+        logits = lm(mx.array(tokens)[None])[0, -1, letters]
+        probs = mx.softmax(logits.astype(mx.float32))
+        best = mx.argmax(probs).item()
+        p = probs[best].item()
+        seconds = time.perf_counter() - start
+        out.append((names[best], p, seconds))
     return out
 
 
