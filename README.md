@@ -61,6 +61,9 @@ generator is shown no dev or train text; the 200 dev labels enter only as counts
   3.
 - [Costs](#costs): on `confusable` an LLM classifier takes 32 to 335 times ModernBERT's seconds per
   message, and a LoRA adapter 13.6 to 17.9 training minutes against ModernBERT's 1.7 to 2.0.
+- [Routing by confidence](#routing-by-confidence): at a threshold chosen on dev for 5% error,
+  UltraBERT-Embed-150M + LR trained on the diagnosed set accepts 0.4025 of `confusable` test at
+  0.0373 error; no other classifier accepts more than 0.2375.
 
 ## LLM classifiers against the baselines
 
@@ -180,6 +183,29 @@ LoRA adapter 13.6 to 17.9 training minutes against ModernBERT's 1.7 to 2.0.**
 times ModernBERT's seconds and a LoRA adapter 7.8 to 9.1 minutes. No file under `results/` records
 the minutes `generate.py` took to write a synthetic set.
 
+## Routing by confidence
+
+**At a threshold on the top probability chosen on dev for 5% error, UltraBERT-Embed-150M + LR
+trained on the diagnosed set accepts 0.4025 of `confusable` test at 0.0373 error; no other
+classifier accepts more than 0.2375.**
+
+| Classifier                       | Training set or prompt | AUROC  | ECE after isotonic calibration | Test coverage at α 0.05 | Test error at α 0.05 |
+|----------------------------------|------------------------|--------|--------------------------------|-------------------------|----------------------|
+| TF-IDF + logistic regression     | diagnosed              | 0.7855 | 0.0319                         | 0.2375                  | 0.0526               |
+| ModernBERT-base                  | diagnosed              | 0.8394 | 0.0564                         | 0.1575                  | 0.0159               |
+| UltraBERT-Embed-150M + LR        | synthetic              | 0.8405 | 0.0495                         | 0.1825                  | 0.0274               |
+| UltraBERT-Embed-150M + LR        | diagnosed              | 0.7794 | 0.0333                         | 0.4025                  | 0.0373               |
+| Gemma 4 E4B (MLX), letter logits | `definitions`          | 0.7770 | 0.0608                         | 0.0375                  | 0.0000               |
+| Laya                             | `names`                | 0.6753 | 0.0705                         | 0.0000                  | —                    |
+
+The diagnosed UltraBERT-Embed-150M + LR routes 161 of 400 test messages at 0.0373 error, and
+TF-IDF's 0.2375 comes at 0.0526, over the 5% asked for. With the dev error replaced by its one-sided
+90% Clopper-Pearson upper bound on the 200 dev rows no classifier accepts anything at 5%, and at 10%
+the best, the diagnosed UltraBERT-Embed-150M + LR, accepts 0.7175 of test at 0.0383 error. The
+scores saturate near 1: the 5% thresholds of the two UltraBERT-Embed-150M + LR models, logistic
+regression at scikit-learn's default regularisation, are 0.999821 and 0.999993, ModernBERT's
+0.999994 and the letter logits' 1.000000.
+
 ## Class sets
 
 `distinct` is `card_arrival`, `lost_or_stolen_card`, `exchange_rate`, `change_pin`,
@@ -261,15 +287,27 @@ was not checked.
 
 **Accuracy and macro F1.** Accuracy is the fraction of messages given their true class. Macro F1 is
 the unweighted mean over the 10 classes of each class's F1, the harmonic mean of its precision and
-recall. The four sections above Class sets report accuracy, because classes have 39 or 40 messages
-each, and an invalid reply counts as wrong in accuracy but against no class's precision in macro F1
-(0.8858 against 0.8500 for the mlx-lm model with no adapter).
+recall. The first four sections above Class sets report accuracy, because classes have 39 or 40
+messages each, and an invalid reply counts as wrong in accuracy but against no class's precision in
+macro F1 (0.8858 against 0.8500 for the mlx-lm model with no adapter).
 
 **Seconds and minutes.** Seconds is the median time to classify one test message, sent one per
 call, on an M5 Pro with 48 GB: ModernBERT and UltraBERT-Embed-150M on MPS, TF-IDF and the
 logistic regression on CPU, the Ollama and mlx-lm models fully on the GPU. The median hides
 the 34 cut-off replies, which take several seconds each. Training minutes are the wall time of one
 `train.py` or `finetune.py` run, from `results/<set>/train/<name>.txt`.
+
+**Routing by confidence.** `confidence.py` reads a classifier's `score.py --dump` files of dev and
+test and takes a message's raw score to be its top probability over the class set. AUROC is of that
+score against correctness on test, with nothing fitted. Isotonic regression of correctness on the
+score is fitted on the 200 dev messages and applied to test, and ECE is over 10 bins of equal
+count. For each α the threshold is the lowest dev score at which the dev error among messages
+scoring at least that is at most α, or, for the bounded threshold, at which the error's one-sided
+90% Clopper-Pearson upper bound is; test coverage is the share of test messages at or above it and
+test error the error among them. The classifiers trained on the real train set are excluded, because
+dev is drawn from the Banking77 train split they were trained on; the Ollama models give no
+probability to dump. Reports are `results/confusable/confidence/<name>.txt`, computed from the
+dumps under `results/confusable/confidence/dumps/`.
 
 ## All results
 
@@ -322,21 +360,21 @@ instruction before it, to measure what that instruction adds to the UltraBERT-Em
 | `confusable` | Laya                     | `names` prompt           | 0.7075   | 0.6750   | 0.0241  |
 
 On `confusable` Laya scores below TF-IDF + logistic regression trained on the synthetic set, 0.7075
-against 0.7900, so it has no rows in the four sections above All results. Of its answers whose top
-probability is above 0.9, 338 of 399 on `distinct` are 0.9734 accurate and 273 of 400 on
+against 0.7900, so it has no rows in the first four sections above All results. Of its answers
+whose top probability is above 0.9, 338 of 399 on `distinct` are 0.9734 accurate and 273 of 400 on
 `confusable` 0.7912.
 
 The letter-logits rows read the class from the probability of its letter at the last position in one
 forward pass, thinking off; they score below the Ollama `gemma4:e4b` row with the prompt chosen on
 dev on both sets, 0.8675 against 0.9125 (`definitions`) on `confusable` and 0.9799 against 0.9825
 (`names`) on `distinct`, and their top probability is above 0.9 on 378 of 400 `confusable` answers
-at 0.8783 accuracy and 397 of 399 `distinct` at 0.9798, so they have no rows in the four sections
-above All results and the confidence does not separate right from wrong answers.
+at 0.8783 accuracy and 397 of 399 `distinct` at 0.9798, so they have no rows in the first four
+sections above All results and the confidence does not separate right from wrong answers.
 
 The contrast rows are `generate.py --method contrast`, which shows both definitions in a pair and
 asks for at least half the messages to avoid the words of the class name; that rule made both
 classifiers worse than the synthetic set, 84 to 127 errors of 400 for TF-IDF and 61 to 65 for
-UltraBERT-Embed-150M + LR, so they have no rows in the four sections above All results.
+UltraBERT-Embed-150M + LR, so they have no rows in the sections above All results.
 
 ### Prompts on dev
 
@@ -420,7 +458,13 @@ adapter carries the whole prompt.
   `results/<set>/<split>/<name>.txt`. An `--mlx` report also counts the invalid replies.
   `--split test` (the default) is the Banking77 test split. `--split dev` is 20 messages per class
   sampled with a fixed seed from the Banking77 train split; the `fewshot` examples are train
-  messages outside dev. `--write-train` exports the restricted train split as jsonl.
+  messages outside dev. `--write-train` exports the restricted train split as jsonl. `--dump FILE`
+  also writes each message's probability over the class set, for `--model`, `--laya` and `--mlx
+  --reply logits`.
+- `confidence.py` — from a classifier's dev and test `--dump` files: AUROC of the top probability
+  against correctness, ECE before and after isotonic calibration fitted on dev, and test coverage
+  and error at thresholds chosen on dev for α 0.02, 0.05 and 0.10, with and without a
+  Clopper-Pearson bound, written to `results/<set>/confidence/<name>.txt`.
 
 Banking77 is loaded from [`mteb/banking77`](https://huggingface.co/datasets/mteb/banking77), a
 parquet copy. The original `PolyAI/banking77` is a dataset script, which `datasets` 5.1.0 refuses
@@ -468,6 +512,20 @@ python finetune.py --set $S --train data/$S/banking77_train.jsonl --out models/$
 python score.py --set $S --mlx $M
 python score.py --set $S --mlx $M --adapter models/$S/gemma-4-e4b-lora-synthetic
 python score.py --set $S --mlx $M --adapter models/$S/gemma-4-e4b-lora-real
+
+D=results/confusable/confidence/dumps   # confusable only
+for n in tfidf-diagnosed modernbert-diagnosed ultrabert-embed-synthetic ultrabert-embed-diagnosed; do
+  python score.py --set confusable --split dev --model models/confusable/$n --dump $D/$n-dev.jsonl
+  python score.py --set confusable             --model models/confusable/$n --dump $D/$n-test.jsonl
+done
+python score.py --set confusable --split dev --mlx $M --reply logits --dump $D/gemma-4-e4b-it-4bit-definitions-logits-dev.jsonl
+python score.py --set confusable             --mlx $M --reply logits --dump $D/gemma-4-e4b-it-4bit-definitions-logits-test.jsonl
+python score.py --set confusable --split dev --laya --prompt names --dump $D/laya-names-dev.jsonl
+python score.py --set confusable             --laya --prompt names --dump $D/laya-names-test.jsonl
+for d in $D/*-dev.jsonl; do
+  n=$(basename $d -dev.jsonl)
+  python confidence.py --set confusable --model-name $n --dev $d --test $D/$n-test.jsonl
+done
 ```
 
 `train.py` and `finetune.py` also write the minutes a run took, or the seconds if under a minute,
