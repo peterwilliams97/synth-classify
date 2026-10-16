@@ -296,6 +296,7 @@ instruction before it, to measure what that instruction adds to the UltraBERT-Em
 | `distinct`   | Gemma 4 E4B (MLX)    | `definitions` prompt     | 0.9975   | 0.9975   | 0.141   |
 | `distinct`   | Gemma 4 E4B (MLX) + LoRA | synthetic (`gemma4:e4b`) | 0.9950 | 0.9950 | 0.163   |
 | `distinct`   | Gemma 4 E4B (MLX) + LoRA | real Banking77 train     | 0.9950 | 0.9950 | 0.167   |
+| `distinct`   | Gemma 4 E4B (MLX), letter logits | `definitions` prompt | 0.9799 | 0.9797 | 0.147 |
 | `confusable` | ModernBERT-base      | synthetic (`gemma4:e4b`) | 0.8425   | 0.8413   | 0.0073  |
 | `confusable` | ModernBERT-base      | diagnosed (`gemma4:e4b`) | 0.8675   | 0.8674   | 0.0077  |
 | `confusable` | ModernBERT-base      | real Banking77 train     | 0.9375   | 0.9376   | 0.0073  |
@@ -316,6 +317,7 @@ instruction before it, to measure what that instruction adds to the UltraBERT-Em
 | `confusable` | Gemma 4 E4B (MLX)        | `definitions` prompt     | 0.8500   | 0.8858   | 0.258   |
 | `confusable` | Gemma 4 E4B (MLX) + LoRA | synthetic (`gemma4:e4b`) | 0.8500 | 0.8510 | 0.235   |
 | `confusable` | Gemma 4 E4B (MLX) + LoRA | real Banking77 train     | 0.8575 | 0.8513 | 0.235   |
+| `confusable` | Gemma 4 E4B (MLX), letter logits | `definitions` prompt | 0.8675 | 0.8648 | 0.338 |
 | `distinct`   | Laya                     | `names` prompt           | 0.9123   | 0.9139   | 0.0225  |
 | `confusable` | Laya                     | `names` prompt           | 0.7075   | 0.6750   | 0.0241  |
 
@@ -323,6 +325,13 @@ On `confusable` Laya scores below TF-IDF + logistic regression trained on the sy
 against 0.7900, so it has no rows in the four sections above All results. Of its answers whose top
 probability is above 0.9, 338 of 399 on `distinct` are 0.9734 accurate and 273 of 400 on
 `confusable` 0.7912.
+
+The letter-logits rows read the class from the probability of its letter at the last position in one
+forward pass, thinking off; they score below the Ollama `gemma4:e4b` row with the prompt chosen on
+dev on both sets, 0.8675 against 0.9125 (`definitions`) on `confusable` and 0.9799 against 0.9825
+(`names`) on `distinct`, and their top probability is above 0.9 on 378 of 400 `confusable` answers
+at 0.8783 accuracy and 397 of 399 `distinct` at 0.9798, so they have no rows in the four sections
+above All results and the confidence does not separate right from wrong answers.
 
 The contrast rows are `generate.py --method contrast`, which shows both definitions in a pair and
 asks for at least half the messages to avoid the words of the class name; that rule made both
@@ -404,10 +413,11 @@ adapter carries the whole prompt.
   (`--train`) and saves it to `--out`. Each row is a chat: the `definitions` prompt and the message
   as the user turn, the class name as the assistant turn.
 - `score.py` — scores a saved model (`--model`), an Ollama model (`--llm MODEL --prompt NAME`), an
-  mlx-lm model with the `definitions` prompt (`--mlx MODEL`, and `--adapter DIR` for a LoRA adapter)
-  or Laya (`--laya --prompt names|definitions`) on Banking77 restricted to the class set: accuracy,
-  macro F1, median seconds per message, per-class recall and a confusion matrix, printed and written
-  to `results/<set>/<split>/<name>.txt`. An `--mlx` report also counts the invalid replies.
+  mlx-lm model with the `definitions` prompt (`--mlx MODEL`, and `--adapter DIR` for a LoRA adapter,
+  or `--reply logits` for letter logits, `--mlx` only, no adapter) or Laya
+  (`--laya --prompt names|definitions`) on Banking77 restricted to the class set: accuracy, macro F1,
+  median seconds per message, per-class recall and a confusion matrix, printed and written to
+  `results/<set>/<split>/<name>.txt`. An `--mlx` report also counts the invalid replies.
   `--split test` (the default) is the Banking77 test split. `--split dev` is 20 messages per class
   sampled with a fixed seed from the Banking77 train split; the `fewshot` examples are train
   messages outside dev. `--write-train` exports the restricted train split as jsonl.
