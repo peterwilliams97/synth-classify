@@ -14,7 +14,9 @@ README tables; its `data/pair/synthetic.jsonl` is written by `results/pair/filte
 prompted with the class list (`llm.py`) are scored beside the trained ones, and so is an mlx-lm copy
 of Gemma 4 E4B with and without a LoRA adapter (`finetune.py`), the `convaiinnovations/laya`
 decision model zero-shot (`score.py --laya`), and logistic regression on frozen
-`dmis-lab/UltraBERT-Embed-150M` embeddings (`train.py --embed`). Six scripts, and a `README.md` that
+`dmis-lab/UltraBERT-Embed-150M` embeddings (`train.py --embed`). `confidence.py` asks whether a
+classifier's top probability can route messages, from `score.py --dump` files of dev and test,
+outside the README. Seven scripts, and a `README.md` that
 lists the classifiers, states four findings, gives each finding a section with one `confusable`-only
 table, and keeps the three full tables (test, dev, training minutes) under All results. All Python
 — the repository layout, file header and `test.sh` rules in `~/CLAUDE.md` do not apply here; its
@@ -37,7 +39,16 @@ S=distinct   # or confusable; every script takes --set, default distinct
 .venv/bin/python finetune.py --set $S --train data/$S/synthetic.jsonl --out models/$S/gemma-4-e4b-lora-synthetic
 .venv/bin/python score.py --set $S --mlx mlx-community/gemma-4-e4b-it-4bit --adapter models/$S/gemma-4-e4b-lora-synthetic
 .venv/bin/python score.py --set $S --split dev --laya --prompt names   # ~10 s; not in the sandbox
+D=results/$S/confidence/dumps
+.venv/bin/python score.py --set $S --split dev --model models/$S/tfidf-diagnosed --dump $D/tfidf-diagnosed-dev.jsonl
+.venv/bin/python score.py --set $S --model models/$S/tfidf-diagnosed --dump $D/tfidf-diagnosed-test.jsonl
+.venv/bin/python confidence.py --set $S --model-name tfidf-diagnosed --dev $D/tfidf-diagnosed-dev.jsonl --test $D/tfidf-diagnosed-test.jsonl
 ```
+
+`confidence.py` writes `results/$S/confidence/<name>.txt`; the dumps under
+`results/confusable/confidence/dumps/` are tracked, as the inputs those reports were computed from.
+`--dump` takes `--model`, `--laya` and `--mlx --reply logits`, the classifiers that give a
+probability over the class set, and refuses `--llm` and `--mlx` without `--reply logits`.
 
 Adding `--no-prompt` to the `--embed` line, with `--out models/$S/ultrabert-embed-noprompt-synthetic`,
 gives the model without the instruction prefix. The same `train.py` lines with
@@ -122,7 +133,9 @@ in `refs/main`, which is the layout `HF_HUB_OFFLINE=1` loads from.
 - **dev is drawn from the train split, so `--split dev --model` is valid only for a model trained
   on a synthetic file.** A model trained on `data/<set>/banking77_train.jsonl` saw the dev rows;
   `--split dev --model` runs on it, and the number means nothing. `--llm`, `--laya` and models
-  trained on `data/<set>/synthetic*.jsonl` saw none of them.
+  trained on `data/<set>/synthetic*.jsonl` saw none of them. The same holds for `confidence.py`,
+  which fits its isotonic calibration and its routing thresholds on the dev dump: for a
+  real-trained model they would be fitted on rows it was trained on, so it is not run on one.
 - **Seconds per message are one message per call**, in `predict` (`score.py`) as in `classify`
   (`llm.py`), so the two are comparable. Time them with nothing else on the GPU: Ollama and MPS
   share it.

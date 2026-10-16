@@ -184,10 +184,11 @@ def classify_mlx(texts, classes, instructions, model, adapter):
 
 
 def classify_mlx_logits(texts, class_set, model):
-    """classify_mlx_logits returns a (class name, probability, seconds) triple for each of `texts`,
-    from an mlx-lm model with no adapter: one forward pass over the `user_turn` of `lettered`'s
-    instructions, a softmax over the logits of the class letters' tokens alone at the last position,
-    and the class whose letter has the highest probability, with that probability. Nothing is
+    """classify_mlx_logits returns a (class name, probabilities, seconds) triple for each of
+    `texts`, from an mlx-lm model with no adapter: one forward pass over the `user_turn` of
+    `lettered`'s instructions, a softmax over the logits of the class letters' tokens alone at the
+    last position, and the class whose letter has the highest probability, with the softmax as a
+    list in `CLASS_SETS` order. Nothing is
     generated, so every message gets a class. The chat template is applied with thinking off;
     with it on, Gemma 4's first reply token is the opening of a reasoning channel, not a letter."""
     import mlx.core as mx
@@ -215,18 +216,20 @@ def classify_mlx_logits(texts, class_set, model):
         logits = lm(mx.array(tokens)[None])[0, -1, letters]
         probs = mx.softmax(logits.astype(mx.float32))
         best = mx.argmax(probs).item()
-        p = probs[best].item()
+        vector = probs.tolist()
         seconds = time.perf_counter() - start
-        out.append((names[best], p, seconds))
+        out.append((names[best], vector, seconds))
     return out
 
 
 def classify_laya(texts, class_set, prompt):
-    """classify_laya returns a (class name, probability, seconds) triple for each of `texts`: the
-    option of `laya_question` with the highest probability, that probability, and the wall time of
-    the `predict` call for that one message. Laya picks MPS when there is one."""
+    """classify_laya returns a (class name, probabilities, seconds) triple for each of `texts`: the
+    option of `laya_question` with the highest probability, every option's probability as a list in
+    `CLASS_SETS` order, and the wall time of the `predict` call for that one message. Laya picks MPS
+    when there is one."""
     import laya
 
+    names = list(CLASS_SETS[class_set])
     question = laya_question(CLASS_SETS[class_set], prompt)
     agent = laya.load(LAYA_MODEL, revision=LAYA_REVISION)
     print(f"device: {agent.device}", file=sys.stderr)
@@ -238,5 +241,6 @@ def classify_laya(texts, class_set, prompt):
         )
         seconds = time.perf_counter() - start
         answer = result["answers"]["intent"]
-        out.append((answer["choice"], answer["probabilities"][answer["choice"]], seconds))
+        vector = [float(answer["probabilities"][name]) for name in names]
+        out.append((answer["choice"], vector, seconds))
     return out

@@ -6,7 +6,9 @@ optionally a LoRA adapter trained by finetune.py (`--mlx`, `--adapter`; with `--
 adapter and the class read off the letter logits of one forward pass), or the Laya decision model
 zero-shot with one of llm.py's `LAYA_PROMPTS` (`--laya`, `--prompt`). `--split test` is the
 Banking77 test split; `--split dev` is `dev_and_shots`' sample of the train split, which is what
-prompts are chosen on.
+prompts are chosen on. `--dump` also writes each message's probability over the class set, for
+confidence.py; it refuses `--llm` and `--mlx` without `--reply logits`, which give a class and no
+probabilities.
 
 It is the only file that reads Banking77, loaded from the `mteb/banking77` parquet copy (the
 original `PolyAI/banking77` is a dataset script, which `datasets` no longer runs). `--write-train`
@@ -67,10 +69,21 @@ def dev_and_shots(names):
 
 
 def predict(model_dir, texts, names):
-    """predict returns a label index and the seconds taken for each of `texts`. Each text is
-    classified in a call of its own, so the seconds are what one message costs and compare with
-    `classify` in llm.py, which also sends one message at a time."""
-    preds, seconds = [], []
+    """predict returns, for each of `texts`, a label index, the probabilities over `names` in
+    `names` order, and the seconds taken. Each text is classified in a call of its own, so the
+    seconds are what one message costs and compare with `classify` in llm.py, which also sends one
+    message at a time."""
+    preds, probs, seconds = [], [], []
+
+    def sklearn(clf, x):
+        # `classes_` holds the training label indices, so a column is mapped through it rather
+        # than taken as a position in `names`.
+        row = clf.predict_proba(x)[0]
+        vector = [0.0] * len(names)
+        for label, p in zip(clf.classes_, row):
+            vector[int(label)] = float(p)
+        return int(clf.classes_[row.argmax()]), vector
+
     tfidf = os.path.join(model_dir, "tfidf.joblib")
     if os.path.exists(tfidf):
         import joblib
@@ -78,9 +91,11 @@ def predict(model_dir, texts, names):
         clf = joblib.load(tfidf)
         for text in texts:
             start = time.perf_counter()
-            preds.append(clf.predict([text])[0])
+            pred, vector = sklearn(clf, [text])
             seconds.append(time.perf_counter() - start)
-        return preds, seconds
+            preds.append(pred)
+            probs.append(vector)
+        return preds, probs, seconds
 
     frozen = os.path.join(model_dir, "embed.joblib")
     if os.path.exists(frozen):
@@ -93,9 +108,11 @@ def predict(model_dir, texts, names):
         tok, model, device = load_embedder()
         for text in texts:
             start = time.perf_counter()
-            preds.append(clf.predict(embed([text], prompt, tok, model, device))[0])
+            pred, vector = sklearn(clf, embed([text], prompt, tok, model, device))
             seconds.append(time.perf_counter() - start)
-        return preds, seconds
+            preds.append(pred)
+            probs.append(vector)
+        return preds, probs, seconds
 
     import torch
     from transformers import AutoModelForSequenceClassification, AutoTokenizer
@@ -110,9 +127,14 @@ def predict(model_dir, texts, names):
         for text in texts:
             start = time.perf_counter()
             batch = tok(text, truncation=True, max_length=128, return_tensors="pt").to(device)
-            preds.append(to_ours[model(**batch).logits.argmax(-1).item()])
+            row = torch.softmax(model(**batch).logits[0].float(), -1).tolist()
             seconds.append(time.perf_counter() - start)
-    return preds, seconds
+            vector = [0.0] * len(names)
+            for i, p in enumerate(row):
+                vector[to_ours[i]] = p
+            preds.append(to_ours[max(range(len(row)), key=row.__getitem__)])
+            probs.append(vector)
+    return preds, probs, seconds
 
 
 def report(classifier, split, gold, preds, seconds, names, invalid=None, probs=None):
@@ -167,6 +189,11 @@ def main():
         help="with --mlx: generate a class name, or read a class letter off one forward pass",
     )
     ap.add_argument("--write-train", metavar="JSONL", help="export the restricted train split")
+    ap.add_argument(
+        "--dump",
+        metavar="JSONL",
+        help="write {text, label, pred, prob} per message; prob is over the class set in order",
+    )
     args = ap.parse_args()
     names = list(CLASS_SETS[args.set])
 
@@ -189,6 +216,8 @@ def main():
         ap.error("--adapter needs --mlx")
     if args.reply == "logits" and (not args.mlx or args.adapter):
         ap.error("--reply logits needs --mlx and takes no --adapter")
+    if args.dump and (args.llm or (args.mlx and args.reply != "logits")):
+        ap.error("--dump needs probabilities: --model, --laya or --mlx --reply logits")
 
     shots = None
     if args.split == "dev":
@@ -198,20 +227,24 @@ def main():
         if args.prompt == "fewshot":
             _, _, shots = dev_and_shots(names)
 
-    invalid = probs = None
+    # `vectors` is each message's probabilities over `names`, from the classifiers that have them;
+    # `probs` is the top one of each, which only the Laya and `--reply logits` reports print.
+    invalid = probs = vectors = None
     if args.laya:
         classifier = f"{LAYA_MODEL} prompt {args.prompt}"
         stem = f"laya-{args.prompt}"
         answers = classify_laya(texts, args.set, args.prompt)
         preds = [names.index(label) for label, _, _ in answers]
-        probs = [p for _, p, _ in answers]
+        vectors = [v for _, v, _ in answers]
+        probs = [v[p] for v, p in zip(vectors, preds)]
         seconds = [s for _, _, s in answers]
     elif args.mlx and args.reply == "logits":
         classifier = f"{args.mlx} prompt {MLX_PROMPT} reply logits"
         stem = f"{os.path.basename(os.path.normpath(args.mlx))}-{MLX_PROMPT}-logits"
         answers = classify_mlx_logits(texts, args.set, args.mlx)
         preds = [names.index(label) for label, _, _ in answers]
-        probs = [p for _, p, _ in answers]
+        vectors = [v for _, v, _ in answers]
+        probs = [v[p] for v, p in zip(vectors, preds)]
         seconds = [s for _, _, s in answers]
     elif args.mlx:
         classifier = f"{args.mlx} prompt {MLX_PROMPT}"
@@ -232,7 +265,7 @@ def main():
     else:
         classifier = args.model
         stem = os.path.basename(os.path.normpath(args.model))
-        preds, seconds = predict(args.model, texts, names)
+        preds, vectors, seconds = predict(args.model, texts, names)
 
     text = report(classifier, args.split, gold, preds, seconds, names, invalid, probs)
     sys.stdout.write(text)
@@ -241,6 +274,13 @@ def main():
     with open(out, "w") as f:
         f.write(text)
     print(f"wrote {out}", file=sys.stderr)
+    if args.dump:
+        os.makedirs(os.path.dirname(args.dump) or ".", exist_ok=True)
+        with open(args.dump, "w") as f:
+            for text, label, pred, vector in zip(texts, gold, preds, vectors):
+                row = {"text": text, "label": names[label], "pred": names[pred], "prob": vector}
+                f.write(json.dumps(row) + "\n")
+        print(f"wrote {len(texts)} rows to {args.dump}", file=sys.stderr)
 
 
 if __name__ == "__main__":
