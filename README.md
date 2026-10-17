@@ -1,109 +1,142 @@
 # synth-classify
 
-What a local text classifier can do with how many labels, measured on
-Banking77.
+I wanted to know three things about a text classifier that runs on a laptop:
 
-**The task.** Assign a customer message to one of 10 intents. Two class
-sets: `distinct`, 10 unrelated intents, and `confusable`, 5 pairs of
-near-identical intents. Test is the Banking77 test split, 399 and 400
-messages, scored once per classifier. dev is 200 messages from the train
-split, used for every choice made before a test run.
+1. How much of the work can it do without a person checking?
+2. How accurate is it?
+3. How many hand-labelled examples does it need?
 
-**The metric that matters.** Coverage at a fixed error rate: the share
-of messages the classifier labels on its own, with the rest sent to a
-person, while the error among the ones it labels stays under a target.
-Accuracy hides which answers of a 0.91 classifier are wrong; coverage
-says how much checking is left. Measured on `confusable` only; see
-Routing by confidence.
+This repo answers them on Banking77, a public set of customer messages to a bank, sorted into 10
+categories. Five of the categories come in pairs that are hard to tell apart ("how do I verify my
+identity" and "why must I verify my identity"), and those pairs are where the methods differ.
 
-**Best on it.** UltraBERT-Embed-150M embeddings with logistic regression,
-trained on the diagnosed set: 40% of messages at 3.7% error with a 5%
-target, and 72% at 3.8% with a 10% target under a Clopper-Pearson bound
-on the 200 dev rows. No other classifier passes 24%.
+The short answers, on the 400 Banking77 test messages of the `confusable` class set:
 
-**Best by accuracy, for the labels available**, `confusable` test:
+1. UltraBERT-Embed-150M + logistic regression, trained on the diagnosed set, handles 40% of
+   messages with no human check at under 5% error. Nothing else passes 24%.
+2. The same model trained on 1284 real messages: 96%. `gemma4:e4b` with the category definitions
+   and no labels: 91%.
+3. 0 labels gets 91% accuracy and no safe automation; 200 gets the 40% above; 1284 gets 96%.
 
-| Real labels | Method | Accuracy |
-|---|---|---|
-| 0 | `gemma4:e4b`, definitions prompt, reply restricted to a class name | 0.9125 |
-| 30, in the prompt | `gemma4:e4b` or `qwen3.6:27b-q4_K_M`, fewshot prompt | 0.9300 / 0.9325 |
-| 200, as confusion counts that steer the generator | UltraBERT-Embed-150M + LR on the diagnosed set | 0.9125, at about 1/60 of the LLM's seconds per message |
-| 1284, to train on | UltraBERT-Embed-150M + LR | 0.9575 |
+## Aim
 
-On `distinct` every classifier except TF-IDF trained on synthetic text
-and Laya scores 0.9799 to 0.9975, and the choice does not matter.
+Banking77 has 77 categories in all. This repo uses two sets of 10 of them, called class sets. The
+code calls a category a class.
 
-**What did not work.** Training on LLM-written text with no diagnosis,
-9.5 to 13.5 points lost on `confusable` for TF-IDF, ModernBERT and
-UltraBERT-Embed-150M + LR; a prompt rule to avoid class-name words, worse
-for every model; LoRA in one configuration, which fixed invalid replies
-and left accuracy where it was; Laya zero-shot, 0.7075; reading the class
-from letter logits, 0.8675, with probabilities that saturate at 1.
+- `distinct` is 10 categories on unrelated topics.
+- `confusable` is 5 pairs of categories. The two categories in a pair share a topic.
 
-**Where the numbers are.** Every number below is in a file under
-`results/`. Five findings follow, each with one `confusable` table; then
-how it was measured; then every result.
+[Class sets](#class-sets) lists both.
 
-Every row below is one run with seed 0, and the binomial standard error √(p(1−p)/n) of the
-accuracies reported is 0.012 to 0.020 on `confusable` (5 to 8 messages of 400) and 0.003 to 0.012
-on `distinct` (1 to 5 messages of 399).
+Each of the three questions becomes one measurement.
 
-## Classifiers
+1. **Coverage at 5% error**, on `confusable` only. Coverage is the share of test messages that a
+   classifier labels on its own. Every other message goes to a person. Error is the share of the
+   labelled-on-its-own messages whose label is wrong.
+2. **Accuracy**: the share of test messages given their true category.
+3. **Hand labels**: the number of Banking77 messages, with their true category, that a method
+   uses. A message written by an LLM is not a hand label.
 
-Seven kinds are scored. A **synthetic train set** is 1000 messages, 100 per class, that `gemma4:e4b`
-wrote from each class's name and definition in `CLASS_SETS`, never seeing Banking77. A **real train
-set** is the Banking77 train rows of the same classes: 1188 for `distinct`, 1284 for `confusable`.
-A **diagnosed train set**, `confusable` only, is 1000 messages from the same generator with the
-definition of the other class in the pair added to each request and, for the class in each pair
-that loses more of the 200 dev messages to the other in the confusion matrix of
-UltraBERT-Embed-150M + LR trained on the synthetic set, one note saying what that class's messages
-must cover. The
-generator is shown no dev or train text; the 200 dev labels enter only as counts in that matrix.
+Accuracy alone does not answer question 1. A classifier at 91% accuracy labels 9% of messages
+wrong. Accuracy does not say which 9%. So without coverage a person checks every message.
 
-- **TF-IDF + logistic regression** — a bag-of-words baseline, trained on a synthetic, diagnosed
-  or real train set.
-- **ModernBERT-base** — an encoder fine-tuned on a synthetic, diagnosed or real train set.
-- **UltraBERT-Embed-150M + logistic regression** — `dmis-lab/UltraBERT-Embed-150M` embeddings,
-  frozen, with logistic regression trained on them from a synthetic, diagnosed or real train set;
-  "+ LR" in
-  the tables.
-- **An Ollama model with a prompt from `PROMPTS`** — `gemma4:e4b` or `qwen3.6:27b-q4_K_M`, not
-  trained. The prompt is `names` (the class names), `definitions` (names and definitions) or
-  `fewshot` (definitions plus 3 real train messages per class, 30 in all), and the reply is
-  restricted to a class name.
-- **Gemma 4 E4B (MLX), no adapter** — `mlx-community/gemma-4-e4b-it-4bit` run with mlx-lm on the
-  `definitions` prompt, not trained. Nothing restricts the reply; one that is not a class name is
-  invalid and counted as wrong.
-- **Gemma 4 E4B (MLX) + LoRA adapter** — the same model and prompt, with a LoRA adapter trained on
-  a synthetic or a real train set.
-- **Laya** — `convaiinnovations/laya`, asked one `choice` question per message with the class
-  names as the options, not trained.
+## Method
 
-## Findings
+**Test and dev.** The test set is the Banking77 test split restricted to one class set. It has 399
+messages for `distinct` and 400 for `confusable`. Each classifier is scored on it once. The dev set
+is 200 messages per class set, 20 per category, drawn from the Banking77 train split. Every choice
+made before a test run is made on dev. Those choices are the prompt, the notes that steer the
+generator, and the routing threshold.
 
-- [LLM classifiers against the baselines](#llm-classifiers-against-the-baselines): on `confusable`
-  logistic regression on frozen UltraBERT-Embed-150M embeddings trained on real data makes 17
-  errors of 400, ModernBERT trained on real data 25, the two `fewshot` prompts 27 and 28, and the
-  other LLM classifiers 35 to 60.
-- [Classes that are close together](#classes-that-are-close-together): 200 real labels used as
-  counts took the classifiers trained on generated messages from 61 to 35 errors of 400
-  (UltraBERT-Embed-150M + LR), 63 to 53 (ModernBERT) and 84 to 83 (TF-IDF), against 17, 25 and 30
-  with 1284 to train on and 27 and 28 with 30 in the prompt; every classifier above 0.92 on
-  `confusable` had the 1284 or the 30.
-- [What raised an LLM classifier's accuracy](#what-raised-an-llm-classifiers-accuracy): restricting
-  the reply to a class name (+25 messages of 400) and 3 real examples per class in the prompt (+7
-  and +22); the 27B model and the LoRA adapters, one configuration with nothing tuned, added 0 to
-  3.
-- [Costs](#costs): on `confusable` an LLM classifier takes 32 to 335 times ModernBERT's seconds per
-  message, and a LoRA adapter 13.6 to 17.9 training minutes against ModernBERT's 1.7 to 2.0.
-- [Routing by confidence](#routing-by-confidence): at a threshold chosen on dev for 5% error,
-  UltraBERT-Embed-150M + LR trained on the diagnosed set accepts 0.4025 of `confusable` test at
-  0.0373 error; no other classifier accepts more than 0.2375.
+**Training sets.** Three kinds are used.
 
-## LLM classifiers against the baselines
+- **synthetic**: 1000 messages, 100 per category. `gemma4:e4b`, a Gemma 4 LLM run locally with
+  Ollama, wrote them. It was shown each category's name and one-sentence definition from
+  `CLASS_SETS` in `classes.py`. It never saw a Banking77 message.
+- **diagnosed** (`confusable` only): 1000 messages from the same generator. Each request adds the
+  definition of the other category in the pair. For one category in each pair, the request also
+  adds a note saying what that category's messages must cover. That category is the one that loses
+  more dev messages to its partner. Those losses are counted from UltraBERT-Embed-150M + logistic
+  regression trained on the synthetic set. The generator sees no dev message. The 200 dev labels
+  reach it only as counts.
+- **real**: the Banking77 train rows of the class set. There are 1188 for `distinct` and 1284 for
+  `confusable`.
 
-**On `confusable` only the two `fewshot` prompts come within 3 errors of ModernBERT trained on real
-data; every other LLM classifier makes at least 10 more.**
+**Classifiers.** Seven kinds are scored.
+
+- **TF-IDF + logistic regression**: logistic regression on word-frequency features. It is the
+  baseline. It is trained on a synthetic, diagnosed or real set.
+- **ModernBERT-base**: a text encoder, `answerdotai/ModernBERT-base`, fine-tuned in full on a
+  synthetic, diagnosed or real set.
+- **UltraBERT-Embed-150M + logistic regression**: logistic regression on embeddings from
+  `dmis-lab/UltraBERT-Embed-150M`. An embedding is a fixed-length vector computed from a message.
+  The embedding model is not trained here. Only the logistic regression is trained, on a synthetic,
+  diagnosed or real set. The tables write it "UltraBERT-Embed-150M + LR".
+- **An Ollama model with a prompt from `PROMPTS`** (`llm.py`): `gemma4:e4b` or
+  `qwen3.6:27b-q4_K_M`, not trained. The `names` prompt lists the category names. The
+  `definitions` prompt adds each category's definition. The `fewshot` prompt adds 3 real train
+  messages per category to `definitions`, 30 in all. Ollama restricts the reply to a category name.
+- **Gemma 4 E4B (MLX), no adapter**: `mlx-community/gemma-4-e4b-it-4bit` run with mlx-lm on the
+  `definitions` prompt, not trained. mlx-lm is Apple's LLM runner for its own GPUs. Nothing
+  restricts its reply. A reply that is not a category name is invalid and counts as wrong.
+- **Gemma 4 E4B (MLX) + LoRA adapter**: the same model and prompt with a LoRA adapter. A LoRA
+  adapter is a small set of extra weights trained while the model's own weights stay fixed. Each
+  adapter is trained on a synthetic or a real set.
+- **Laya**: `convaiinnovations/laya`, a model that picks one option from a list. It is asked one
+  question per message with the category names as the options. It is not trained.
+
+**Routing.** Routing keeps a classifier's label when the classifier's top probability is at least
+a threshold. A message below the threshold goes to a person. The threshold is the lowest dev
+probability at which the error among dev messages above it is at most the target. Coverage and
+error are then measured on test. Only a classifier that gives a probability for each category can
+be routed.
+
+**Uncertainty.** Every row is one run with seed 0. The binomial standard error of an accuracy p
+on n messages is √(p(1−p)/n). On the 400 `confusable` test messages it is 0.012 to 0.020, which is
+5 to 8 messages. On the 399 `distinct` test messages it is 0.003 to 0.012, which is 1 to 5 messages.
+
+Every number in this file is in a file under `results/`.
+
+## Results
+
+Every table in this section is on `confusable`.
+
+### 1. How much of the work can it do without a person checking?
+
+**UltraBERT-Embed-150M + logistic regression trained on the diagnosed set labels 161 of the 400
+test messages on its own, and 6 of those 161 are wrong.**
+
+In the table, α is the error target. AUROC is the chance that a randomly chosen right answer gets a
+higher top probability than a randomly chosen wrong one. ECE is the mean gap between the top
+probability and the observed accuracy, over 10 bins of 40 messages. Isotonic calibration is a
+monotone mapping of the top probability onto accuracy, fitted on dev.
+
+| Classifier                       | Training set or prompt | AUROC  | ECE after isotonic calibration | Test coverage at α 0.05 | Test error at α 0.05 |
+|----------------------------------|------------------------|--------|--------------------------------|-------------------------|----------------------|
+| TF-IDF + logistic regression     | diagnosed              | 0.7855 | 0.0319                         | 0.2375                  | 0.0526               |
+| ModernBERT-base                  | diagnosed              | 0.8394 | 0.0564                         | 0.1575                  | 0.0159               |
+| UltraBERT-Embed-150M + LR        | synthetic              | 0.8405 | 0.0495                         | 0.1825                  | 0.0274               |
+| UltraBERT-Embed-150M + LR        | diagnosed              | 0.7794 | 0.0333                         | 0.4025                  | 0.0373               |
+| Gemma 4 E4B (MLX), letter logits | `definitions`          | 0.7770 | 0.0608                         | 0.0375                  | 0.0000               |
+| Laya                             | `names`                | 0.6753 | 0.0705                         | 0.0000                  | —                    |
+
+TF-IDF + logistic regression's 0.2375 misses the target: 5 of the 95 messages it keeps are wrong.
+
+A stricter threshold replaces the dev error with its one-sided 90% Clopper-Pearson upper bound. The
+bound is the highest error rate that the dev count does not rule out at 90% confidence. Under that
+bound at a 5% target, no classifier keeps any test message. Under that bound at a 10% target,
+UltraBERT-Embed-150M + logistic regression trained on the diagnosed set keeps 287 of the 400 test
+messages, 0.7175. 11 of those 287 are wrong, 0.0383.
+
+Three kinds of classifier are not in the table. The Ollama models return a category name and no
+probability, so they cannot be routed. A classifier trained on the real train set cannot be routed
+here, because dev is part of the data it was trained on. The LoRA adapters return a reply and no
+probability.
+
+### 2. How accurate is it?
+
+**UltraBERT-Embed-150M + logistic regression trained on the real train set makes the fewest
+errors: 17 of 400.**
 
 | Classifier                       | Training set or prompt | Real labelled examples used | Accuracy | Errors of 400 |
 |----------------------------------|------------------------|-----------------------------|----------|---------------|
@@ -124,16 +157,17 @@ data; every other LLM classifier makes at least 10 more.**
 | Gemma 4 E4B (MLX) + LoRA adapter | synthetic              | 0                           | 0.8500   | 60            |
 | Gemma 4 E4B (MLX) + LoRA adapter | real                   | 1284                        | 0.8575   | 57            |
 
-Every classifier above 0.92 used real labelled examples; the LoRA adapter trained on the real train
-set is the one that used them and scored lower. On `distinct` every classifier but TF-IDF trained
-on the synthetic set (0.9373) scores 0.9825 to 0.9975: 1 to 7 errors of 399, against 2 for
-ModernBERT trained on real data.
+Every classifier above 0.92 used real labelled examples. The Gemma 4 E4B (MLX) + LoRA adapter
+trained on the real train set also used them, and stayed at 0.8575. The two `fewshot` prompts come
+within 3 errors of ModernBERT-base trained on the real train set. Every other LLM classifier makes
+at least 10 more errors than ModernBERT-base trained on the real train set.
 
-## Classes that are close together
+On `distinct`, the choice of classifier matters little. Every classifier in the test table under
+[All results](#all-results) scores 0.9799 to 0.9975 there. The two exceptions are TF-IDF + logistic
+regression trained on the synthetic set, at 0.9373, and Laya, at 0.9123.
 
-**200 real labels used as counts took UltraBERT-Embed-150M + LR trained on generated messages from
-61 errors of 400 to 35, short of the 17 it makes with 1284 to train on and of the 27 and 28 of the
-two prompts with 30 in them; every classifier above 0.92 on `confusable` had the 1284 or the 30.**
+**Most errors fall inside a pair.** An error inside a pair is one whose true and predicted
+categories are the two categories of one pair.
 
 | Classifier                       | Training set or prompt | Real labelled examples used | Errors | Inside a pair | Most frequent error (true → predicted)        | Messages, of 40 |
 |----------------------------------|------------------------|-----------------------------|--------|---------------|-----------------------------------------------|-----------------|
@@ -154,23 +188,46 @@ two prompts with 30 in them; every classifier above 0.92 on `confusable` had the
 | Gemma 4 E4B (MLX) + LoRA adapter | synthetic              | 0                           | 60     | 34            | `card_arrival` → `card_delivery_estimate`     | 18              |
 | Gemma 4 E4B (MLX) + LoRA adapter | real                   | 1284                        | 57     | 56            | `declined_transfer` → `failed_transfer`       | 24              |
 
-Real examples took the errors of 400 from 84 to 30 for TF-IDF, 63 to 25 for ModernBERT, 61 to 17
-for UltraBERT-Embed-150M + LR, 35 to 28 for `gemma4:e4b` and 49 to 27 for `qwen3.6:27b-q4_K_M`.
-The LoRA adapter trained on the real train
-set is the exception at 57. With no adapter, the 34 errors outside a pair are the invalid replies.
-56 of the real-trained adapter's 57 errors are inside a pair, 24 of them `declined_transfer`
-predicted as `failed_transfer`. The synthetic-trained adapter's 26 errors outside a pair are all
-predictions of `getting_virtual_card`. From the synthetic set to the diagnosed one,
-UltraBERT-Embed-150M + LR's errors inside a pair went from 13 to 1 for the identity pair, 13 to 7
-for the transfers, 9 to 2 for the virtual cards and 5 to 3 for the exchange rates, and from 13 to
-18 for the card pair, where `card_arrival` → `card_delivery_estimate` rose from 4 to 10. The notes
-are one draft, written once and not revised after any score.
+Gemma 4 E4B (MLX) with no adapter is the one classifier with most of its errors outside a pair.
+Those 34 errors outside a pair are its invalid replies. The 26 errors outside a pair of the
+Gemma 4 E4B (MLX) + LoRA adapter trained on the synthetic set are all predictions of
+`getting_virtual_card`.
 
-## What raised an LLM classifier's accuracy
+### 3. How many hand-labelled examples does it need?
 
-**Restricting the reply to a class name and putting real examples in the prompt raised accuracy by
-7 to 25 messages of 400; the 27B model and the LoRA adapters, one configuration with nothing tuned,
-by 0 to 3.**
+**With 200 hand labels, UltraBERT-Embed-150M + logistic regression matches the accuracy that
+`gemma4:e4b` reaches with none.**
+
+| Hand labels                                       | Accuracy | Method |
+|---------------------------------------------------|----------|--------|
+| 0                                                 | 0.9125   | `gemma4:e4b` with the class definitions in the prompt, reply restricted to a class name |
+| 30, as examples in the prompt                     | 0.9300 / 0.9325   | `gemma4:e4b` or `qwen3.6:27b-q4_K_M` with the `fewshot` prompt |
+| 200, as confusion counts that steer the generator | 0.9125, at about 1/60 of the LLM's time per message | UltraBERT-Embed-150M + LR trained on the diagnosed set |
+| 1284, to train on                                 | 0.9575   | UltraBERT-Embed-150M + LR |
+
+The 200 hand labels are the dev set. They do two jobs. They count the losses that steer the
+diagnosed set. They also set the routing threshold of question 1. So 200 hand labels buy both the
+0.9125 and the 40% coverage.
+
+With 0 hand labels no classifier can be routed, because the threshold is set on labelled dev
+messages.
+
+The diagnosed notes did not help every classifier equally. From the synthetic set to the diagnosed
+set, UltraBERT-Embed-150M + logistic regression went from 61 errors to 35. ModernBERT-base went
+from 63 to 53. TF-IDF + logistic regression went from 84 to 83.
+
+The notes changed UltraBERT-Embed-150M + logistic regression's errors inside each pair as follows.
+
+- `verify_my_identity` / `why_verify_identity`: 13 to 1.
+- `declined_transfer` / `failed_transfer`: 13 to 7.
+- `getting_virtual_card` / `get_disposable_virtual_card`: 9 to 2.
+- The exchange-rate pair: 5 to 3.
+- `card_arrival` / `card_delivery_estimate`: 13 to 18. Within that, `card_arrival` predicted as
+  `card_delivery_estimate` rose from 4 to 10.
+
+The notes are one draft each. They were written once and not revised after any score.
+
+### What raised an LLM classifier's accuracy
 
 | Change                                                                   | Before | After  | Messages | Scored on |
 |--------------------------------------------------------------------------|--------|--------|----------|-----------|
@@ -183,16 +240,13 @@ by 0 to 3.**
 | LoRA adapter trained on the synthetic set, against no adapter            | 0.8500 | 0.8500 | 0        | test, 400 |
 | LoRA adapter trained on the real train set, against no adapter           | 0.8500 | 0.8575 | +3       | test, 400 |
 
-The first row changes the runtime and the quantisation as well as the reply rule, and the mlx-lm
-model is right on 340 of the 366 messages it answered with a class name. The two dev rows are
-scored on dev because the prompt not chosen was not run on test. With the dev-chosen prompts,
-`qwen3.6:27b-q4_K_M` is 14 messages below `gemma4:e4b`, 0.8775 against 0.9125. Both adapters take
-the invalid replies from 34 to 0, and theirs is the only LoRA configuration tried.
+The first row changes three things at once: the reply rule, the runtime and the quantisation. The
+mlx-lm model answered 366 of the 400 test messages with a category name. It is right on 340 of
+those 366. The two dev rows are scored on dev because the prompt not chosen was never run on test.
+Without examples in the prompt, `qwen3.6:27b-q4_K_M` is 14 messages below `gemma4:e4b`. Both LoRA
+adapters take the invalid replies from 34 to 0. Theirs is the only LoRA configuration tried.
 
-## Costs
-
-**On `confusable` an LLM classifier takes 32 to 335 times ModernBERT's seconds per message, and a
-LoRA adapter 13.6 to 17.9 training minutes against ModernBERT's 1.7 to 2.0.**
+### Costs
 
 | Classifier                       | Training set or prompt | Training minutes | Seconds per message | × ModernBERT |
 |----------------------------------|------------------------|------------------|---------------------|--------------|
@@ -213,33 +267,85 @@ LoRA adapter 13.6 to 17.9 training minutes against ModernBERT's 1.7 to 2.0.**
 | Gemma 4 E4B (MLX) + LoRA adapter | synthetic              | 13.6             | 0.235               | 32           |
 | Gemma 4 E4B (MLX) + LoRA adapter | real                   | 17.9             | 0.235               | 32           |
 
-× ModernBERT divides the seconds in the row's report by the 0.00735 in
-`results/confusable/test/modernbert-real.txt`. On `distinct` the LLM classifiers take 19 to 332
-times ModernBERT's seconds and a LoRA adapter 7.8 to 9.1 minutes. No file under `results/` records
-the minutes `generate.py` took to write a synthetic set.
+Seconds per message is the median time to classify one test message. "× ModernBERT" divides a
+row's seconds per message by 0.00735 s, ModernBERT-base trained on the real train set
+(`results/confusable/test/modernbert-real.txt`). On `distinct`, an LLM classifier takes 19 to 332
+times ModernBERT-base's seconds per message. On `distinct`, a LoRA adapter takes 7.8 to 9.1
+training minutes. No file under `results/` records how long `generate.py` took to write a training
+set.
 
-## Routing by confidence
+### What did not help
 
-**At a threshold on the top probability chosen on dev for 5% error, UltraBERT-Embed-150M + LR
-trained on the diagnosed set accepts 0.4025 of `confusable` test at 0.0373 error; no other
-classifier accepts more than 0.2375.**
+- **Training on LLM-written text with nothing to steer the generator.** On `confusable`, the
+  synthetic set cost TF-IDF + logistic regression 13.5 points of accuracy against the real train
+  set. It cost ModernBERT-base 9.5 points. It cost UltraBERT-Embed-150M + logistic regression 11.0
+  points.
+- **A prompt rule telling the generator to avoid the words of the category name** (the contrast
+  set). TF-IDF + logistic regression went from 84 errors of 400 to 127. UltraBERT-Embed-150M +
+  logistic regression went from 61 to 65.
+- **One LoRA configuration.** It removed the invalid replies. It left accuracy within 3 messages of
+  400.
+- **Laya, zero-shot.** It scored 0.7075 on `confusable` test. That is below TF-IDF + logistic
+  regression trained on the synthetic set, at 0.7900.
+- **Reading the category from letter logits.** Letter logits are the scores the LLM gives to each
+  option letter at the last position, in one forward pass with no reasoning. Gemma 4 E4B (MLX) read
+  this way scored 0.8675 on `confusable` test. Its top probability was above 0.9 on 378 of the 400
+  test messages.
 
-| Classifier                       | Training set or prompt | AUROC  | ECE after isotonic calibration | Test coverage at α 0.05 | Test error at α 0.05 |
-|----------------------------------|------------------------|--------|--------------------------------|-------------------------|----------------------|
-| TF-IDF + logistic regression     | diagnosed              | 0.7855 | 0.0319                         | 0.2375                  | 0.0526               |
-| ModernBERT-base                  | diagnosed              | 0.8394 | 0.0564                         | 0.1575                  | 0.0159               |
-| UltraBERT-Embed-150M + LR        | synthetic              | 0.8405 | 0.0495                         | 0.1825                  | 0.0274               |
-| UltraBERT-Embed-150M + LR        | diagnosed              | 0.7794 | 0.0333                         | 0.4025                  | 0.0373               |
-| Gemma 4 E4B (MLX), letter logits | `definitions`          | 0.7770 | 0.0608                         | 0.0375                  | 0.0000               |
-| Laya                             | `names`                | 0.6753 | 0.0705                         | 0.0000                  | —                    |
+## Discussion
 
-The diagnosed UltraBERT-Embed-150M + LR routes 161 of 400 test messages at 0.0373 error, and
-TF-IDF's 0.2375 comes at 0.0526, over the 5% asked for. With the dev error replaced by its one-sided
-90% Clopper-Pearson upper bound on the 200 dev rows no classifier accepts anything at 5%, and at 10%
-the best, the diagnosed UltraBERT-Embed-150M + LR, accepts 0.7175 of test at 0.0383 error. The
-scores saturate near 1 for the two UltraBERT-Embed-150M + LR models (logistic regression at
-scikit-learn's default regularisation), 0.999821 and 0.999993, for ModernBERT, 0.999994, and for
-the letter logits, 1.000000; TF-IDF's threshold of 0.904269 does not.
+Accuracy and coverage rank the classifiers differently. UltraBERT-Embed-150M + logistic regression
+trained on the diagnosed set and `gemma4:e4b` with the `definitions` prompt both make 35 errors of
+400. Of the two, only UltraBERT-Embed-150M + logistic regression gives a probability that a
+threshold can use. So of the two, only UltraBERT-Embed-150M + logistic regression can take work
+away from a person.
+
+UltraBERT-Embed-150M + logistic regression trained on the diagnosed set does not rank its answers
+best. Its AUROC of 0.7794 is below the 0.8405 of the same classifier trained on the synthetic set.
+Its higher coverage goes with a lower error rate. On dev it is right on 0.8850 of messages, against
+0.8150 for the synthetic-trained one. A classifier with fewer errors overall can keep more messages
+before its error passes 5%.
+
+The thresholds sit very close to 1. For UltraBERT-Embed-150M + logistic regression the 5%
+thresholds are 0.999821 (diagnosed) and 0.999993 (synthetic). For ModernBERT-base trained on the
+diagnosed set it is 0.999994. For the letter logits it is 1.000000. TF-IDF + logistic regression's
+threshold, 0.904269, is not close to 1. A threshold of 0.9 does not separate the
+letter-logits answers: the 378 above it are 0.8783 accurate.
+
+Routing needs a labelled dev set as well as a classifier. With 0 hand labels nothing sets the
+threshold, so a person checks every message. The 96% classifier, UltraBERT-Embed-150M + logistic
+regression trained on the real train set, has no coverage figure here. Measuring one needs labelled
+messages outside its training data.
+
+200 dev messages are too few to certify 5% error. At a 5% target the Clopper-Pearson bound admits
+no message for any classifier. The plain 5% thresholds rest on dev error alone. On test they held
+for every classifier except TF-IDF + logistic regression.
+
+The pairs are the whole difficulty. On `distinct` every classifier but two scores at least 0.9799.
+On `confusable` most errors of every classifier but one are inside a pair.
+
+The diagnosed notes cut errors on four pairs out of five. On the card pair the errors rose. The note
+for that pair was written once from counts and not revised.
+
+UltraBERT-Embed-150M's own training data could hold Banking77 text. That would make its results
+look better than they would on new categories. A scan of its classification data found 18 Banking77
+texts verbatim. One is a test message here. The scan is described under
+[Details of the method](#details-of-the-method).
+
+A gap of 1 to 3 messages of 400 is smaller than one standard error. The `fewshot` prompts' 27 and
+28 errors against ModernBERT-base's 25 are such a gap.
+
+## Conclusion
+
+- With 0 hand labels, `gemma4:e4b` with the `definitions` prompt labels 91% of `confusable` test
+  messages correctly. A person still checks every message.
+- With 200 hand labels, UltraBERT-Embed-150M + logistic regression trained on the diagnosed set
+  labels 40% of those messages on its own. Under 5% of the 40% are wrong. It takes about 0.01 s to
+  classify one message.
+- With 1284 hand labels, UltraBERT-Embed-150M + logistic regression reaches 96% accuracy. Its
+  coverage was not measured.
+- On 10 unrelated categories, the method matters little. Every classifier but two scores at least
+  0.9799.
 
 ## Class sets
 
@@ -247,8 +353,8 @@ the letter logits, 1.000000; TF-IDF's threshold of 0.904269 does not.
 `terminate_account`, `age_limit`, `atm_support`, `apple_pay_or_google_pay`, `request_refund` and
 `edit_personal_details`.
 
-`confusable` is 5 pairs. Each intent's definition in `classes.py` states what separates it from the
-other intent in its pair:
+`confusable` is 5 pairs. Each category's definition in `classes.py` states what separates it from
+the other category in its pair.
 
 | Pair                                                   | What separates them |
 |--------------------------------------------------------|---------------------|
@@ -258,95 +364,99 @@ other intent in its pair:
 | `getting_virtual_card` / `get_disposable_virtual_card` | the reusable virtual card / the single-use one |
 | `verify_my_identity` / `why_verify_identity`           | how to verify / why it is required |
 
-## How it was measured
+## Details of the method
 
-**Training sets.** `generate.py` asks `gemma4:e4b` for 100 messages per class, showing it the class
-name and its one-sentence definition from `CLASS_SETS` and never any Banking77 text; the 1000
-messages are `data/<set>/synthetic.jsonl`. The real train set is the Banking77 train split
-restricted to the class set: 1188 messages for `distinct`, 1284 for `confusable`.
+**The synthetic set.** `generate.py` asks `gemma4:e4b` for 100 messages per category. It shows the
+model the category name and its definition from `CLASS_SETS`. It shows no Banking77 text. The 1000
+messages are `data/<set>/synthetic.jsonl`.
 
-**The diagnosed notes.** `generate.py --method diagnosed` sends the synthetic set's request plus
-the other class's definition, under "Do not write messages with this other intent", and for one
-class in each `confusable` pair a note from `DIAGNOSED_NOTES` in `generate.py`. That class is the
-one losing more of its 20 dev messages to the other in
-`results/confusable/dev/ultrabert-embed-synthetic.txt`, UltraBERT-Embed-150M + LR trained on the
-synthetic set; the comment above each note gives the two dev cells it came from. Each note was
-written from those counts and that class's rows in `data/confusable/synthetic.jsonl`, not from any
-Banking77 message, names the kind of message those rows lack, and asks the model to avoid no words.
-The requests are `data/confusable/synthetic-diagnosed.prompt.txt`, the 1000 messages
+**The real train set.** It is the Banking77 train split restricted to the class set.
+
+**The diagnosed notes.** `generate.py --method diagnosed` starts from the synthetic set's request.
+It adds the other category's definition under "Do not write messages with this other intent". For
+one category in each `confusable` pair it also adds a note from `DIAGNOSED_NOTES` in `generate.py`.
+That category is the one losing more of its 20 dev messages to its partner in
+`results/confusable/dev/ultrabert-embed-synthetic.txt`. The comment above each note gives the two
+dev cells it came from. Each note was written from those counts and from that category's rows in
+`data/confusable/synthetic.jsonl`. No note was written from a Banking77 message. Each note names
+the kind of message those rows lack. No note asks the model to avoid any word. The requests are
+`data/confusable/synthetic-diagnosed.prompt.txt`. The 1000 messages are
 `data/confusable/synthetic-diagnosed.jsonl`.
 
-**The pair pilot.** A third set, `pair`, is the `verify_my_identity` / `why_verify_identity` pair
-of `confusable` alone, a pilot for generation methods that no table below includes. Its reports are
-under `results/pair/`, and the `contrast` method it piloted was superseded by the `confusable`
-diagnosed run.
+**The pair pilot.** A third class set, `pair`, is the `verify_my_identity` / `why_verify_identity`
+pair of `confusable` alone. It was a pilot for generation methods. No table above includes it. Its
+reports are under `results/pair/`. The `contrast` method it piloted was superseded by the
+`confusable` diagnosed run.
 
-**dev and test.** Test is the Banking77 test split restricted to the class set. dev is 200 messages
-per class set: 20 per class sampled with a fixed seed from the Banking77 train split. The 3 examples
-per class in a `fewshot` prompt, 30 in all, are train messages outside dev. dev scores only the
-Ollama and mlx-lm models, Laya, and UltraBERT-Embed-150M + LR trained on the synthetic set, for the
-diagnosed notes; the classifiers trained on the real train set saw those rows.
+**dev and test.** `dev_and_shots` in `score.py` draws dev with a fixed seed: 20 messages per
+category from the Banking77 train split. The 3 examples per category in a `fewshot` prompt are train
+messages outside dev. dev scores the Ollama models, the mlx-lm models and Laya. It also scores
+UltraBERT-Embed-150M + logistic regression trained on the synthetic set, which is where the
+diagnosed counts come from. dev does not score a classifier trained on the real train set, because
+that classifier saw the dev rows.
 
 **How prompts were chosen.** Each Ollama model was run on dev with every prompt in `PROMPTS`. Test
-was run with `fewshot` and with whichever of `names` and `definitions` scored higher on dev. On
-`distinct` the two tie for both models, in macro F1 as well as accuracy, and `names`, the shorter
-prompt, was taken. The third prompt was not run on test. That choice used the 200 labelled dev
-messages, which the Real labelled examples column does not count. The mlx-lm rows all use
-`definitions`, which is not chosen on dev for those rows: it is the prompt the adapters are trained
-with.
+was run with `fewshot`. Test was also run with whichever of `names` and `definitions` scored higher
+on dev. On `distinct` the two tie for both models, in macro F1 as well as accuracy. On a tie `names`
+was taken, being the shorter prompt. The third prompt was not run on test. The choice used the 200
+labelled dev messages. The Real labelled examples column does not count them. The mlx-lm rows all
+use `definitions`. That prompt was not chosen on dev for them. It is the prompt the adapters are
+trained with.
 
-**Fixed before any test run.** ModernBERT: 5 epochs, learning rate 5e-5, batch size 16, seed 0, no
-validation set. UltraBERT-Embed-150M: revision `367d534`, float32 with SDPA attention, each
-message prefixed with MTEB's Banking77Classification instruction, the position-0 embedding of the
-last layer, and logistic regression at scikit-learn's default regularisation. The LoRA adapters:
-rank 8, scale 20, dropout 0 on every linear layer of the last 16
-of 42 transformer blocks, Adam at learning rate 1e-4, batch size 4, 2 passes over the rows, seed 0,
-with nothing tuned — there is no held-out split to choose another configuration on, dev being part
-of the real train split. The Ollama models run
-at temperature 0 with the answer restricted to an enum of the class names. Nothing restricts an
-mlx-lm reply: the reply is what follows the model's reasoning, if it wrote any, and a reply that is
-not exactly a class name is invalid and counted as wrong. The 512-token limit on a reply and that
-rule were settled on dev. With no adapter on `confusable`, 34 of 400 test replies are invalid, all
-of them reasoning cut off at 512 tokens; the other five mlx-lm test runs have none.
+**Fixed before any test run.**
 
-**Ollama against mlx-lm.** The two Gemma 4 E4B classifiers without an adapter differ in runtime as
-well as in whether the reply is restricted: Ollama's `gemma4:e4b` is `google/gemma-4-E4B-it` at
-Q4_K_M and `mlx-community/gemma-4-e4b-it-4bit` is a 4-bit quantisation of it. On the 366
-`confusable` test messages the mlx-lm model answered with a class name, it is right on 340.
+- ModernBERT-base: 5 epochs, learning rate 5e-5, batch size 16, seed 0, no validation set.
+- UltraBERT-Embed-150M: revision `367d534`, float32 with SDPA attention. Each message is prefixed
+  with MTEB's Banking77Classification instruction. The embedding is the position-0 vector of the
+  last layer. The logistic regression uses scikit-learn's default regularisation.
+- LoRA adapters: rank 8, scale 20, dropout 0, on every linear layer of the last 16 of 42
+  transformer blocks. Adam at learning rate 1e-4, batch size 4, 2 passes over the rows, seed 0.
+  Nothing was tuned. There is no held-out split to choose another configuration on, because dev is
+  part of the real train split.
+- Ollama models: temperature 0. The answer is restricted to an enum of the category names.
+- mlx-lm replies: nothing restricts them. The reply is the text after the model's reasoning, if it
+  wrote any. A reply that is not exactly a category name is invalid and counts as wrong. The
+  512-token limit on a reply was settled on dev. So was that rule. With no adapter on `confusable`,
+  34 of 400 test replies are invalid. All 34 are reasoning cut off at 512 tokens. The other five
+  mlx-lm test runs have no invalid replies.
 
-**What the embedding model was trained on.** UltraBERT-Embed-150M's model card lists its
-classification training data as the synthetic classification set of
-`nvidia/embed-nemotron-dataset-v1`, Amazon polarity and toxicity datasets. That set's card, its subset configs, the Llama-Embed-Nemotron
-paper (arXiv 2511.07025) and the UltraBERT paper (arXiv 2610.15028) do not mention Banking77. Of its
-1,044,212 classification examples, none names Banking77, none offers more than one Banking77 label
-name as a candidate, and 18 have a Banking77 text verbatim, generic ones such as "How do I reset my
-password?", one of them a `confusable` or `distinct` test message ("I want a refund for my
-purchase", `request_refund`). `results/contamination/scan_nemotron.py` is the scan and
-`results/contamination/embed-nemotron-dataset-v1.txt` its output. The card's other training data
-was not checked.
+**Ollama against mlx-lm.** The two Gemma 4 E4B classifiers without an adapter differ in runtime.
+They also differ in whether the reply is restricted. Ollama's `gemma4:e4b` is
+`google/gemma-4-E4B-it` at Q4_K_M. `mlx-community/gemma-4-e4b-it-4bit` is a 4-bit quantisation of the same model.
 
-**Accuracy and macro F1.** Accuracy is the fraction of messages given their true class. Macro F1 is
-the unweighted mean over the 10 classes of each class's F1, the harmonic mean of its precision and
-recall. The first four sections above Class sets report accuracy, because classes have 39 or 40
-messages each, and an invalid reply counts as wrong in accuracy but against no class's precision in
-macro F1 (0.8858 against 0.8500 for the mlx-lm model with no adapter).
+**What UltraBERT-Embed-150M was trained on.** Its model card lists its classification training
+data. That data is the synthetic classification set of `nvidia/embed-nemotron-dataset-v1`, Amazon
+polarity and toxicity datasets. Four sources were read for any mention of Banking77: that set's
+card, its subset configs, the Llama-Embed-Nemotron paper (arXiv 2511.07025) and the UltraBERT paper
+(arXiv 2610.15028). None mentions it. The set has 1,044,212 classification examples. None names
+Banking77. None offers more than one Banking77 label name as a candidate. 18 contain a Banking77
+text verbatim. These are generic, such as "How do I reset my password?". One of the 18 is a
+`confusable` or `distinct` test message: "I want a refund for my purchase", `request_refund`.
+`results/contamination/scan_nemotron.py` is the scan.
+`results/contamination/embed-nemotron-dataset-v1.txt` is its output. The card's other training data was not checked.
 
-**Seconds and minutes.** Seconds is the median time to classify one test message, sent one per
-call, on an M5 Pro with 48 GB: ModernBERT and UltraBERT-Embed-150M on MPS, TF-IDF and the
-logistic regression on CPU, the Ollama and mlx-lm models fully on the GPU. The median hides
-the 34 cut-off replies, which take several seconds each. Training minutes are the wall time of one
-`train.py` or `finetune.py` run, from `results/<set>/train/<name>.txt`.
+**Accuracy and macro F1.** Accuracy is the fraction of messages given their true category. A
+category's F1 is the harmonic mean of its precision and recall. Macro F1 is the unweighted mean of
+the 10 categories' F1. Results reports accuracy, because each category has 39 or 40 test messages.
+An invalid reply counts as wrong in accuracy. An invalid reply counts against no category's
+precision in macro F1. So Gemma 4 E4B (MLX) with no adapter has macro F1 0.8858 and accuracy
+0.8500.
 
-**Routing by confidence.** `confidence.py` reads a classifier's `score.py --dump` files of dev and
-test and takes a message's raw score to be its top probability over the class set. AUROC is of that
-score against correctness on test, with nothing fitted. Isotonic regression of correctness on the
-score is fitted on the 200 dev messages and applied to test, and ECE is over 10 bins of equal
-count. For each α the threshold is the lowest dev score at which the dev error among messages
-scoring at least that is at most α, or, for the bounded threshold, at which the error's one-sided
-90% Clopper-Pearson upper bound is; test coverage is the share of test messages at or above it and
-test error the error among them. The classifiers trained on the real train set are excluded, because
-dev is drawn from the Banking77 train split they were trained on; the Ollama models give no
-probability to dump. Reports are `results/confusable/confidence/<name>.txt`, computed from the
+**Seconds and minutes.** Seconds is the median time to classify one test message, one message per
+call. The machine is an M5 Pro with 48 GB. ModernBERT-base and UltraBERT-Embed-150M run on MPS,
+PyTorch's Apple GPU backend. TF-IDF and the logistic regressions run on CPU. The Ollama and mlx-lm
+models run fully on the GPU. The median hides the 34 cut-off mlx-lm replies, which take several
+seconds each. Training minutes are the wall time of one `train.py` or `finetune.py` run, from
+`results/<set>/train/<name>.txt`.
+
+**Routing.** `confidence.py` reads a classifier's `score.py --dump` files of dev and test. A
+message's score is its top probability over the class set. AUROC is of that score against
+correctness on test, with nothing fitted. Isotonic regression of correctness on the score is fitted
+on the 200 dev messages and applied to test. ECE is over 10 bins of equal count. For each α the
+threshold is the lowest dev score at which the dev error among messages scoring at least that is at
+most α. The bounded threshold uses the error's one-sided 90% Clopper-Pearson upper bound in place
+of the error. Test coverage is the share of test messages at or above the threshold. Test error is the
+error among them. Reports are `results/confusable/confidence/<name>.txt`. They are computed from the
 dumps under `results/confusable/confidence/dumps/`.
 
 ## All results
@@ -400,7 +510,7 @@ instruction before it, to measure what that instruction adds to the UltraBERT-Em
 | `confusable` | Laya                     | `names` prompt           | 0.7075   | 0.6750   | 0.0241  |
 
 On `confusable` Laya scores below TF-IDF + logistic regression trained on the synthetic set, 0.7075
-against 0.7900, so it has no rows in the first four sections above All results. Of its answers
+against 0.7900, so it has no rows in the Results tables but the routing table. Of its answers
 whose top probability is above 0.9, 338 of 399 on `distinct` are 0.9734 accurate and 273 of 400 on
 `confusable` 0.7912.
 
@@ -408,9 +518,9 @@ The letter-logits rows read the class from the probability of its letter at the 
 forward pass, thinking off; they score below the Ollama `gemma4:e4b` row with the prompt chosen on
 dev on both sets, 0.8675 against 0.9125 (`definitions`) on `confusable` and 0.9799 against 0.9825
 (`names`) on `distinct`, and their top probability is above 0.9 on 378 of 400 `confusable` answers
-at 0.8783 accuracy and 397 of 399 `distinct` at 0.9798, so they have no rows in the first four
-sections above All results and a threshold of 0.9 does not separate right from wrong answers; the
-Routing by confidence table gives the AUROC.
+at 0.8783 accuracy and 397 of 399 `distinct` at 0.9798, so they have no rows in the Results tables
+but the routing table, and a threshold of 0.9 does not separate right from wrong answers; the
+routing table under question 1 of Results gives the AUROC.
 
 The contrast rows are `generate.py --method contrast`, which shows both definitions in a pair and
 asks for at least half the messages to avoid the words of the class name; that rule made both

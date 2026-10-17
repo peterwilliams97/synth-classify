@@ -16,7 +16,7 @@ of Gemma 4 E4B with and without a LoRA adapter (`finetune.py`), the `convaiinnov
 decision model zero-shot (`score.py --laya`), and logistic regression on frozen
 `dmis-lab/UltraBERT-Embed-150M` embeddings (`train.py --embed`). `confidence.py` asks whether a
 classifier's top probability can route messages, from `score.py --dump` files of dev and test,
-for the README's Routing by confidence. Seven scripts, and a `README.md` that
+for question 1 under the README's Results. Seven scripts, and a `README.md` that
 states the aim as questions, answers each in a subsection of Results, and keeps the three full
 tables (test, dev, training minutes) under All results. All Python
 — the repository layout, file header and `test.sh` rules in `~/CLAUDE.md` do not apply here; its
