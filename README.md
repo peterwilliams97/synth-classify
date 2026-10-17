@@ -6,9 +6,10 @@ I wanted to know three things about a text classifier that runs on a laptop:
 2. How accurate is it?
 3. How many hand-labelled examples does it need?
 
-This repo answers them on Banking77, a public set of customer messages to a bank, sorted into 10
-categories. Five of the categories come in pairs that are hard to tell apart ("how do I verify my
-identity" and "why must I verify my identity"), and those pairs are where the methods differ.
+This repo answers them on [Banking77](https://huggingface.co/datasets/mteb/banking77), a public set
+of customer messages to a bank, sorted into 10 categories. Five of the categories come in pairs that
+are hard to tell apart ("how do I verify my identity" and "why must I verify my identity"), and
+those pairs are where the methods differ.
 
 The short answers, on the 400 Banking77 test messages of the `confusable` class set:
 
