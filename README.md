@@ -1,13 +1,48 @@
 # synth-classify
 
-Trained classifiers and local LLMs prompted with the class list are each scored on one task:
-assigning a Banking77 customer message to one of 10 intents, on the Banking77 test split. That is
-done for two class sets in `CLASS_SETS`, chosen with `--set`: `distinct`, 10 intents on unrelated
-topics, and `confusable`, 5 pairs of intents on the same topic. The test split restricted to the
-class set is 399 messages for `distinct` and 400 for `confusable`, 39 or 40 per class. A third set,
-`pair`, is the `verify_my_identity` / `why_verify_identity` pair of `confusable` alone, a pilot for
-generation methods that no table below includes. Its reports are under `results/pair/`, and the
-`contrast` method it piloted was superseded by the `confusable` diagnosed run.
+What a local text classifier can do with how many labels, measured on
+Banking77.
+
+**The task.** Assign a customer message to one of 10 intents. Two class
+sets: `distinct`, 10 unrelated intents, and `confusable`, 5 pairs of
+near-identical intents. Test is the Banking77 test split, 399 and 400
+messages, scored once per classifier. dev is 200 messages from the train
+split, used for every choice made before a test run.
+
+**The metric that matters.** Coverage at a fixed error rate: the share
+of messages the classifier labels on its own, with the rest sent to a
+person, while the error among the ones it labels stays under a target.
+Accuracy hides which answers of a 0.91 classifier are wrong; coverage
+says how much checking is left. Measured on `confusable` only; see
+Routing by confidence.
+
+**Best on it.** UltraBERT-Embed-150M embeddings with logistic regression,
+trained on the diagnosed set: 40% of messages at 3.7% error with a 5%
+target, and 72% at 3.8% with a 10% target under a Clopper-Pearson bound
+on the 200 dev rows. No other classifier passes 24%.
+
+**Best by accuracy, for the labels available**, `confusable` test:
+
+| Real labels | Method | Accuracy |
+|---|---|---|
+| 0 | `gemma4:e4b`, definitions prompt, reply restricted to a class name | 0.9125 |
+| 30, in the prompt | `gemma4:e4b` or `qwen3.6:27b-q4_K_M`, fewshot prompt | 0.9300 / 0.9325 |
+| 200, as confusion counts that steer the generator | UltraBERT-Embed-150M + LR on the diagnosed set | 0.9125, at about 1/60 of the LLM's seconds per message |
+| 1284, to train on | UltraBERT-Embed-150M + LR | 0.9575 |
+
+On `distinct` every classifier except TF-IDF trained on synthetic text
+and Laya scores 0.9799 to 0.9975, and the choice does not matter.
+
+**What did not work.** Training on LLM-written text with no diagnosis,
+9.5 to 13.5 points lost on `confusable` for TF-IDF, ModernBERT and
+UltraBERT-Embed-150M + LR; a prompt rule to avoid class-name words, worse
+for every model; LoRA in one configuration, which fixed invalid replies
+and left accuracy where it was; Laya zero-shot, 0.7075; reading the class
+from letter logits, 0.8675, with probabilities that saturate at 1.
+
+**Where the numbers are.** Every number below is in a file under
+`results/`. Five findings follow, each with one `confusable` table; then
+how it was measured; then every result.
 
 Every row below is one run with seed 0, and the binomial standard error √(p(1−p)/n) of the
 accuracies reported is 0.012 to 0.020 on `confusable` (5 to 8 messages of 400) and 0.003 to 0.012
@@ -240,6 +275,11 @@ written from those counts and that class's rows in `data/confusable/synthetic.js
 Banking77 message, names the kind of message those rows lack, and asks the model to avoid no words.
 The requests are `data/confusable/synthetic-diagnosed.prompt.txt`, the 1000 messages
 `data/confusable/synthetic-diagnosed.jsonl`.
+
+**The pair pilot.** A third set, `pair`, is the `verify_my_identity` / `why_verify_identity` pair
+of `confusable` alone, a pilot for generation methods that no table below includes. Its reports are
+under `results/pair/`, and the `contrast` method it piloted was superseded by the `confusable`
+diagnosed run.
 
 **dev and test.** Test is the Banking77 test split restricted to the class set. dev is 200 messages
 per class set: 20 per class sampled with a fixed seed from the Banking77 train split. The 3 examples

@@ -195,11 +195,13 @@ Ollama 0.32.5, mlx 0.32.3 and mlx-lm 0.32.0, with `mlx-community/gemma-4-e4b-it-
 The `modernbert-*` and `tfidf-*` ones name `xtmp/models/…` as the model: they are timing re-runs,
 and the models under `models/<set>/` that the test reports came from were not replaced.
 
-**The README states each number more than once.** Above Class sets it has Classifiers, Findings
+**The README states each number more than once.** Above Class sets it has an opening section
+(the task, the metric, the best classifiers, what did not work), Classifiers, Findings
 and five sections: LLM classifiers against the baselines, Classes that are close together, What
 raised an LLM classifier's accuracy, Costs, and Routing by confidence. Each of the five opens with
 its answer in one bold sentence, has one table of `confusable` rows with one value per cell, and at
-most three sentences under it; Findings repeats each answer in one line. Those lines, sentences and tables repeat
+most three sentences under it; Findings repeats each answer in one line. The opening section,
+those lines, sentences and tables repeat
 numbers from the three tables under All results and from the reports: error counts, counts of
 errors inside a pair, largest confusion-matrix cells and invalid counts from
 `results/confusable/test/*.txt`, seconds as multiples of
