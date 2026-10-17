@@ -17,8 +17,8 @@ decision model zero-shot (`score.py --laya`), and logistic regression on frozen
 `dmis-lab/UltraBERT-Embed-150M` embeddings (`train.py --embed`). `confidence.py` asks whether a
 classifier's top probability can route messages, from `score.py --dump` files of dev and test,
 for the README's Routing by confidence. Seven scripts, and a `README.md` that
-lists the classifiers, states five findings, gives each finding a section with one `confusable`-only
-table, and keeps the three full tables (test, dev, training minutes) under All results. All Python
+states the aim as questions, answers each in a subsection of Results, and keeps the three full
+tables (test, dev, training minutes) under All results. All Python
 — the repository layout, file header and `test.sh` rules in `~/CLAUDE.md` do not apply here; its
 Python / ML environment section does.
 
@@ -195,20 +195,11 @@ Ollama 0.32.5, mlx 0.32.3 and mlx-lm 0.32.0, with `mlx-community/gemma-4-e4b-it-
 The `modernbert-*` and `tfidf-*` ones name `xtmp/models/…` as the model: they are timing re-runs,
 and the models under `models/<set>/` that the test reports came from were not replaced.
 
-**The README states each number more than once.** Above Class sets it has an opening section
-(the task, the metric, the best classifiers, what did not work), Classifiers, Findings
-and five sections: LLM classifiers against the baselines, Classes that are close together, What
-raised an LLM classifier's accuracy, Costs, and Routing by confidence. Each of the five opens with
-its answer in one bold sentence, has one table of `confusable` rows with one value per cell, and at
-most three sentences under it; Findings repeats each answer in one line. The opening section,
-those lines, sentences and tables repeat
-numbers from the three tables under All results and from the reports: error counts, counts of
-errors inside a pair, largest confusion-matrix cells and invalid counts from
-`results/confusable/test/*.txt`, seconds as multiples of
-`results/confusable/test/modernbert-real.txt`, the `distinct` ranges in the first and fourth of the
-five sections, AUROC, ECE, coverage and error from `results/confusable/confidence/*.txt`, and the
-standard errors in the opening. The paragraphs under How it was measured
-repeat some too: the LoRA configuration, 340 of 366, and the macro F1 of the mlx-lm model with no
-adapter. A changed report means updating its All results row and every one of those places that
-cites it, in the same commit. Definitions and method detail go in Classifiers or How it was
-measured, not under a table.
+**The README repeats numbers.** It is laid out as Aim, Method, Results (one subsection per aim
+question, then an LLM-changes table, a costs table and a list of what did not help), Discussion,
+Conclusion, Class sets, Details of the method, All results, Files, Run. Results and Discussion
+repeat numbers from `results/<set>/test/*.txt`, `results/confusable/confidence/*.txt` and
+`results/<set>/train/*.txt`: error counts, errors inside a pair, largest confusion cells, seconds as
+multiples of `modernbert-real`'s, coverage and error at tau. A changed report means updating its
+All results row and every place above that cites it, in the same commit. Two cells say "see report"
+where the README does not carry the number.
