@@ -63,7 +63,7 @@ generator, and the routing threshold.
 - **real**: the Banking77 train rows of the class set. There are 1188 for `distinct` and 1284 for
   `confusable`.
 
-**Classifiers.** Seven kinds are scored.
+**Classifiers.** Eight kinds are scored.
 
 - **TF-IDF + logistic regression**: logistic regression on word-frequency features. It is the
   baseline. It is trained on a synthetic, diagnosed or real set.
@@ -85,6 +85,9 @@ generator, and the routing threshold.
   adapter is trained on a synthetic or a real set.
 - **Laya**: `convaiinnovations/laya`, a model that picks one option from a list. It is asked one
   question per message with the category names as the options. It is not trained.
+- **TypeSafe System One**: `typesafe/jev-1.13`, an API reached through OpenRouter that picks one
+  option from a list and gives a probability for each. It is asked Laya's question with the
+  `definitions` prompt, one per message. It is not trained, and it does not run on the laptop.
 
 **Routing.** Routing keeps a classifier's label when the classifier's top probability is at least
 a threshold. A message below the threshold goes to a person. The threshold is the lowest dev
@@ -120,6 +123,7 @@ monotone mapping of the top probability onto accuracy, fitted on dev.
 | UltraBERT-Embed-150M + LR        | diagnosed              | 0.7794 | 0.0333                         | 0.4025                  | 0.0373               |
 | Gemma 4 E4B (MLX), letter logits | `definitions`          | 0.7770 | 0.0608                         | 0.0375                  | 0.0000               |
 | Laya                             | `names`                | 0.6753 | 0.0705                         | 0.0000                  | —                    |
+| TypeSafe System One              | `definitions`          | 0.7867 | 0.0534                         | 0.0000                  | —                    |
 
 TF-IDF + logistic regression's 0.2375 misses the target: 5 of the 95 messages it keeps are wrong.
 
@@ -157,6 +161,7 @@ errors: 17 of 400.**
 | Gemma 4 E4B (MLX), no adapter    | `definitions`          | 0                           | 0.8500   | 60            |
 | Gemma 4 E4B (MLX) + LoRA adapter | synthetic              | 0                           | 0.8500   | 60            |
 | Gemma 4 E4B (MLX) + LoRA adapter | real                   | 1284                        | 0.8575   | 57            |
+| TypeSafe System One              | `definitions`          | 0                           | 0.9050   | 38            |
 
 Every classifier above 0.92 used real labelled examples. The Gemma 4 E4B (MLX) + LoRA adapter
 trained on the real train set also used them, and stayed at 0.8575. The two `fewshot` prompts come
@@ -188,6 +193,7 @@ categories are the two categories of one pair.
 | Gemma 4 E4B (MLX), no adapter    | `definitions`          | 0                           | 60     | 26            | `card_arrival` → `card_delivery_estimate`     | 16              |
 | Gemma 4 E4B (MLX) + LoRA adapter | synthetic              | 0                           | 60     | 34            | `card_arrival` → `card_delivery_estimate`     | 18              |
 | Gemma 4 E4B (MLX) + LoRA adapter | real                   | 1284                        | 57     | 56            | `declined_transfer` → `failed_transfer`       | 24              |
+| TypeSafe System One              | `definitions`          | 0                           | 38     | 35            | `card_delivery_estimate` → `card_arrival` and `why_verify_identity` → `verify_my_identity` | 8 each |
 
 Gemma 4 E4B (MLX) with no adapter is the one classifier with most of its errors outside a pair.
 Those 34 errors outside a pair are its invalid replies. The 26 errors outside a pair of the
@@ -267,6 +273,7 @@ adapters take the invalid replies from 34 to 0. Theirs is the only LoRA configur
 | Gemma 4 E4B (MLX), no adapter    | `definitions`          | none             | 0.258               | 35           |
 | Gemma 4 E4B (MLX) + LoRA adapter | synthetic              | 13.6             | 0.235               | 32           |
 | Gemma 4 E4B (MLX) + LoRA adapter | real                   | 17.9             | 0.235               | 32           |
+| TypeSafe System One              | `definitions`          | none             | 0.53                | 72           |
 
 Seconds per message is the median time to classify one test message. "× ModernBERT" divides a
 row's seconds per message by 0.00735 s, ModernBERT-base trained on the real train set
@@ -274,6 +281,10 @@ row's seconds per message by 0.00735 s, ModernBERT-base trained on the real trai
 times ModernBERT-base's seconds per message. On `distinct`, a LoRA adapter takes 7.8 to 9.1
 training minutes. No file under `results/` records how long `generate.py` took to write a training
 set.
+
+TypeSafe System One's seconds include the round trip to OpenRouter. It is the one classifier
+billed per message: a mean of 787 input tokens per message at $0.042 per million input tokens is
+$33 per million messages, or $0.013 for the 400 (`results/confusable/test/jev-definitions.txt`).
 
 ### What did not help
 
@@ -320,7 +331,9 @@ messages outside its training data.
 
 200 dev messages are too few to certify 5% error. At a 5% target the Clopper-Pearson bound admits
 no message for any classifier. The plain 5% thresholds rest on dev error alone. On test they held
-for every classifier except TF-IDF + logistic regression.
+for every classifier except TF-IDF + logistic regression. TypeSafe System One has no 5% threshold:
+111 of the 200 dev messages score exactly 1.00 and 7 of those are wrong, so no 5% cut-off exists;
+its probabilities arrive in steps of 0.01.
 
 The pairs are the whole difficulty. On `distinct` every classifier but two scores at least 0.9799.
 On `confusable` most errors of every classifier but one are inside a pair.
@@ -509,6 +522,7 @@ instruction before it, to measure what that instruction adds to the UltraBERT-Em
 | `confusable` | Gemma 4 E4B (MLX), letter logits | `definitions` prompt | 0.8675 | 0.8648 | 0.338 |
 | `distinct`   | Laya                     | `names` prompt           | 0.9123   | 0.9139   | 0.0225  |
 | `confusable` | Laya                     | `names` prompt           | 0.7075   | 0.6750   | 0.0241  |
+| `confusable` | TypeSafe System One      | `definitions` prompt     | 0.9050   | 0.9053   | 0.53    |
 
 On `confusable` Laya scores below TF-IDF + logistic regression trained on the synthetic set, 0.7075
 against 0.7900, so it has no rows in the Results tables but the routing table. Of its answers
@@ -599,20 +613,23 @@ adapter carries the whole prompt.
   that reply, so one that is not a class name is returned as invalid. `laya_question` builds the
   one `choice` question Laya is asked from the `names` or `definitions` prompt, and `classify_laya`
   asks it of each message and returns the highest-probability option.
+- `jev.py` — `classify_jev` asks TypeSafe System One Laya's `definitions` question for each message,
+  with the key from `TYPESAFE_API_KEY`, and caches every response in `results/jev/<set>.jsonl`, so a
+  re-run of `score.py --jev` sends nothing and reproduces its report.
 - `finetune.py` — trains a LoRA adapter for `mlx-community/gemma-4-e4b-it-4bit` on a jsonl file
   (`--train`) and saves it to `--out`. Each row is a chat: the `definitions` prompt and the message
   as the user turn, the class name as the assistant turn.
 - `score.py` — scores a saved model (`--model`), an Ollama model (`--llm MODEL --prompt NAME`), an
   mlx-lm model with the `definitions` prompt (`--mlx MODEL`, and `--adapter DIR` for a LoRA adapter,
-  or `--reply logits` for letter logits, `--mlx` only, no adapter) or Laya
-  (`--laya --prompt names|definitions`) on Banking77 restricted to the class set: accuracy, macro F1,
-  median seconds per message, per-class recall and a confusion matrix, printed and written to
-  `results/<set>/<split>/<name>.txt`. An `--mlx` report also counts the invalid replies.
+  or `--reply logits` for letter logits, `--mlx` only, no adapter), Laya
+  (`--laya --prompt names|definitions`) or TypeSafe System One (`--jev`) on Banking77 restricted to
+  the class set: accuracy, macro F1, median seconds per message, per-class recall and a confusion
+  matrix, printed and written to `results/<set>/<split>/<name>.txt`. An `--mlx` report also counts the invalid replies.
   `--split test` (the default) is the Banking77 test split. `--split dev` is 20 messages per class
   sampled with a fixed seed from the Banking77 train split; the `fewshot` examples are train
   messages outside dev. `--write-train` exports the restricted train split as jsonl. `--dump FILE`
-  also writes each message's probability over the class set, for `--model`, `--laya` and `--mlx
-  --reply logits`.
+  also writes each message's probability over the class set, for `--model`, `--laya`, `--jev` and
+  `--mlx --reply logits`.
 - `confidence.py` — from a classifier's dev and test `--dump` files: AUROC of the top probability
   against correctness, ECE before and after isotonic calibration fitted on dev, and test coverage
   and error at thresholds chosen on dev for α 0.02, 0.05 and 0.10, with and without a
@@ -674,6 +691,9 @@ python score.py --set confusable --split dev --mlx $M --reply logits --dump $D/g
 python score.py --set confusable             --mlx $M --reply logits --dump $D/gemma-4-e4b-it-4bit-definitions-logits-test.jsonl
 python score.py --set confusable --split dev --laya --prompt names --dump $D/laya-names-dev.jsonl
 python score.py --set confusable             --laya --prompt names --dump $D/laya-names-test.jsonl
+export TYPESAFE_BASE_URL=https://openrouter.ai/api TYPESAFE_MODEL=typesafe/jev-1.13   # and TYPESAFE_API_KEY
+python score.py --set confusable --split dev --jev --dump $D/jev-definitions-dev.jsonl
+python score.py --set confusable             --jev --dump $D/jev-definitions-test.jsonl
 for d in $D/*-dev.jsonl; do
   n=$(basename $d -dev.jsonl)
   python confidence.py --set confusable --model-name $n --dev $d --test $D/$n-test.jsonl
