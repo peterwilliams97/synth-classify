@@ -202,9 +202,9 @@ The diagnosed UltraBERT-Embed-150M + LR routes 161 of 400 test messages at 0.037
 TF-IDF's 0.2375 comes at 0.0526, over the 5% asked for. With the dev error replaced by its one-sided
 90% Clopper-Pearson upper bound on the 200 dev rows no classifier accepts anything at 5%, and at 10%
 the best, the diagnosed UltraBERT-Embed-150M + LR, accepts 0.7175 of test at 0.0383 error. The
-scores saturate near 1: the 5% thresholds of the two UltraBERT-Embed-150M + LR models, logistic
-regression at scikit-learn's default regularisation, are 0.999821 and 0.999993, ModernBERT's
-0.999994 and the letter logits' 1.000000.
+scores saturate near 1 for the two UltraBERT-Embed-150M + LR models (logistic regression at
+scikit-learn's default regularisation), 0.999821 and 0.999993, for ModernBERT, 0.999994, and for
+the letter logits, 1.000000; TF-IDF's threshold of 0.904269 does not.
 
 ## Class sets
 
@@ -369,7 +369,8 @@ forward pass, thinking off; they score below the Ollama `gemma4:e4b` row with th
 dev on both sets, 0.8675 against 0.9125 (`definitions`) on `confusable` and 0.9799 against 0.9825
 (`names`) on `distinct`, and their top probability is above 0.9 on 378 of 400 `confusable` answers
 at 0.8783 accuracy and 397 of 399 `distinct` at 0.9798, so they have no rows in the first four
-sections above All results and the confidence does not separate right from wrong answers.
+sections above All results and a threshold of 0.9 does not separate right from wrong answers; the
+Routing by confidence table gives the AUROC.
 
 The contrast rows are `generate.py --method contrast`, which shows both definitions in a pair and
 asks for at least half the messages to avoid the words of the class name; that rule made both
