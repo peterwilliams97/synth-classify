@@ -1,9 +1,31 @@
-"""confidence.py asks whether a classifier's score can route messages: answer the ones it is sure
-of, send the rest to a person. It reads two `score.py --dump` files of one classifier, dev and
-test, and takes the raw score of a message to be its top probability. Discrimination is measured
-on test with nothing fitted; calibration and the routing thresholds are fitted on dev alone and
-applied to test, so dev is the only labelled data the report fits on. It writes the report it
-prints to results/<set>/confidence/<name>.txt."""
+"""Selective-routing report for one classifier.
+
+Input: two `score.py --dump` jsonl files for the same classifier, one
+scored on dev and one on test. Each row has `text`, `label`, `pred`, and
+`prob`, the probability over the class set in CLASS_SETS order.
+
+Score of a message: max(prob).
+
+Computed:
+  AUROC of score against correctness, on test.
+  Isotonic regression of correctness on score, fitted on dev; test ECE
+  over ECE_BINS equal-count bins, before and after.
+  For each alpha in ALPHAS, two thresholds from dev:
+    tau     the lowest dev score at which the dev error among messages
+            scoring >= tau is <= alpha;
+    tau_cp  the same, with the dev error replaced by its one-sided
+            CP_LEVEL Clopper-Pearson upper bound.
+  For each threshold: coverage (share of messages scoring >= threshold)
+  and error among them, on dev and on test. At tau, test recall per true
+  class among accepted messages.
+
+Output: the report, printed and written to
+results/<set>/confidence/<model-name>.txt.
+
+Nothing is fitted on test. The dev rows are drawn from the Banking77
+train split, so a model trained on data/<set>/banking77_train.jsonl must
+not be run here.
+"""
 
 import argparse
 import json
@@ -24,8 +46,9 @@ CP_LEVEL = 0.90
 
 
 def read_dump(path, names):
-    """read_dump returns raw scores, correctness and true label indices from a `--dump` file whose
-    probability vectors are over `names`."""
+    """Reads a --dump file. Returns three arrays over its rows: score (max of prob), correct
+    (pred == label, as 0/1), label index in `names`. Exits if a prob vector is not over `names` or a
+    label is not in it."""
     with open(path) as f: rows = [json.loads(line) for line in f if line.strip()]
     if not rows: sys.exit(f"{path}: no rows")
     for r in rows:
@@ -38,9 +61,8 @@ def read_dump(path, names):
 
 
 def ece(conf, correct, raw):
-    """ece is the expected calibration error over `ECE_BINS` bins of equal count, messages ordered
-    by `conf` with ties broken by `raw`, so a plateau of the isotonic fit is split by the raw score
-    rather than by file order."""
+    """Expected calibration error of `conf` against `correct` over ECE_BINS equal-count bins. Rows
+    are ordered by `conf`, ties broken by `raw`."""
     order = np.lexsort((raw, conf))
     total = 0.0
     for b in np.array_split(order, ECE_BINS):
@@ -49,13 +71,15 @@ def ece(conf, correct, raw):
 
 
 def cp_upper(errors, n):
+    """One-sided CP_LEVEL Clopper-Pearson upper bound on an error rate of `errors` in `n`; 1.0 when
+    errors == n."""
     return 1.0 if errors == n else float(beta.ppf(CP_LEVEL, errors + 1, n - errors))
 
 
 def threshold(score, correct, alpha, bound):
-    """threshold is the lowest dev score `tau` at which the dev error among messages scoring at
-    least `tau` — or, with `bound`, its Clopper-Pearson upper bound — is at most `alpha`. It is
-    infinite when no dev score qualifies, which accepts nothing."""
+    """Lowest value in `score` at which the error of `correct` among rows with score >= that value
+    is <= `alpha`. With `bound`, the error is replaced by cp_upper of it. Returns inf if no value
+    qualifies."""
     for tau in np.unique(score):
         kept = score >= tau
         errors, n = int((1 - correct[kept]).sum()), int(kept.sum())
@@ -65,8 +89,8 @@ def threshold(score, correct, alpha, bound):
 
 
 def routed(score, correct, tau):
-    """routed returns the coverage of `tau` and the error among the messages it accepts, None when
-    it accepts none."""
+    """Coverage of `tau` (share of rows with score >= tau) and the error among those rows; the error
+    is None when no row qualifies."""
     kept = score >= tau
     return kept.mean(), (1 - correct[kept]).mean() if kept.any() else None
 
