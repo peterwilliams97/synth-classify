@@ -4,11 +4,12 @@ saved by train.py (`--model`: ModernBERT, TF-IDF or frozen embeddings), an Ollam
 of llm.py's `PROMPTS` (`--llm`, `--prompt`), or an mlx-lm model with llm.py's `MLX_PROMPT` and
 optionally a LoRA adapter trained by finetune.py (`--mlx`, `--adapter`; with `--reply logits`, no
 adapter and the class read off the letter logits of one forward pass), or the Laya decision model
-zero-shot with one of llm.py's `LAYA_PROMPTS` (`--laya`, `--prompt`). `--split test` is the
+zero-shot with one of llm.py's `LAYA_PROMPTS` (`--laya`, `--prompt`), or TypeSafe's System One API
+asked jev.py's question (`--jev`). `--split test` is the
 Banking77 test split; `--split dev` is `dev_and_shots`' sample of the train split, which is what
 prompts are chosen on. `--dump` also writes each message's probability over the class set, for
 confidence.py; it refuses `--llm` and `--mlx` without `--reply logits`, which give a class and no
-probabilities.
+probabilities. A `--jev` report also gives the input tokens per message and their price.
 
 It is the only file that reads Banking77, loaded from the `mteb/banking77` parquet copy (the
 original `PolyAI/banking77` is a dataset script, which `datasets` no longer runs). `--write-train`
@@ -26,6 +27,7 @@ from datasets import load_dataset
 from sklearn.metrics import accuracy_score, confusion_matrix, f1_score, recall_score
 
 from classes import CLASS_SETS
+from jev import DOLLARS_PER_MILLION_TOKENS, JEV_PROMPT, classify_jev
 from llm import (
     LAYA_MODEL,
     LAYA_PROMPTS,
@@ -45,19 +47,26 @@ HIGH_CONFIDENCE = 0.9
 
 
 def banking77(split, names):
+    """banking77 returns the texts, label indices in `names` and ids of the `split` rows whose class
+    is in `names`. An id is "<split>:<row index in the unrestricted split>"; Banking77 has none of
+    its own."""
     ds = load_dataset(DATASET, split=split)
-    rows = [(r["text"], r["label_text"]) for r in ds if r["label_text"] in names]
-    missing = set(names) - {label for _, label in rows}
+    rows = [(i, r["text"], r["label_text"]) for i, r in enumerate(ds) if r["label_text"] in names]
+    missing = set(names) - {label for _, _, label in rows}
     if missing:
         sys.exit(f"{DATASET} {split}: no rows for {sorted(missing)}")
-    return [t for t, _ in rows], [names.index(label) for _, label in rows]
+    return (
+        [t for _, t, _ in rows],
+        [names.index(label) for _, _, label in rows],
+        [f"{split}:{i}" for i, _, _ in rows],
+    )
 
 
 def dev_and_shots(names):
     """dev_and_shots draws, per class and with a fixed seed, `DEV_PER_CLASS` train rows as the dev
     split and the next `SHOTS_PER_CLASS` as that class's `fewshot` examples, so no example is a
-    dev row. Returns dev texts, dev labels and {class name: [example text]}."""
-    texts, labels = banking77("train", names)
+    dev row. Returns dev texts, dev labels, {class name: [example text]} and dev ids."""
+    texts, labels, ids = banking77("train", names)
     rng = random.Random(0)
     dev, shots = [], {}
     for i, name in enumerate(names):
@@ -65,7 +74,7 @@ def dev_and_shots(names):
         rng.shuffle(rows)
         dev += rows[:DEV_PER_CLASS]
         shots[name] = [texts[j] for j in rows[DEV_PER_CLASS : DEV_PER_CLASS + SHOTS_PER_CLASS]]
-    return [texts[j] for j in dev], [labels[j] for j in dev], shots
+    return [texts[j] for j in dev], [labels[j] for j in dev], shots, [ids[j] for j in dev]
 
 
 def predict(model_dir, texts, names):
@@ -137,11 +146,13 @@ def predict(model_dir, texts, names):
     return preds, probs, seconds
 
 
-def report(classifier, split, gold, preds, seconds, names, invalid=None, probs=None):
+def report(classifier, split, gold, preds, seconds, names, invalid=None, probs=None, tokens=None):
     """report formats the scores. `invalid` is the number of `preds` that are -1, an mlx-lm reply
     that is no class name, or None for a classifier that cannot give one; the line is printed only
     for the former. `probs` is the probability a Laya or `--reply logits` answer gave its choice,
-    one per message, and adds the accuracy on the messages where it is above `HIGH_CONFIDENCE`."""
+    one per message, and adds the accuracy on the messages where it is above `HIGH_CONFIDENCE`.
+    `tokens` is a `--jev` request's billed input tokens, one per message, and adds their mean and
+    price."""
     ids = range(len(names))
     width = max(len(name) for name in names)
     recalls = recall_score(gold, preds, labels=ids, average=None)
@@ -152,6 +163,14 @@ def report(classifier, split, gold, preds, seconds, names, invalid=None, probs=N
         f"macro F1  {f1_score(gold, preds, labels=ids, average='macro'):.4f}",
         f"seconds   {statistics.median(seconds):.3g} (median per message, one message per call)",
     ]
+    if tokens is not None:
+        mean = statistics.mean(tokens)
+        lines.append(f"tokens    {mean:.1f} (mean billed input tokens per message)")
+        lines.append(
+            f"dollars   {mean * DOLLARS_PER_MILLION_TOKENS:.2f} per million messages "
+            f"({sum(tokens) * DOLLARS_PER_MILLION_TOKENS / 1e6:.6f} for these "
+            f"{len(tokens)}, at ${DOLLARS_PER_MILLION_TOKENS} per million input tokens)"
+        )
     if invalid is not None:
         lines.append(f"invalid   {invalid} (replies that are not a class name; counted as wrong)")
     if probs is not None:
@@ -179,6 +198,7 @@ def main():
     ap.add_argument("--model", help="directory written by train.py")
     ap.add_argument("--llm", metavar="MODEL", help="Ollama model to score in place of --model")
     ap.add_argument("--laya", action="store_true", help="score the Laya decision model zero-shot")
+    ap.add_argument("--jev", action="store_true", help="score TypeSafe System One, jev.py")
     ap.add_argument("--prompt", choices=list(PROMPTS), help="required with --llm and --laya")
     ap.add_argument("--mlx", metavar="MODEL", help=f"mlx-lm model to score, {MLX_PROMPT} prompt")
     ap.add_argument("--adapter", metavar="DIR", help="LoRA adapter from finetune.py, with --mlx")
@@ -198,16 +218,16 @@ def main():
     names = list(CLASS_SETS[args.set])
 
     if args.write_train:
-        texts, labels = banking77("train", names)
+        texts, labels, _ = banking77("train", names)
         os.makedirs(os.path.dirname(args.write_train) or ".", exist_ok=True)
         with open(args.write_train, "w") as f:
             for text, label in zip(texts, labels):
                 f.write(json.dumps({"text": text, "label": names[label]}) + "\n")
         print(f"wrote {len(texts)} rows to {args.write_train}", file=sys.stderr)
-    if bool(args.model) + bool(args.llm) + bool(args.mlx) + args.laya != 1:
-        if args.write_train and not args.model and not args.llm and not args.mlx and not args.laya:
+    if bool(args.model) + bool(args.llm) + bool(args.mlx) + args.laya + args.jev != 1:
+        if args.write_train and not (args.model or args.llm or args.mlx or args.laya or args.jev):
             return
-        ap.error("give exactly one of --model, --llm, --mlx and --laya, or --write-train alone")
+        ap.error("give exactly one of --model, --llm, --mlx, --laya and --jev, or --write-train alone")
     if bool(args.llm or args.laya) != bool(args.prompt):
         ap.error("--prompt goes with --llm or --laya, and they need it")
     if args.laya and args.prompt not in LAYA_PROMPTS:
@@ -217,20 +237,30 @@ def main():
     if args.reply == "logits" and (not args.mlx or args.adapter):
         ap.error("--reply logits needs --mlx and takes no --adapter")
     if args.dump and (args.llm or (args.mlx and args.reply != "logits")):
-        ap.error("--dump needs probabilities: --model, --laya or --mlx --reply logits")
+        ap.error("--dump needs probabilities: --model, --laya, --jev or --mlx --reply logits")
 
     shots = None
     if args.split == "dev":
-        texts, gold, shots = dev_and_shots(names)
+        texts, gold, shots, ids = dev_and_shots(names)
     else:
-        texts, gold = banking77("test", names)
+        texts, gold, ids = banking77("test", names)
         if args.prompt == "fewshot":
-            _, _, shots = dev_and_shots(names)
+            _, _, shots, _ = dev_and_shots(names)
 
     # `vectors` is each message's probabilities over `names`, from the classifiers that have them;
     # `probs` is the top one of each, which only the Laya and `--reply logits` reports print.
-    invalid = probs = vectors = None
-    if args.laya:
+    invalid = probs = vectors = tokens = None
+    if args.jev:
+        answers = classify_jev(texts, ids, args.set)
+        answered = sorted({m for *_, m in answers})
+        classifier = f"TypeSafe System One {' '.join(answered)} prompt {JEV_PROMPT}"
+        stem = f"jev-{JEV_PROMPT}"
+        preds = [names.index(label) for label, *_ in answers]
+        vectors = [v for _, v, *_ in answers]
+        probs = [v[p] for v, p in zip(vectors, preds)]
+        seconds = [s for _, _, s, _, _ in answers]
+        tokens = [t for *_, t, _ in answers]
+    elif args.laya:
         classifier = f"{LAYA_MODEL} prompt {args.prompt}"
         stem = f"laya-{args.prompt}"
         answers = classify_laya(texts, args.set, args.prompt)
@@ -267,7 +297,7 @@ def main():
         stem = os.path.basename(os.path.normpath(args.model))
         preds, vectors, seconds = predict(args.model, texts, names)
 
-    text = report(classifier, args.split, gold, preds, seconds, names, invalid, probs)
+    text = report(classifier, args.split, gold, preds, seconds, names, invalid, probs, tokens)
     sys.stdout.write(text)
     out = os.path.join("results", args.set, args.split, stem + ".txt")
     os.makedirs(os.path.dirname(out), exist_ok=True)

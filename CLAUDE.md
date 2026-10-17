@@ -13,10 +13,11 @@ README tables; its `data/pair/synthetic.jsonl` is written by `results/pair/filte
 `data/confusable/synthetic.jsonl`. Local Ollama models
 prompted with the class list (`llm.py`) are scored beside the trained ones, and so is an mlx-lm copy
 of Gemma 4 E4B with and without a LoRA adapter (`finetune.py`), the `convaiinnovations/laya`
-decision model zero-shot (`score.py --laya`), and logistic regression on frozen
+decision model zero-shot (`score.py --laya`), TypeSafe's System One API (`jev.py`,
+`score.py --jev`), and logistic regression on frozen
 `dmis-lab/UltraBERT-Embed-150M` embeddings (`train.py --embed`). `confidence.py` asks whether a
 classifier's top probability can route messages, from `score.py --dump` files of dev and test,
-for question 1 under the README's Results. Seven scripts, and a `README.md` that
+for question 1 under the README's Results. Eight scripts, and a `README.md` that
 states the aim as questions, answers each in a subsection of Results, and keeps the three full
 tables (test, dev, training minutes) under All results. All Python
 — the repository layout, file header and `test.sh` rules in `~/CLAUDE.md` do not apply here; its
@@ -39,6 +40,7 @@ S=distinct   # or confusable; every script takes --set, default distinct
 .venv/bin/python finetune.py --set $S --train data/$S/synthetic.jsonl --out models/$S/gemma-4-e4b-lora-synthetic
 .venv/bin/python score.py --set $S --mlx mlx-community/gemma-4-e4b-it-4bit --adapter models/$S/gemma-4-e4b-lora-synthetic
 .venv/bin/python score.py --set $S --split dev --laya --prompt names   # ~10 s; not in the sandbox
+.venv/bin/python score.py --set $S --split dev --jev --dump results/$S/confidence/dumps/jev-definitions-dev.jsonl   # needs TYPESAFE_API_KEY
 D=results/$S/confidence/dumps
 .venv/bin/python score.py --set $S --split dev --model models/$S/tfidf-diagnosed --dump $D/tfidf-diagnosed-dev.jsonl
 .venv/bin/python score.py --set $S --model models/$S/tfidf-diagnosed --dump $D/tfidf-diagnosed-test.jsonl
@@ -47,7 +49,7 @@ D=results/$S/confidence/dumps
 
 `confidence.py` writes `results/$S/confidence/<name>.txt`; the dumps under
 `results/confusable/confidence/dumps/` are tracked, as the inputs those reports were computed from.
-`--dump` takes `--model`, `--laya` and `--mlx --reply logits`, the classifiers that give a
+`--dump` takes `--model`, `--laya`, `--jev` and `--mlx --reply logits`, the classifiers that give a
 probability over the class set, and refuses `--llm` and `--mlx` without `--reply logits`.
 
 Adding `--no-prompt` to the `--embed` line, with `--out models/$S/ultrabert-embed-noprompt-synthetic`,
@@ -57,8 +59,8 @@ gives the model without the instruction prefix. The same `train.py` lines with
 `<name>` is the model directory name, or for `--llm` the Ollama model with `:` replaced by `-`, then
 `-<prompt>`, or for `--mlx` the adapter directory name, and without `--adapter` the last component
 of the mlx-lm model then `-definitions`, and `-definitions-logits` with `--reply logits`, which takes no
-`--adapter`, or for `--laya` `laya-<prompt>`. `train.py` and `finetune.py` write the minutes a run took,
-or the seconds if under a minute, to `results/$S/train/<name>.txt`, `<name>` being the `--out`
+`--adapter`, or for `--laya` `laya-<prompt>`, or for `--jev` `jev-definitions`. `train.py` and
+`finetune.py` write the minutes a run took, or the seconds if under a minute, to `results/$S/train/<name>.txt`, `<name>` being the `--out`
 directory name. A ModernBERT fine-tune is 1.6 to 2.0 minutes on MPS, a LoRA adapter 8 to 18; the
 TF-IDF model is under a second, an `--embed` model about 6 seconds. An LLM run is one
 Ollama request per message: about 0.5 s each for `gemma4:e4b` and 1.5–2.5 s for
@@ -130,9 +132,15 @@ in `refs/main`, which is the layout `HF_HUB_OFFLINE=1` loads from.
   `confusable` ones; no `names` option is cut. On dev the raised budgets gave 0.760 against 0.625 on
   `distinct` `definitions` and 0.295 against 0.530 on `confusable` `definitions`, from a scratch run
   that wrote no report file.
+- **A `--jev` report is computed from results/jev/<set>.jsonl.** `classify_jev` (`jev.py`) caches
+  each System One response there under the message id `banking77` in `score.py` assigns,
+  `<split>:<row index>`, with the seconds the request took; a cached row is reused while
+  `TYPESAFE_MODEL` and the question are unchanged, so a re-run sends nothing and reproduces the
+  report, `seconds` included. The question is `laya_question` with `definitions`, Laya's.
+  `DOLLARS_PER_MILLION_TOKENS` (`jev.py`) prices billed input tokens on the report's `dollars` line.
 - **dev is drawn from the train split, so `--split dev --model` is valid only for a model trained
   on a synthetic file.** A model trained on `data/<set>/banking77_train.jsonl` saw the dev rows;
-  `--split dev --model` runs on it, and the number means nothing. `--llm`, `--laya` and models
+  `--split dev --model` runs on it, and the number means nothing. `--llm`, `--laya`, `--jev` and models
   trained on `data/<set>/synthetic*.jsonl` saw none of them. The same holds for `confidence.py`,
   which fits its isotonic calibration and its routing thresholds on the dev dump: for a
   real-trained model they would be fitted on rows it was trained on, so it is not run on one.
