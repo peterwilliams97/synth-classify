@@ -26,10 +26,8 @@ CP_LEVEL = 0.90
 def read_dump(path, names):
     """read_dump returns raw scores, correctness and true label indices from a `--dump` file whose
     probability vectors are over `names`."""
-    with open(path) as f:
-        rows = [json.loads(line) for line in f if line.strip()]
-    if not rows:
-        sys.exit(f"{path}: no rows")
+    with open(path) as f: rows = [json.loads(line) for line in f if line.strip()]
+    if not rows: sys.exit(f"{path}: no rows")
     for r in rows:
         if len(r["prob"]) != len(names) or r["label"] not in names:
             sys.exit(f"{path}: row not over the {len(names)} classes of this set: {r['text']!r}")
@@ -116,7 +114,7 @@ def main():
         " bound",
     ]
     for alpha in ALPHAS:
-        tau = threshold(dev_s, dev_c, alpha, bound=False)
+        tau    = threshold(dev_s, dev_c, alpha, bound=False)
         tau_cp = threshold(dev_s, dev_c, alpha, bound=True)
         lines.append(f"  alpha {alpha:.2f}")
         for label, t in [("tau   ", tau), ("tau_cp", tau_cp)]:
