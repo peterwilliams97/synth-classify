@@ -691,8 +691,7 @@ python score.py --set confusable --split dev --mlx $M --reply logits --dump $D/g
 python score.py --set confusable             --mlx $M --reply logits --dump $D/gemma-4-e4b-it-4bit-definitions-logits-test.jsonl
 python score.py --set confusable --split dev --laya --prompt names --dump $D/laya-names-dev.jsonl
 python score.py --set confusable             --laya --prompt names --dump $D/laya-names-test.jsonl
-export TYPESAFE_BASE_URL=https://openrouter.ai/api TYPESAFE_MODEL=typesafe/jev-1.13   # and TYPESAFE_API_KEY
-python score.py --set confusable --split dev --jev --dump $D/jev-definitions-dev.jsonl
+python score.py --set confusable --split dev --jev --dump $D/jev-definitions-dev.jsonl   # needs TYPESAFE_API_KEY
 python score.py --set confusable             --jev --dump $D/jev-definitions-test.jsonl
 for d in $D/*-dev.jsonl; do
   n=$(basename $d -dev.jsonl)

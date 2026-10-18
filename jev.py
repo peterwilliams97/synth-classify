@@ -6,8 +6,8 @@ passes the messages and their ids in.
 
 Every response is cached in results/jev/<set>.jsonl under the message's id, so dev and test are
 each sent once and a re-run of score.py reproduces its report, `seconds` line included, from the
-cache. The key comes from `TYPESAFE_API_KEY`, the base URL from `TYPESAFE_BASE_URL` and the model
-from `TYPESAFE_MODEL`."""
+cache. The key comes from `TYPESAFE_API_KEY`. `TYPESAFE_BASE_URL` and `TYPESAFE_MODEL` override
+`BASE_URL` and `MODEL`."""
 
 import json
 import os
@@ -19,8 +19,9 @@ import urllib.request
 from classes import CLASS_SETS
 from llm import laya_question
 
-BASE_URL = "https://api.typesafe.ai"
-MODEL = "jev-latest"
+# System One through OpenRouter: every row of results/jev/confusable.jsonl was asked of these.
+BASE_URL = "https://openrouter.ai/api"
+MODEL = "typesafe/jev-1.13"
 # The `PROMPTS` key of the question asked; the report name is jev-<this>.
 JEV_PROMPT = "definitions"
 # Input tokens are billed at this rate; output tokens are free.
@@ -45,7 +46,7 @@ def classify_jev(texts, ids, class_set):
     each of `texts`: the option System One chose, every option's probability as a list in
     `CLASS_SETS` order, the wall time of that message's request, its billed input tokens and the
     model that answered. `ids` names each message in the cache. A cached row is used when it was
-    asked of the same `TYPESAFE_MODEL` and the same question; otherwise the message is sent and the
+    asked of the same model and the same question; otherwise the message is sent and the
     response appended to the cache."""
     key = os.environ.get("TYPESAFE_API_KEY")
     if not key:
