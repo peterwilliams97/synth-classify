@@ -118,9 +118,8 @@ is given, and is "—" for a classifier given none.
 **Routing.** Routing keeps a classifier's label when the classifier's top probability is at least a
 threshold. A message below the threshold goes to a person. The threshold is the lowest validation
 probability at which the one-sided 90% Clopper-Pearson upper bound on the error among validation
-messages above it is at most the target, 5%. Coverage and error are then measured on test. The
-tables also give a plain threshold, set on the validation error itself. Only a classifier that gives
-a probability for each category can be routed.
+messages above it is at most the target, 5%. Coverage and error are then measured on test. Only a
+classifier that gives a probability for each category can be routed.
 
 **Uncertainty.** Every row is one run with seed 0. The binomial standard error of an accuracy p
 on n messages is √(p(1−p)/n). On the 400 `confusable` test messages it is 0.012 to 0.020, which is
@@ -142,30 +141,32 @@ one draw of 200: on the validation-size table under question 3, TypeSafe System 
 30 examples against 400 to 1084 training rows, at $54 per million messages and 0.53 s a message
 against free and 0.01 s.
 
-In the table, α is the error target. AUROC is the chance that a randomly chosen right answer gets a
-higher top probability than a randomly chosen wrong one. ECE is the mean gap between the top
-probability and the observed accuracy, over 10 bins of 40 messages. Isotonic calibration is a
-monotone mapping of the top probability onto accuracy, fitted on validation. The bound is the
-one-sided 90% Clopper-Pearson upper bound on the validation error: the highest error rate that the
-validation count does not rule out at 90% confidence. The plain threshold uses the validation error
-itself.
+AUROC is the chance that a randomly chosen right answer gets a higher top probability than a
+randomly chosen wrong one. ECE is the mean gap between the top probability and the observed
+accuracy, over 10 bins of 40 messages. Isotonic calibration is a monotone mapping of the top
+probability onto accuracy, fitted on validation. The bound is the one-sided 90% Clopper-Pearson
+upper bound on the validation error: the highest error rate that the validation count does not rule
+out at 90% confidence.
 
-| Classifier                       | Trained on                                         | Prompt        | AUROC  | ECE after isotonic calibration | Test coverage at α 0.05 | Test error at α 0.05 | Test coverage under the bound at α 0.05 | Test error under the bound at α 0.05 |
-|----------------------------------|----------------------------------------------------|---------------|--------|--------------------------------|-------------------------|----------------------|-----------------------------------------|--------------------------------------|
-| TF-IDF + logistic regression     | 1000 LLM-written, steered by 200 validation counts | —             | 0.7855 | 0.0319                         | 0.2375                  | 0.0526               | 0.0000                                  | —                                    |
-| ModernBERT-base                  | 1000 LLM-written, steered by 200 validation counts | —             | 0.8394 | 0.0564                         | 0.1575                  | 0.0159               | 0.0000                                  | —                                    |
-| UltraBERT-Embed-150M + LR        | 1000 LLM-written                                   | —             | 0.8405 | 0.0495                         | 0.1825                  | 0.0274               | 0.0000                                  | —                                    |
-| UltraBERT-Embed-150M + LR        | 1000 LLM-written, steered by 200 validation counts | —             | 0.7794 | 0.0333                         | 0.4025                  | 0.0373               | 0.0000                                  | —                                    |
-| UltraBERT-Embed-150M + LR        | 1084 Banking77 train                               | —             | 0.8641 | 0.0240                         | 0.9900                  | 0.0404               | 0.8600                                  | 0.0262                               |
-| Gemma 4 E4B (MLX), letter logits | not trained                                        | `definitions` | 0.7770 | 0.0608                         | 0.0375                  | 0.0000               | 0.0000                                  | —                                    |
-| Gemma 4 E4B (MLX), letter logits | not trained                                        | `fewshot`     | 0.7941 | 0.0463                         | 0.2625                  | 0.0381               | 0.0000                                  | —                                    |
-| Laya                             | not trained                                        | `names`       | 0.6753 | 0.0705                         | 0.0000                  | —                    | 0.0000                                  | —                                    |
-| TypeSafe System One              | not trained                                        | `definitions` | 0.7867 | 0.0534                         | 0.0000                  | —                    | 0.0000                                  | —                                    |
-| TypeSafe System One              | not trained                                        | `fewshot`     | 0.8214 | 0.0452                         | 0.8850                  | 0.0311               | 0.0000                                  | —                                    |
+| Classifier                       | Trained on                                         | Prompt        | AUROC  | ECE after isotonic calibration | Test coverage under the bound at α 0.02 | Test error under the bound at α 0.02 | Test coverage under the bound at α 0.05 | Test error under the bound at α 0.05 | Test coverage under the bound at α 0.10 | Test error under the bound at α 0.10 |
+|----------------------------------|----------------------------------------------------|---------------|--------|--------------------------------|-----------------------------------------|--------------------------------------|-----------------------------------------|--------------------------------------|-----------------------------------------|--------------------------------------|
+| TF-IDF + logistic regression     | 1000 LLM-written, steered by 200 validation counts | —             | 0.7855 | 0.0319                         | 0.0000                                  | —                                    | 0.0000                                  | —                                    | 0.0000                                  | —                                    |
+| ModernBERT-base                  | 1000 LLM-written, steered by 200 validation counts | —             | 0.8394 | 0.0564                         | 0.0000                                  | —                                    | 0.0000                                  | —                                    | 0.0000                                  | —                                    |
+| UltraBERT-Embed-150M + LR        | 1000 LLM-written                                   | —             | 0.8405 | 0.0495                         | 0.0000                                  | —                                    | 0.0000                                  | —                                    | 0.1550                                  | 0.0323                               |
+| UltraBERT-Embed-150M + LR        | 1000 LLM-written, steered by 200 validation counts | —             | 0.7794 | 0.0333                         | 0.0000                                  | —                                    | 0.0000                                  | —                                    | 0.7175                                  | 0.0383                               |
+| UltraBERT-Embed-150M + LR        | 1084 Banking77 train                               | —             | 0.8641 | 0.0240                         | 0.0000                                  | —                                    | 0.8600                                  | 0.0262                               | 1.0000                                  | 0.0475                               |
+| Gemma 4 E4B (MLX), letter logits | not trained                                        | `definitions` | 0.7770 | 0.0608                         | 0.0000                                  | —                                    | 0.0000                                  | —                                    | 0.0000                                  | —                                    |
+| Gemma 4 E4B (MLX), letter logits | not trained                                        | `fewshot`     | 0.7941 | 0.0463                         | 0.0000                                  | —                                    | 0.0000                                  | —                                    | 0.0000                                  | —                                    |
+| Laya                             | not trained                                        | `names`       | 0.6753 | 0.0705                         | 0.0000                                  | —                                    | 0.0000                                  | —                                    | 0.0000                                  | —                                    |
+| TypeSafe System One              | not trained                                        | `definitions` | 0.7867 | 0.0534                         | 0.0000                                  | —                                    | 0.0000                                  | —                                    | 0.8050                                  | 0.0404                               |
+| TypeSafe System One              | not trained                                        | `fewshot`     | 0.8214 | 0.0452                         | 0.0000                                  | —                                    | 0.0000                                  | —                                    | 0.9500                                  | 0.0421                               |
 
-The plain threshold is not quoted outside the tables, because it does not hold its target: in the
-36 validation-size runs under question 3 its test error is over 5% in 12, against 1 of the 28 runs
-in which the bound keeps any message.
+α is the error a buyer accepts among messages labelled without a person; 0.05 is the one this repo
+quotes.
+
+The plain threshold, set on the validation error itself, is not quoted, because it does not hold its
+target: in the 36 validation-size runs under question 3 its test error is over 5% in 12, against 1
+of the 28 runs in which the bound keeps any message (`results/confusable/confidence/`).
 
 Three kinds of classifier are not in the table. The Ollama models return a category name and no
 probability, so they cannot be routed. A classifier trained on train + validation cannot be routed
@@ -262,24 +263,23 @@ diagnosed set. They also set the routing threshold of question 1. So 200 hand la
 With 0 hand labels no classifier can be routed, because the threshold is set on labelled validation
 messages.
 
-The label curve trains UltraBERT-Embed-150M + logistic regression on stratified subsets of train:
-5, 10, 20, 40 and 80 messages per class, each subset inside the next one drawn
-with the same seed. 50, 100, 200 and 400 are drawn with seeds 0, 1 and 2, and each cell gives the
-mean over the three draws, then the min–max; the error column gives the min–max only. 800 is drawn
-with seed 0 alone, and 1084 is the whole set, so those two rows are single runs. The 200
-validation labels set every threshold, on top of the training rows. `getting_virtual_card` and
-`get_disposable_virtual_card` have 78 and 77 rows in train, so the 800 subset holds 795. Coverage
-and error are on the 400 test messages at α 0.05; the last column is the coverage under the
-Clopper-Pearson bound of question 1.
+The label curve trains UltraBERT-Embed-150M + logistic regression on stratified subsets of train: 5,
+10, 20, 40 and 80 messages per class, each subset inside the next one drawn with the same seed. 50,
+100, 200 and 400 are drawn with seeds 0, 1 and 2, and each cell gives the mean over the three draws,
+then the min–max. 800 is drawn with seed 0 alone, and 1084 is the whole set, so those two rows are
+single runs. The 200 validation labels set every threshold, on top of the training rows.
+`getting_virtual_card` and `get_disposable_virtual_card` have 78 and 77 rows in train, so the 800
+subset holds 795. The last column is the coverage on the 400 test messages under the Clopper-Pearson
+bound of question 1 at α 0.05.
 
-| Training rows | Draws | Accuracy               | Test coverage at α 0.05 | Test error at α 0.05 | Test coverage under the Clopper-Pearson bound at α 0.05 |
-|---------------|-------|------------------------|-------------------------|----------------------|----------------------------------------------------------|
-| 50            | 3     | 0.8692 (0.8350–0.8900) | 0.3925 (0.2200–0.7250)  | 0.0215–0.0448        | 0.0000 (0.0000–0.0000) |
-| 100           | 3     | 0.9192 (0.9075–0.9250) | 0.8558 (0.8075–0.9250)  | 0.0372–0.0541        | 0.1125 (0.0000–0.3375) |
-| 200           | 3     | 0.9275 (0.9200–0.9400) | 0.8175 (0.6675–0.9225)  | 0.0225–0.0435        | 0.5150 (0.0000–0.7975) |
-| 400           | 3     | 0.9317 (0.9250–0.9375) | 0.7758 (0.4775–0.9325)  | 0.0157–0.0509        | 0.4508 (0.0000–0.6800) |
-| 800 (795)     | 1     | 0.9475                 | 0.9400                  | 0.0293               | 0.8775 |
-| 1084          | 1     | 0.9525                 | 0.9900                  | 0.0404               | 0.8600 |
+| Training rows | Draws | Accuracy               | Test coverage under the Clopper-Pearson bound at α 0.05 |
+|---------------|-------|------------------------|----------------------------------------------------------|
+| 50            | 3     | 0.8692 (0.8350–0.8900) | 0.0000 (0.0000–0.0000) |
+| 100           | 3     | 0.9192 (0.9075–0.9250) | 0.1125 (0.0000–0.3375) |
+| 200           | 3     | 0.9275 (0.9200–0.9400) | 0.5150 (0.0000–0.7975) |
+| 400           | 3     | 0.9317 (0.9250–0.9375) | 0.4508 (0.0000–0.6800) |
+| 800 (795)     | 1     | 0.9475                 | 0.8775 |
+| 1084          | 1     | 0.9525                 | 0.8600 |
 
 Mean accuracy rises with the training rows, from 0.8692 at 50 to 0.9317 at 400. Coverage under the
 bound does not rise with every step, 0.5150 at 200 and 0.4508 at 400, and it varies more between
@@ -294,16 +294,16 @@ The rest holds 38 `getting_virtual_card` and 37 `get_disposable_virtual_card` ro
 395. Each cell is the mean over the 9 runs, then the min–max, all on the 400 test messages. Error
 under the bound is over the runs that keep any test message, counted in brackets.
 
-| Validation rows | Test coverage at α 0.05 | Test error at α 0.05   | Test coverage under the Clopper-Pearson bound | Test error under the Clopper-Pearson bound |
-|-----------------|-------------------------|------------------------|-----------------------------------------------|--------------------------------------------|
-| **UltraBERT-Embed-150M + LR, 400-row models, 9 runs per N** | | | | |
-| 100             | 0.8906 (0.7200–1.0000)  | 0.0396 (0.0174–0.0750) | 0.3342 (0.0000–0.9750)                        | 0.0261 (0.0113–0.0641), 4 runs             |
-| 200             | 0.9486 (0.8100–0.9975)  | 0.0542 (0.0309–0.0641) | 0.7142 (0.0000–0.9450)                        | 0.0246 (0.0137–0.0450), 8 runs             |
-| 400 (395)       | 0.9500 (0.8675–1.0000)  | 0.0518 (0.0375–0.0662) | 0.8500 (0.7200–0.9300)                        | 0.0300 (0.0168–0.0490), 9 runs             |
-| **TypeSafe System One, `fewshot`, 3 runs per N** | | | | |
-| 100             | 0.8267 (0.6325–0.9575)  | 0.0299 (0.0119–0.0470) | 0.2825 (0.0000–0.8475)                        | 0.0265, 1 run                              |
-| 200             | 0.9183 (0.8300–0.9650)  | 0.0401 (0.0241–0.0492) | 0.8025 (0.6325–0.9350)                        | 0.0263 (0.0119–0.0401), 3 runs             |
-| 400 (394)       | 0.9308 (0.8850–0.9575)  | 0.0401 (0.0311–0.0470) | 0.8658 (0.8400–0.9100)                        | 0.0297 (0.0265–0.0357), 3 runs             |
+| Validation rows | Test coverage under the Clopper-Pearson bound | Test error under the Clopper-Pearson bound |
+|-----------------|-----------------------------------------------|--------------------------------------------|
+| **UltraBERT-Embed-150M + LR, 400-row models, 9 runs per N** | | |
+| 100             | 0.3342 (0.0000–0.9750)                        | 0.0261 (0.0113–0.0641), 4 runs             |
+| 200             | 0.7142 (0.0000–0.9450)                        | 0.0246 (0.0137–0.0450), 8 runs             |
+| 400 (395)       | 0.8500 (0.7200–0.9300)                        | 0.0300 (0.0168–0.0490), 9 runs             |
+| **TypeSafe System One, `fewshot`, 3 runs per N** | | |
+| 100             | 0.2825 (0.0000–0.8475)                        | 0.0265, 1 run                              |
+| 200             | 0.8025 (0.6325–0.9350)                        | 0.0263 (0.0119–0.0401), 3 runs             |
+| 400 (394)       | 0.8658 (0.8400–0.9100)                        | 0.0297 (0.0265–0.0357), 3 runs             |
 
 More validation rows raise the coverage under the bound, from 0.3342 at 100 to 0.8500 at 395, and
 narrow its range. At 100 validation rows the bound keeps nothing in 5 of 9
