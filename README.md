@@ -1,6 +1,6 @@
 # synth-classify
 
-I wanted to know three things about a text classifier that runs on a laptop:
+I wanted to know three things about a text classifier for customer messages:
 
 1. How much of the work can it do without a person checking?
 2. How accurate is it?
@@ -9,15 +9,21 @@ I wanted to know three things about a text classifier that runs on a laptop:
 This repo answers them on [Banking77](https://huggingface.co/datasets/mteb/banking77), a public set
 of customer messages to a bank, sorted into 10 categories. Five of the categories come in pairs that
 are hard to tell apart ("how do I verify my identity" and "why must I verify my identity"), and
-those pairs are where the methods differ.
+those pairs are where the methods differ. Every classifier tried runs on a laptop except one,
+TypeSafe System One, an API billed per message.
 
 The short answers, on the 400 Banking77 test messages of the `confusable` class set:
 
-1. UltraBERT-Embed-150M + logistic regression, trained on the diagnosed set, handles 40% of
-   messages with no human check at under 5% error. Nothing else passes 24%.
-2. The same model trained on 1284 real messages: 96%. `gemma4:e4b` with the category definitions
-   and no labels: 91%.
-3. 0 labels gets 91% accuracy and no safe automation; 200 gets the 40% above; 1284 gets 96%.
+1. TypeSafe System One, with 30 real messages as examples in its question (`fewshot`), handles
+   88% of messages with no human check at 3.1% error. The best that runs on the laptop,
+   UltraBERT-Embed-150M + logistic regression trained on the diagnosed set, handles 40% at under
+   5% error. No other classifier that runs on the laptop passes 24%.
+2. UltraBERT-Embed-150M + logistic regression trained on 1284 real messages: 96%. TypeSafe System
+   One with 30 real messages as examples: 94.5%. `gemma4:e4b` with the category definitions and
+   no labels: 91%.
+3. 0 labels gets 91% accuracy and no safe automation; 30, as examples in System One's question,
+   gets 94.5%, and with the 200 dev labels that set the threshold the 88% above; 200 gets the 40%
+   above on the laptop; 1284 gets 96%.
 
 ## Aim
 
