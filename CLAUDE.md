@@ -152,7 +152,8 @@ in `refs/main`, which is the layout `HF_HUB_OFFLINE=1` loads from.
   real-trained model they would be fitted on rows it was trained on, so it is not run on one.
   `--split rest --train-file F` is the exception that keeps this: the rows of
   `banking77_train_nodev.jsonl` not in `F`, valid for a model trained on `F` alone and for
-  `--jev`, which with `--prompt fewshot` also leaves out the `fewshot` examples, and
+  `--jev` and `--mlx --reply logits`, which with `--prompt fewshot` also leave out the `fewshot`
+  examples, and
   `confidence.py --dev-size` draws its dev from that dump for the dev-size table under question 3 in `docs/details.md`.
 - **Seconds per message are one message per call**, in `predict` (`score.py`) as in `classify`
   (`llm.py`), so the two are comparable. Time them with nothing else on the GPU: Ollama and MPS

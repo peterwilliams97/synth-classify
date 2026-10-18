@@ -9,9 +9,9 @@ zero-shot with one of llm.py's `LAYA_PROMPTS` (`--laya`, `--prompt`), or TypeSaf
 asked jev.py's question (`--jev`, `--prompt`, default `definitions`). `--split test` is the
 Banking77 test split; `--split dev` is `dev_and_shots`' sample of the train split, which is what
 prompts are chosen on; `--split rest` is the rows of data/<set>/banking77_train_nodev.jsonl that
-are not in `--train-file`, for a `--model` trained on a subset of that file, or for `--jev`, which
-was trained on none of it; with `--prompt fewshot` the rows that are `fewshot` examples are left
-out. `--dump` also writes each message's probability over the class set, for
+are not in `--train-file`, for a `--model` trained on a subset of that file, or for `--jev` or
+`--mlx --reply logits`, which were trained on none of it; with `--prompt fewshot` the rows that are
+`fewshot` examples are left out. `--dump` also writes each message's probability over the class set, for
 confidence.py; it refuses `--llm` and `--mlx` without `--reply logits`, which give a class and no
 probabilities. A `--jev` report also gives the input tokens per message and their price.
 
@@ -283,8 +283,8 @@ def main():
         ap.error("--dump needs probabilities: --model, --laya, --jev or --mlx --reply logits")
     if (args.split == "rest") != bool(args.train_file):
         ap.error("--split rest and --train-file go together")
-    if args.split == "rest" and not (args.model or args.jev):
-        ap.error("--split rest scores a --model or --jev only")
+    if args.split == "rest" and not (args.model or args.jev or logits):
+        ap.error("--split rest scores a --model, --jev or --mlx --reply logits only")
 
     shots = None
     if args.split == "dev":
