@@ -1,0 +1,55 @@
+model     d3-flash-fewshot-dev400-ds1
+dev       results/confusable/confidence/dumps/d3-flash-fewshot-rest.jsonl (394 of 669 rows, drawn with seed 1, accuracy 0.9467)
+test      results/confusable/confidence/dumps/d3-flash-fewshot-test.jsonl (400 rows, accuracy 0.9500)
+score     top probability of each message
+discrimination on test, nothing fitted
+  AUROC of score against correctness  0.8695
+  mean score, right predictions       0.9297 (380)
+  mean score, wrong predictions       0.7274 (20)
+calibration: isotonic regression of correctness on score, fitted on dev
+  test ECE, 10 equal-count bins  before 0.0320  after 0.0103
+routing: accept a message when its score is at least tau, chosen on dev
+  tau     lowest dev score whose accepted dev error is at most alpha
+  tau_cp  the same with the dev error's one-sided 90% Clopper-Pearson upper bound
+  alpha 0.02
+    tau    0.864849  dev coverage 0.7944 error 0.0192  test coverage 0.8075 error 0.0155
+    tau_cp 0.905037  dev coverage 0.7234 error 0.0070  test coverage 0.7300 error 0.0137
+    test recall among accepted at tau, per true class (accepted of total)
+      card_arrival                            0.9412 (34 of 40)
+      card_delivery_estimate                  0.9643 (28 of 40)
+      declined_transfer                       0.9722 (36 of 40)
+      failed_transfer                         1.0000 (19 of 40)
+      card_payment_wrong_exchange_rate        1.0000 (32 of 40)
+      wrong_exchange_rate_for_cash_withdrawal 1.0000 (36 of 40)
+      getting_virtual_card                    1.0000 (27 of 40)
+      get_disposable_virtual_card             1.0000 (38 of 40)
+      verify_my_identity                      1.0000 (35 of 40)
+      why_verify_identity                     0.9737 (38 of 40)
+  alpha 0.05
+    tau    0.528649  dev coverage 0.9822 error 0.0491  test coverage 0.9875 error 0.0405
+    tau_cp 0.632796  dev coverage 0.9442 error 0.0323  test coverage 0.9600 error 0.0365
+    test recall among accepted at tau, per true class (accepted of total)
+      card_arrival                            0.8718 (39 of 40)
+      card_delivery_estimate                  0.9250 (40 of 40)
+      declined_transfer                       0.9000 (40 of 40)
+      failed_transfer                         1.0000 (39 of 40)
+      card_payment_wrong_exchange_rate        1.0000 (37 of 40)
+      wrong_exchange_rate_for_cash_withdrawal 0.9750 (40 of 40)
+      getting_virtual_card                    1.0000 (40 of 40)
+      get_disposable_virtual_card             0.9500 (40 of 40)
+      verify_my_identity                      1.0000 (40 of 40)
+      why_verify_identity                     0.9750 (40 of 40)
+  alpha 0.10
+    tau    0.373351  dev coverage 1.0000 error 0.0533  test coverage 1.0000 error 0.0500
+    tau_cp 0.373351  dev coverage 1.0000 error 0.0533  test coverage 1.0000 error 0.0500
+    test recall among accepted at tau, per true class (accepted of total)
+      card_arrival                            0.8500 (40 of 40)
+      card_delivery_estimate                  0.9250 (40 of 40)
+      declined_transfer                       0.9000 (40 of 40)
+      failed_transfer                         0.9750 (40 of 40)
+      card_payment_wrong_exchange_rate        0.9500 (40 of 40)
+      wrong_exchange_rate_for_cash_withdrawal 0.9750 (40 of 40)
+      getting_virtual_card                    1.0000 (40 of 40)
+      get_disposable_virtual_card             0.9500 (40 of 40)
+      verify_my_identity                      1.0000 (40 of 40)
+      why_verify_identity                     0.9750 (40 of 40)

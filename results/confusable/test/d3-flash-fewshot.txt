@@ -1,0 +1,29 @@
+model     vllm-sr/d3-flash prompt fewshot
+test rows 400 (mteb/banking77, 10 classes)
+accuracy  0.9500
+macro F1  0.9499
+seconds   2.21 (median per message, one message per call)
+p > 0.9   accuracy 0.9865 on 296 of 400 messages (top probability above it)
+recall
+  card_arrival                            0.8500
+  card_delivery_estimate                  0.9250
+  declined_transfer                       0.9000
+  failed_transfer                         0.9750
+  card_payment_wrong_exchange_rate        0.9500
+  wrong_exchange_rate_for_cash_withdrawal 0.9750
+  getting_virtual_card                    1.0000
+  get_disposable_virtual_card             0.9500
+  verify_my_identity                      1.0000
+  why_verify_identity                     0.9750
+confusion (row: true class, column: predicted class, numbered as the rows are)
+                                               0   1   2   3   4   5   6   7   8   9
+   0 card_arrival                             34   5   0   0   0   0   1   0   0   0
+   1 card_delivery_estimate                    3  37   0   0   0   0   0   0   0   0
+   2 declined_transfer                         0   0  36   4   0   0   0   0   0   0
+   3 failed_transfer                           0   0   1  39   0   0   0   0   0   0
+   4 card_payment_wrong_exchange_rate          0   0   0   0  38   2   0   0   0   0
+   5 wrong_exchange_rate_for_cash_withdrawal   0   0   0   0   1  39   0   0   0   0
+   6 getting_virtual_card                      0   0   0   0   0   0  40   0   0   0
+   7 get_disposable_virtual_card               0   0   0   0   0   0   2  38   0   0
+   8 verify_my_identity                        0   0   0   0   0   0   0   0  40   0
+   9 why_verify_identity                       0   0   0   0   0   0   0   0   1  39
