@@ -3,7 +3,8 @@ and writes the report it prints to results/<set>/<split>/<classifier>.txt. The c
 saved by train.py (`--model`: ModernBERT, TF-IDF or frozen embeddings), an Ollama model with one
 of llm.py's `PROMPTS` (`--llm`, `--prompt`), or an mlx-lm model with llm.py's `MLX_PROMPT` and
 optionally a LoRA adapter trained by finetune.py (`--mlx`, `--adapter`; with `--reply logits`, no
-adapter and the class read off the letter logits of one forward pass), or the Laya decision model
+adapter and the class read off the letter logits of one forward pass, with `--prompt` `definitions`, the
+default, or `fewshot`), or the Laya decision model
 zero-shot with one of llm.py's `LAYA_PROMPTS` (`--laya`, `--prompt`), or TypeSafe's System One API
 asked jev.py's question (`--jev`, `--prompt`, default `definitions`). `--split test` is the
 Banking77 test split; `--split dev` is `dev_and_shots`' sample of the train split, which is what
@@ -199,7 +200,7 @@ def main():
     ap.add_argument("--llm", metavar="MODEL", help="Ollama model to score in place of --model")
     ap.add_argument("--laya", action="store_true", help="score the Laya decision model zero-shot")
     ap.add_argument("--jev", action="store_true", help="score TypeSafe System One, jev.py")
-    ap.add_argument("--prompt", choices=list(PROMPTS), help="required with --llm and --laya; --jev defaults to definitions")
+    ap.add_argument("--prompt", choices=list(PROMPTS), help="required with --llm and --laya; --jev and --reply logits default to definitions")
     ap.add_argument("--mlx", metavar="MODEL", help=f"mlx-lm model to score, {MLX_PROMPT} prompt")
     ap.add_argument("--adapter", metavar="DIR", help="LoRA adapter from finetune.py, with --mlx")
     ap.add_argument(
@@ -228,10 +229,13 @@ def main():
         if args.write_train and not (args.model or args.llm or args.mlx or args.laya or args.jev):
             return
         ap.error("give exactly one of --model, --llm, --mlx, --laya and --jev, or --write-train alone")
-    if args.jev and not args.prompt:
+    logits = args.mlx and args.reply == "logits"
+    if (args.jev or logits) and not args.prompt:
         args.prompt = "definitions"
-    if bool(args.llm or args.laya or args.jev) != bool(args.prompt):
-        ap.error("--prompt goes with --llm, --laya or --jev, and --llm and --laya need it")
+    if bool(args.llm or args.laya or args.jev or logits) != bool(args.prompt):
+        ap.error("--prompt goes with --llm, --laya, --jev or --reply logits, and --llm and --laya need it")
+    if logits and args.prompt not in ("definitions", "fewshot"):
+        ap.error("--reply logits takes --prompt definitions or fewshot")
     if args.jev and args.prompt not in JEV_PROMPTS:
         ap.error(f"--jev takes --prompt {' or '.join(JEV_PROMPTS)}")
     if args.laya and args.prompt not in LAYA_PROMPTS:
@@ -273,9 +277,10 @@ def main():
         probs = [v[p] for v, p in zip(vectors, preds)]
         seconds = [s for _, _, s in answers]
     elif args.mlx and args.reply == "logits":
-        classifier = f"{args.mlx} prompt {MLX_PROMPT} reply logits"
-        stem = f"{os.path.basename(os.path.normpath(args.mlx))}-{MLX_PROMPT}-logits"
-        answers = classify_mlx_logits(texts, args.set, args.mlx)
+        classifier = f"{args.mlx} prompt {args.prompt} reply logits"
+        stem = f"{os.path.basename(os.path.normpath(args.mlx))}-{args.prompt}-logits"
+        examples = shots if args.prompt == "fewshot" else None
+        answers = classify_mlx_logits(texts, args.set, args.mlx, examples)
         preds = [names.index(label) for label, _, _ in answers]
         vectors = [v for _, v, _ in answers]
         probs = [v[p] for v, p in zip(vectors, preds)]

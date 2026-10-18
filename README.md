@@ -17,7 +17,7 @@ The short answers, on the 400 Banking77 test messages of the `confusable` class 
 1. TypeSafe System One, with 30 real messages as examples in its question (`fewshot`), handles
    88% of messages with no human check at 3.1% error. The best that runs on the laptop,
    UltraBERT-Embed-150M + logistic regression trained on the diagnosed set, handles 40% at under
-   5% error. No other classifier that runs on the laptop passes 24%.
+   5% error. No other classifier that runs on the laptop passes 27%.
 2. UltraBERT-Embed-150M + logistic regression trained on 1284 real messages: 96%. TypeSafe System
    One with 30 real messages as examples: 94.5%. `gemma4:e4b` with the category definitions and
    no labels: 91%.
@@ -130,6 +130,7 @@ monotone mapping of the top probability onto accuracy, fitted on dev.
 | UltraBERT-Embed-150M + LR        | synthetic              | 0.8405 | 0.0495                         | 0.1825                  | 0.0274               |
 | UltraBERT-Embed-150M + LR        | diagnosed              | 0.7794 | 0.0333                         | 0.4025                  | 0.0373               |
 | Gemma 4 E4B (MLX), letter logits | `definitions`          | 0.7770 | 0.0608                         | 0.0375                  | 0.0000               |
+| Gemma 4 E4B (MLX), letter logits | `fewshot`              | 0.7941 | 0.0463                         | 0.2625                  | 0.0381               |
 | Laya                             | `names`                | 0.6753 | 0.0705                         | 0.0000                  | —                    |
 | TypeSafe System One              | `definitions`          | 0.7867 | 0.0534                         | 0.0000                  | —                    |
 | TypeSafe System One              | `fewshot`              | 0.8214 | 0.0452                         | 0.8850                  | 0.0311               |
@@ -171,6 +172,7 @@ errors: 17 of 400.**
 | Gemma 4 E4B (MLX), no adapter    | `definitions`          | 0                           | 0.8500   | 60            |
 | Gemma 4 E4B (MLX) + LoRA adapter | synthetic              | 0                           | 0.8500   | 60            |
 | Gemma 4 E4B (MLX) + LoRA adapter | real                   | 1284                        | 0.8575   | 57            |
+| Gemma 4 E4B (MLX), letter logits | `fewshot`              | 30                          | 0.8600   | 56            |
 | TypeSafe System One              | `definitions`          | 0                           | 0.9050   | 38            |
 | TypeSafe System One              | `fewshot`              | 30                          | 0.9450   | 22            |
 
@@ -337,9 +339,10 @@ before its error passes 5%.
 
 The thresholds sit very close to 1. For UltraBERT-Embed-150M + logistic regression the 5%
 thresholds are 0.999821 (diagnosed) and 0.999993 (synthetic). For ModernBERT-base trained on the
-diagnosed set it is 0.999994. For the letter logits it is 1.000000. TF-IDF + logistic regression's
+diagnosed set it is 0.999994. For the letter logits it is 1.000000 (`definitions`) and 0.999974
+(`fewshot`). TF-IDF + logistic regression's
 threshold, 0.904269, is not close to 1. A threshold of 0.9 does not separate the
-letter-logits answers: the 378 above it are 0.8783 accurate.
+`definitions` letter-logits answers: the 378 above it are 0.8783 accurate.
 
 Routing needs a labelled dev set as well as a classifier. With 0 hand labels nothing sets the
 threshold, so a person checks every message. The 96% classifier, UltraBERT-Embed-150M + logistic
@@ -541,6 +544,7 @@ instruction before it, to measure what that instruction adds to the UltraBERT-Em
 | `confusable` | Gemma 4 E4B (MLX) + LoRA | synthetic (`gemma4:e4b`) | 0.8500 | 0.8510 | 0.235   |
 | `confusable` | Gemma 4 E4B (MLX) + LoRA | real Banking77 train     | 0.8575 | 0.8513 | 0.235   |
 | `confusable` | Gemma 4 E4B (MLX), letter logits | `definitions` prompt | 0.8675 | 0.8648 | 0.338 |
+| `confusable` | Gemma 4 E4B (MLX), letter logits | `fewshot` prompt     | 0.8600 | 0.8582 | 0.471 |
 | `distinct`   | Laya                     | `names` prompt           | 0.9123   | 0.9139   | 0.0225  |
 | `confusable` | Laya                     | `names` prompt           | 0.7075   | 0.6750   | 0.0241  |
 | `confusable` | TypeSafe System One      | `definitions` prompt     | 0.9050   | 0.9053   | 0.53    |
@@ -551,13 +555,15 @@ against 0.7900, so it has no rows in the Results tables but the routing table. O
 whose top probability is above 0.9, 338 of 399 on `distinct` are 0.9734 accurate and 273 of 400 on
 `confusable` 0.7912.
 
-The letter-logits rows read the class from the probability of its letter at the last position in one
+The `definitions` letter-logits rows read the class from the probability of its letter at the last position in one
 forward pass, thinking off; they score below the Ollama `gemma4:e4b` row with the prompt chosen on
 dev on both sets, 0.8675 against 0.9125 (`definitions`) on `confusable` and 0.9799 against 0.9825
 (`names`) on `distinct`, and their top probability is above 0.9 on 378 of 400 `confusable` answers
 at 0.8783 accuracy and 397 of 399 `distinct` at 0.9798, so they have no rows in the Results tables
 but the routing table, and a threshold of 0.9 does not separate right from wrong answers; the
-routing table under question 1 of Results gives the AUROC.
+routing table under question 1 of Results gives the AUROC. The `fewshot` letter-logits row adds
+the 30 `fewshot` examples under each lettered category; it scores 0.8600 on `confusable`, 3
+messages below `definitions`, and is in the routing and accuracy tables.
 
 The contrast rows are `generate.py --method contrast`, which shows both definitions in a pair and
 asks for at least half the messages to avoid the words of the class name; that rule made both
@@ -647,7 +653,8 @@ adapter carries the whole prompt.
   as the user turn, the class name as the assistant turn.
 - `score.py` — scores a saved model (`--model`), an Ollama model (`--llm MODEL --prompt NAME`), an
   mlx-lm model with the `definitions` prompt (`--mlx MODEL`, and `--adapter DIR` for a LoRA adapter,
-  or `--reply logits` for letter logits, `--mlx` only, no adapter), Laya
+  or `--reply logits` for letter logits, `--mlx` only, no adapter, with
+  `--prompt definitions|fewshot`, default `definitions`), Laya
   (`--laya --prompt names|definitions`) or TypeSafe System One (`--jev`, `--prompt definitions|fewshot`, default `definitions`) on Banking77 restricted to
   the class set: accuracy, macro F1, median seconds per message, per-class recall and a confusion
   matrix, printed and written to `results/<set>/<split>/<name>.txt`. An `--mlx` report also counts the invalid replies.
@@ -715,6 +722,8 @@ for n in tfidf-diagnosed modernbert-diagnosed ultrabert-embed-synthetic ultraber
 done
 python score.py --set confusable --split dev --mlx $M --reply logits --dump $D/gemma-4-e4b-it-4bit-definitions-logits-dev.jsonl
 python score.py --set confusable             --mlx $M --reply logits --dump $D/gemma-4-e4b-it-4bit-definitions-logits-test.jsonl
+python score.py --set confusable --split dev --mlx $M --reply logits --prompt fewshot --dump $D/gemma-4-e4b-it-4bit-fewshot-logits-dev.jsonl
+python score.py --set confusable             --mlx $M --reply logits --prompt fewshot --dump $D/gemma-4-e4b-it-4bit-fewshot-logits-test.jsonl
 python score.py --set confusable --split dev --laya --prompt names --dump $D/laya-names-dev.jsonl
 python score.py --set confusable             --laya --prompt names --dump $D/laya-names-test.jsonl
 python score.py --set confusable --split dev --jev --dump $D/jev-definitions-dev.jsonl   # needs TYPESAFE_API_KEY

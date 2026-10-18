@@ -49,11 +49,16 @@ MLX_PROMPT = "definitions"
 MAX_REPLY_TOKENS = 512
 
 
-def lettered(classes):
-    """lettered is the `MLX_PROMPT` instructions for `classify_mlx_logits`: each class is listed
-    under a letter, "A. <name>: <definition>", in `CLASS_SETS` order, and the model is asked for
-    the letter."""
-    lines = [f"{chr(ord('A') + i)}. {name}: {d}" for i, (name, d) in enumerate(classes.items())]
+def lettered(classes, examples=None):
+    """lettered is the instructions for `classify_mlx_logits`: each class is listed under a letter,
+    "A. <name>: <definition>", in `CLASS_SETS` order, and the model is asked for the letter. That is
+    the `definitions` prompt; with `examples`, {class name: [example message]}, each class's
+    examples follow its line as `fewshot` lists them, which is the `fewshot` prompt."""
+    lines = []
+    for i, (name, d) in enumerate(classes.items()):
+        lines.append(f"{chr(ord('A') + i)}. {name}: {d}")
+        if examples:
+            lines += [f"    example: {text}" for text in examples[name]]
     intro = (
         "You sort messages sent to a banking app's customer support by intent. "
         "Answer with the letter of the one intent that fits the message best, and nothing else."
@@ -183,10 +188,10 @@ def classify_mlx(texts, classes, instructions, model, adapter):
     return out
 
 
-def classify_mlx_logits(texts, class_set, model):
+def classify_mlx_logits(texts, class_set, model, examples=None):
     """classify_mlx_logits returns a (class name, probabilities, seconds) triple for each of
     `texts`, from an mlx-lm model with no adapter: one forward pass over the `user_turn` of
-    `lettered`'s instructions, a softmax over the logits of the class letters' tokens alone at the
+    `lettered`'s instructions, with `examples` for the `fewshot` prompt, a softmax over the logits of the class letters' tokens alone at the
     last position, and the class whose letter has the highest probability, with the softmax as a
     list in `CLASS_SETS` order. Nothing is
     generated, so every message gets a class. The chat template is applied with thinking off;
@@ -196,7 +201,7 @@ def classify_mlx_logits(texts, class_set, model):
 
     classes = CLASS_SETS[class_set]
     names = list(classes)
-    instructions = lettered(classes)
+    instructions = lettered(classes, examples)
     lm, tok = load(model)
     letters = []
     for i in range(len(names)):

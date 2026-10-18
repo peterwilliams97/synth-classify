@@ -58,7 +58,7 @@ gives the model without the instruction prefix. The same `train.py` lines with
 `score.py` prints its report and writes the same text to `results/$S/<split>/<name>.txt`, where
 `<name>` is the model directory name, or for `--llm` the Ollama model with `:` replaced by `-`, then
 `-<prompt>`, or for `--mlx` the adapter directory name, and without `--adapter` the last component
-of the mlx-lm model then `-definitions`, and `-definitions-logits` with `--reply logits`, which takes no
+of the mlx-lm model then `-definitions`, and `-<prompt>-logits` with `--reply logits`, which takes `--prompt definitions` or `fewshot` and no
 `--adapter`, or for `--laya` `laya-<prompt>`, or for `--jev` `jev-<prompt>`. `train.py` and
 `finetune.py` write the minutes a run took, or the seconds if under a minute, to `results/$S/train/<name>.txt`, `<name>` being the `--out`
 directory name. A ModernBERT fine-tune is 1.6 to 2.0 minutes on MPS, a LoRA adapter 8 to 18; the
@@ -113,7 +113,8 @@ in `refs/main`, which is the layout `HF_HUB_OFFLINE=1` loads from.
   and the LLM rows of the README's dev and test tables.
 - **An adapter is scored on the turn it was trained on.** `finetune.py` and `classify_mlx` in
   `llm.py` both build the user turn with `user_turn` and the `MLX_PROMPT` prompt (`definitions`);
-  `score.py --mlx` takes no `--prompt`. `finetune.py` does not load the dataset either.
+  `score.py --mlx` takes no `--prompt` except with `--reply logits`, which has no adapter.
+  `finetune.py` does not load the dataset either.
 - **An mlx-lm reply is not restricted to a class name.** `classify_mlx` takes the text after the
   tokenizer's `think_end` marker, strips it and requires it to equal a class name; anything else is
   None, which `score.py` scores as prediction -1 and counts on the report's `invalid` line. Only
