@@ -1,0 +1,30 @@
+{"text": "I still haven't received my card after two weeks, is it lost?", "label": "card_arrival"}
+{"text": "It's been two weeks and I haven't gotten my card, what do I do?", "label": "card_arrival"}
+{"text": "When did you send me my new card?", "label": "card_arrival"}
+{"text": "How long until my card will get here?", "label": "card_delivery_estimate"}
+{"text": "Can it specifically be delivered on a certain date?", "label": "card_delivery_estimate"}
+{"text": "My card is needed soon", "label": "card_delivery_estimate"}
+{"text": "Explain to me why a transfer would be declined.", "label": "declined_transfer"}
+{"text": "My transfer was rejected", "label": "declined_transfer"}
+{"text": "Tell me why my transfer is declined.", "label": "declined_transfer"}
+{"text": "Why did the transfer fail when I attempted to do it earlier?", "label": "failed_transfer"}
+{"text": "Why didn't my transfer complete?", "label": "failed_transfer"}
+{"text": "Transfer isn't working?", "label": "failed_transfer"}
+{"text": "They used the wrong rate when I made a purchase with foreign currency.", "label": "card_payment_wrong_exchange_rate"}
+{"text": "The correct exchange rate wasn't given to me for an item I purchased.", "label": "card_payment_wrong_exchange_rate"}
+{"text": "Why is the exchange rate on my card wrong?", "label": "card_payment_wrong_exchange_rate"}
+{"text": "The amount of cash I requested to withdrawal did not match what I received when exchanged", "label": "wrong_exchange_rate_for_cash_withdrawal"}
+{"text": "I didn't receive the correct amount of cash when I exchanged it overseas.", "label": "wrong_exchange_rate_for_cash_withdrawal"}
+{"text": "When I got cash, my exchange rate was off.", "label": "wrong_exchange_rate_for_cash_withdrawal"}
+{"text": "I would like to order a virtual card, where can I get one?", "label": "getting_virtual_card"}
+{"text": "I haven't received my virtual card yet!!", "label": "getting_virtual_card"}
+{"text": "I haven't received my virtual card.", "label": "getting_virtual_card"}
+{"text": "What do you use disposable cards on?", "label": "get_disposable_virtual_card"}
+{"text": "I need a disposable virtual card. Please tell me how to order one.", "label": "get_disposable_virtual_card"}
+{"text": "Can you tell me where to go to get a disposable virtual card?", "label": "get_disposable_virtual_card"}
+{"text": "What do you require for identity verification?", "label": "verify_my_identity"}
+{"text": "What works for identity verification?", "label": "verify_my_identity"}
+{"text": "Can I get information on the identity checks?", "label": "verify_my_identity"}
+{"text": "Why do you have an identity check?", "label": "why_verify_identity"}
+{"text": "Do you need my birthdate?", "label": "why_verify_identity"}
+{"text": "Is it possible to go ahead and log in, although I have not been confirmed yet?", "label": "why_verify_identity"}

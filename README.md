@@ -304,6 +304,16 @@ under the bound is over the runs that keep any test message, counted in brackets
 | 100             | 0.2825 (0.0000–0.8475)                        | 0.0265, 1 run                              |
 | 200             | 0.8025 (0.6325–0.9350)                        | 0.0263 (0.0119–0.0401), 3 runs             |
 | 400 (394)       | 0.8658 (0.8400–0.9100)                        | 0.0297 (0.0265–0.0357), 3 runs             |
+| **UltraBERT-Embed-150M + LR at 400 validation rows, by training rows, 9 runs each** | | |
+| 30 training     | 0.3278 (0.0000–0.6100)                        | 0.0267 (0.0071–0.0574), 8 runs             |
+| 50 training     | 0.3347 (0.0000–0.7050)                        | 0.0296 (0.0122–0.0426), 7 runs             |
+| 100 training    | 0.7681 (0.4625–0.8975)                        | 0.0396 (0.0270–0.0543), 9 runs             |
+| 200 training    | 0.9103 (0.7825–1.0000)                        | 0.0453 (0.0288–0.0600), 9 runs             |
+
+With 400 validation rows, the 30- and 50-row models keep a third of the test messages under the
+bound, the 100-row models 0.7681 and the 200-row models 0.9103, against System One's 0.8658 at 394,
+though at a mean test error of 0.0453 against System One's 0.0297 and above 0.05 in some runs
+(`results/confusable/confidence/ultrabert-embed-real-nodev-<training rows>[-s<seed>]-dev400-ds<validation seed>.txt`).
 
 More validation rows raise the coverage under the bound, from 0.3342 at 100 to 0.8500 at 395, and
 narrow its range. At 100 validation rows the bound keeps nothing in 5 of 9
@@ -900,6 +910,22 @@ for s in "" -s1 -s2; do
       --test $D/$m-test.jsonl --dev-size $n --dev-seed $d
   done; done
 done
+# The same at 400 validation rows for the 30-, 50-, 100- and 200-row models; the 30-row subsets are
+# drawn as the label curve's are, with k = 3 and seeds 0, 1 and 2.
+for n in ultrabert-embed-real-nodev-30 ultrabert-embed-real-nodev-30-s{1,2}; do
+  k=${n#ultrabert-embed-real-nodev-}; k=${k/-s/_s}
+  python train.py --set confusable --train data/confusable/banking77_train_nodev_$k.jsonl --out models/confusable/$n --embed
+  python score.py --set confusable --model models/confusable/$n --dump $D/$n-test.jsonl
+done
+for k in 30 50 100 200; do for s in "" -s1 -s2; do
+  m=ultrabert-embed-real-nodev-$k$s
+  python score.py --set confusable --split rest --train-file data/confusable/banking77_train_nodev_$k${s/-/_}.jsonl \
+    --model models/confusable/$m --dump $D/$m-rest.jsonl
+  for d in 0 1 2; do
+    python confidence.py --set confusable --model-name $m-dev400-ds$d --dev $D/$m-rest.jsonl \
+      --test $D/$m-test.jsonl --dev-size 400 --dev-seed $d
+  done
+done; done
 python score.py --set confusable --split rest --train-file data/confusable/banking77_train_nodev_400.jsonl \
   --jev --prompt fewshot --dump $D/jev-fewshot-rest.jsonl
 for n in 100 200 400; do for d in 0 1 2; do

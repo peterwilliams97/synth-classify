@@ -1,0 +1,3 @@
+model     models/confusable/ultrabert-embed-real-nodev-30-s1
+train     data/confusable/banking77_train_nodev_30_s1.jsonl (30 rows)
+seconds   2.56 (base model load to save)

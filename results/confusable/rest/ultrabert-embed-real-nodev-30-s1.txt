@@ -1,0 +1,28 @@
+model     models/confusable/ultrabert-embed-real-nodev-30-s1
+rest rows 1054 (mteb/banking77, 10 classes)
+accuracy  0.8700
+macro F1  0.8660
+seconds   0.0101 (median per message, one message per call)
+recall
+  card_arrival                            0.9615
+  card_delivery_estimate                  0.5955
+  declined_transfer                       0.7431
+  failed_transfer                         0.9649
+  card_payment_wrong_exchange_rate        0.9306
+  wrong_exchange_rate_for_cash_withdrawal 0.9143
+  getting_virtual_card                    0.7467
+  get_disposable_virtual_card             0.9324
+  verify_my_identity                      0.9383
+  why_verify_identity                     0.8673
+confusion (row: true class, column: predicted class, numbered as the rows are)
+                                               0   1   2   3   4   5   6   7   8   9
+   0 card_arrival                            125   4   0   1   0   0   0   0   0   0
+   1 card_delivery_estimate                   36  53   0   0   0   0   0   0   0   0
+   2 declined_transfer                         0   0  81  28   0   0   0   0   0   0
+   3 failed_transfer                           0   0   4 110   0   0   0   0   0   0
+   4 card_payment_wrong_exchange_rate          0   0   0   0 134  10   0   0   0   0
+   5 wrong_exchange_rate_for_cash_withdrawal   1   0   0   0  11 128   0   0   0   0
+   6 getting_virtual_card                     15   0   0   0   0   0  56   4   0   0
+   7 get_disposable_virtual_card               1   1   0   0   0   0   2  69   1   0
+   8 verify_my_identity                        0   0   0   0   0   0   0   0  76   5
+   9 why_verify_identity                       0   0   0   0   0   0   0   0  13  85
