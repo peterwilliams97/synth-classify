@@ -74,6 +74,12 @@ generator, and the routing threshold.
 - **train + validation**: all the Banking77 train rows of the class set, 1188 for `distinct` and
   1284 for `confusable`.
 
+The tables under Results do not use these names. Their Trained on column gives a row's training
+set as its rows and source: synthetic is "1000 LLM-written", diagnosed "1000 LLM-written, steered by
+200 validation counts", train "1084 Banking77 train" and train + validation "1284 Banking77 train +
+validation". An untrained classifier is "not trained". Their Prompt column names the prompt a model
+is given, and is "—" for a classifier given none.
+
 **Classifiers.** Eight kinds are scored.
 
 - **TF-IDF + logistic regression**: logistic regression on word-frequency features. It is the
@@ -134,18 +140,18 @@ one-sided 90% Clopper-Pearson upper bound on the validation error: the highest e
 validation count does not rule out at 90% confidence. The plain threshold uses the validation error
 itself.
 
-| Classifier                       | Training set or prompt | AUROC  | ECE after isotonic calibration | Test coverage at α 0.05 | Test error at α 0.05 | Test coverage under the bound at α 0.05 | Test error under the bound at α 0.05 |
-|----------------------------------|------------------------|--------|--------------------------------|-------------------------|----------------------|-----------------------------------------|--------------------------------------|
-| TF-IDF + logistic regression     | diagnosed              | 0.7855 | 0.0319                         | 0.2375                  | 0.0526               | 0.0000                                  | —                                    |
-| ModernBERT-base                  | diagnosed              | 0.8394 | 0.0564                         | 0.1575                  | 0.0159               | 0.0000                                  | —                                    |
-| UltraBERT-Embed-150M + LR        | synthetic              | 0.8405 | 0.0495                         | 0.1825                  | 0.0274               | 0.0000                                  | —                                    |
-| UltraBERT-Embed-150M + LR        | diagnosed              | 0.7794 | 0.0333                         | 0.4025                  | 0.0373               | 0.0000                                  | —                                    |
-| UltraBERT-Embed-150M + LR        | train                  | 0.8641 | 0.0240                         | 0.9900                  | 0.0404               | 0.8600                                  | 0.0262                               |
-| Gemma 4 E4B (MLX), letter logits | `definitions`          | 0.7770 | 0.0608                         | 0.0375                  | 0.0000               | 0.0000                                  | —                                    |
-| Gemma 4 E4B (MLX), letter logits | `fewshot`              | 0.7941 | 0.0463                         | 0.2625                  | 0.0381               | 0.0000                                  | —                                    |
-| Laya                             | `names`                | 0.6753 | 0.0705                         | 0.0000                  | —                    | 0.0000                                  | —                                    |
-| TypeSafe System One              | `definitions`          | 0.7867 | 0.0534                         | 0.0000                  | —                    | 0.0000                                  | —                                    |
-| TypeSafe System One              | `fewshot`              | 0.8214 | 0.0452                         | 0.8850                  | 0.0311               | 0.0000                                  | —                                    |
+| Classifier                       | Trained on                                         | Prompt        | AUROC  | ECE after isotonic calibration | Test coverage at α 0.05 | Test error at α 0.05 | Test coverage under the bound at α 0.05 | Test error under the bound at α 0.05 |
+|----------------------------------|----------------------------------------------------|---------------|--------|--------------------------------|-------------------------|----------------------|-----------------------------------------|--------------------------------------|
+| TF-IDF + logistic regression     | 1000 LLM-written, steered by 200 validation counts | —             | 0.7855 | 0.0319                         | 0.2375                  | 0.0526               | 0.0000                                  | —                                    |
+| ModernBERT-base                  | 1000 LLM-written, steered by 200 validation counts | —             | 0.8394 | 0.0564                         | 0.1575                  | 0.0159               | 0.0000                                  | —                                    |
+| UltraBERT-Embed-150M + LR        | 1000 LLM-written                                   | —             | 0.8405 | 0.0495                         | 0.1825                  | 0.0274               | 0.0000                                  | —                                    |
+| UltraBERT-Embed-150M + LR        | 1000 LLM-written, steered by 200 validation counts | —             | 0.7794 | 0.0333                         | 0.4025                  | 0.0373               | 0.0000                                  | —                                    |
+| UltraBERT-Embed-150M + LR        | 1084 Banking77 train                               | —             | 0.8641 | 0.0240                         | 0.9900                  | 0.0404               | 0.8600                                  | 0.0262                               |
+| Gemma 4 E4B (MLX), letter logits | not trained                                        | `definitions` | 0.7770 | 0.0608                         | 0.0375                  | 0.0000               | 0.0000                                  | —                                    |
+| Gemma 4 E4B (MLX), letter logits | not trained                                        | `fewshot`     | 0.7941 | 0.0463                         | 0.2625                  | 0.0381               | 0.0000                                  | —                                    |
+| Laya                             | not trained                                        | `names`       | 0.6753 | 0.0705                         | 0.0000                  | —                    | 0.0000                                  | —                                    |
+| TypeSafe System One              | not trained                                        | `definitions` | 0.7867 | 0.0534                         | 0.0000                  | —                    | 0.0000                                  | —                                    |
+| TypeSafe System One              | not trained                                        | `fewshot`     | 0.8214 | 0.0452                         | 0.8850                  | 0.0311               | 0.0000                                  | —                                    |
 
 The plain threshold is not quoted outside the tables, because it does not hold its target: in the
 27 validation-size runs under question 3 its test error is over 5% in 12, against 1 of the 21 runs
@@ -162,28 +168,28 @@ adapters return a reply and no probability.
 **UltraBERT-Embed-150M + logistic regression trained on train makes 19 errors of 400, the fewest
 of any classifier that did not see the validation rows.**
 
-| Classifier                       | Training set or prompt | Real labelled examples used | Accuracy | Errors of 400 |
-|----------------------------------|------------------------|-----------------------------|----------|---------------|
-| TF-IDF + logistic regression     | synthetic              | 0                           | 0.7900   | 84            |
-| TF-IDF + logistic regression     | diagnosed              | 200, as counts              | 0.7925   | 83            |
-| TF-IDF + logistic regression     | train + validation     | 1284                        | 0.9250   | 30            |
-| ModernBERT-base                  | synthetic              | 0                           | 0.8425   | 63            |
-| ModernBERT-base                  | diagnosed              | 200, as counts              | 0.8675   | 53            |
-| ModernBERT-base                  | train + validation     | 1284                        | 0.9375   | 25            |
-| UltraBERT-Embed-150M + LR        | synthetic              | 0                           | 0.8475   | 61            |
-| UltraBERT-Embed-150M + LR        | diagnosed              | 200, as counts              | 0.9125   | 35            |
-| UltraBERT-Embed-150M + LR        | train + validation     | 1284                        | 0.9575   | 17            |
-| UltraBERT-Embed-150M + LR        | train                  | 1084                        | 0.9525   | 19            |
-| `gemma4:e4b`                     | `definitions`          | 0                           | 0.9125   | 35            |
-| `gemma4:e4b`                     | `fewshot`              | 30                          | 0.9300   | 28            |
-| `qwen3.6:27b-q4_K_M`             | `names`                | 0                           | 0.8775   | 49            |
-| `qwen3.6:27b-q4_K_M`             | `fewshot`              | 30                          | 0.9325   | 27            |
-| Gemma 4 E4B (MLX), no adapter    | `definitions`          | 0                           | 0.8500   | 60            |
-| Gemma 4 E4B (MLX) + LoRA adapter | synthetic              | 0                           | 0.8500   | 60            |
-| Gemma 4 E4B (MLX) + LoRA adapter | train + validation     | 1284                        | 0.8575   | 57            |
-| Gemma 4 E4B (MLX), letter logits | `fewshot`              | 30                          | 0.8600   | 56            |
-| TypeSafe System One              | `definitions`          | 0                           | 0.9050   | 38            |
-| TypeSafe System One              | `fewshot`              | 30                          | 0.9450   | 22            |
+| Classifier                       | Trained on                                         | Prompt        | Real labelled examples used | Accuracy | Errors of 400 |
+|----------------------------------|----------------------------------------------------|---------------|-----------------------------|----------|---------------|
+| TF-IDF + logistic regression     | 1000 LLM-written                                   | —             | 0                           | 0.7900   | 84            |
+| TF-IDF + logistic regression     | 1000 LLM-written, steered by 200 validation counts | —             | 200, as counts              | 0.7925   | 83            |
+| TF-IDF + logistic regression     | 1284 Banking77 train + validation                  | —             | 1284                        | 0.9250   | 30            |
+| ModernBERT-base                  | 1000 LLM-written                                   | —             | 0                           | 0.8425   | 63            |
+| ModernBERT-base                  | 1000 LLM-written, steered by 200 validation counts | —             | 200, as counts              | 0.8675   | 53            |
+| ModernBERT-base                  | 1284 Banking77 train + validation                  | —             | 1284                        | 0.9375   | 25            |
+| UltraBERT-Embed-150M + LR        | 1000 LLM-written                                   | —             | 0                           | 0.8475   | 61            |
+| UltraBERT-Embed-150M + LR        | 1000 LLM-written, steered by 200 validation counts | —             | 200, as counts              | 0.9125   | 35            |
+| UltraBERT-Embed-150M + LR        | 1284 Banking77 train + validation                  | —             | 1284                        | 0.9575   | 17            |
+| UltraBERT-Embed-150M + LR        | 1084 Banking77 train                               | —             | 1084                        | 0.9525   | 19            |
+| `gemma4:e4b`                     | not trained                                        | `definitions` | 0                           | 0.9125   | 35            |
+| `gemma4:e4b`                     | not trained                                        | `fewshot`     | 30                          | 0.9300   | 28            |
+| `qwen3.6:27b-q4_K_M`             | not trained                                        | `names`       | 0                           | 0.8775   | 49            |
+| `qwen3.6:27b-q4_K_M`             | not trained                                        | `fewshot`     | 30                          | 0.9325   | 27            |
+| Gemma 4 E4B (MLX), no adapter    | not trained                                        | `definitions` | 0                           | 0.8500   | 60            |
+| Gemma 4 E4B (MLX) + LoRA adapter | 1000 LLM-written                                   | `definitions` | 0                           | 0.8500   | 60            |
+| Gemma 4 E4B (MLX) + LoRA adapter | 1284 Banking77 train + validation                  | `definitions` | 1284                        | 0.8575   | 57            |
+| Gemma 4 E4B (MLX), letter logits | not trained                                        | `fewshot`     | 30                          | 0.8600   | 56            |
+| TypeSafe System One              | not trained                                        | `definitions` | 0                           | 0.9050   | 38            |
+| TypeSafe System One              | not trained                                        | `fewshot`     | 30                          | 0.9450   | 22            |
 
 Every classifier above 0.92 used real labelled examples. The Gemma 4 E4B (MLX) + LoRA adapter
 trained on train + validation also used them, and stayed at 0.8575. The `fewshot` prompts of
@@ -199,26 +205,26 @@ regression trained on the synthetic set, at 0.9373, and Laya, at 0.9123.
 **Most errors fall inside a pair.** An error inside a pair is one whose true and predicted
 categories are the two categories of one pair.
 
-| Classifier                       | Training set or prompt | Real labelled examples used | Errors | Inside a pair | Most frequent error (true → predicted)        | Messages, of 40 |
-|----------------------------------|------------------------|-----------------------------|--------|---------------|-----------------------------------------------|-----------------|
-| TF-IDF + logistic regression     | synthetic              | 0                           | 84     | 71            | `why_verify_identity` → `verify_my_identity`  | 23              |
-| TF-IDF + logistic regression     | diagnosed              | 200, as counts              | 83     | 71            | `why_verify_identity` → `verify_my_identity`  | 24              |
-| TF-IDF + logistic regression     | train + validation     | 1284                        | 30     | 26            | `verify_my_identity` → `why_verify_identity`  | 7               |
-| ModernBERT-base                  | synthetic              | 0                           | 63     | 54            | `why_verify_identity` → `verify_my_identity`  | 15              |
-| ModernBERT-base                  | diagnosed              | 200, as counts              | 53     | 48            | `why_verify_identity` → `verify_my_identity`  | 14              |
-| ModernBERT-base                  | train + validation     | 1284                        | 25     | 24            | `card_arrival` → `card_delivery_estimate`     | 5               |
-| UltraBERT-Embed-150M + LR        | synthetic              | 0                           | 61     | 53            | `why_verify_identity` → `verify_my_identity`  | 13              |
-| UltraBERT-Embed-150M + LR        | diagnosed              | 200, as counts              | 35     | 31            | `card_arrival` → `card_delivery_estimate`     | 10              |
-| UltraBERT-Embed-150M + LR        | train + validation     | 1284                        | 17     | 15            | `declined_transfer` → `failed_transfer`       | 3               |
-| `gemma4:e4b`                     | `definitions`          | 0                           | 35     | 32            | `card_arrival` → `card_delivery_estimate`     | 13              |
-| `gemma4:e4b`                     | `fewshot`              | 30                          | 28     | 25            | `card_arrival` → `card_delivery_estimate`     | 7               |
-| `qwen3.6:27b-q4_K_M`             | `names`                | 0                           | 49     | 47            | `verify_my_identity` → `why_verify_identity`  | 17              |
-| `qwen3.6:27b-q4_K_M`             | `fewshot`              | 30                          | 27     | 21            | `card_arrival` → `card_delivery_estimate`     | 6               |
-| Gemma 4 E4B (MLX), no adapter    | `definitions`          | 0                           | 60     | 26            | `card_arrival` → `card_delivery_estimate`     | 16              |
-| Gemma 4 E4B (MLX) + LoRA adapter | synthetic              | 0                           | 60     | 34            | `card_arrival` → `card_delivery_estimate`     | 18              |
-| Gemma 4 E4B (MLX) + LoRA adapter | train + validation     | 1284                        | 57     | 56            | `declined_transfer` → `failed_transfer`       | 24              |
-| TypeSafe System One              | `definitions`          | 0                           | 38     | 35            | `card_delivery_estimate` → `card_arrival` and `why_verify_identity` → `verify_my_identity` | 8 each |
-| TypeSafe System One              | `fewshot`              | 30                          | 22     | 22            | `card_arrival` → `card_delivery_estimate` and `declined_transfer` → `failed_transfer` | 5 each |
+| Classifier                       | Trained on                                         | Prompt        | Real labelled examples used | Errors | Inside a pair | Most frequent error (true → predicted)        | Messages, of 40 |
+|----------------------------------|----------------------------------------------------|---------------|-----------------------------|--------|---------------|-----------------------------------------------|-----------------|
+| TF-IDF + logistic regression     | 1000 LLM-written                                   | —             | 0                           | 84     | 71            | `why_verify_identity` → `verify_my_identity`  | 23              |
+| TF-IDF + logistic regression     | 1000 LLM-written, steered by 200 validation counts | —             | 200, as counts              | 83     | 71            | `why_verify_identity` → `verify_my_identity`  | 24              |
+| TF-IDF + logistic regression     | 1284 Banking77 train + validation                  | —             | 1284                        | 30     | 26            | `verify_my_identity` → `why_verify_identity`  | 7               |
+| ModernBERT-base                  | 1000 LLM-written                                   | —             | 0                           | 63     | 54            | `why_verify_identity` → `verify_my_identity`  | 15              |
+| ModernBERT-base                  | 1000 LLM-written, steered by 200 validation counts | —             | 200, as counts              | 53     | 48            | `why_verify_identity` → `verify_my_identity`  | 14              |
+| ModernBERT-base                  | 1284 Banking77 train + validation                  | —             | 1284                        | 25     | 24            | `card_arrival` → `card_delivery_estimate`     | 5               |
+| UltraBERT-Embed-150M + LR        | 1000 LLM-written                                   | —             | 0                           | 61     | 53            | `why_verify_identity` → `verify_my_identity`  | 13              |
+| UltraBERT-Embed-150M + LR        | 1000 LLM-written, steered by 200 validation counts | —             | 200, as counts              | 35     | 31            | `card_arrival` → `card_delivery_estimate`     | 10              |
+| UltraBERT-Embed-150M + LR        | 1284 Banking77 train + validation                  | —             | 1284                        | 17     | 15            | `declined_transfer` → `failed_transfer`       | 3               |
+| `gemma4:e4b`                     | not trained                                        | `definitions` | 0                           | 35     | 32            | `card_arrival` → `card_delivery_estimate`     | 13              |
+| `gemma4:e4b`                     | not trained                                        | `fewshot`     | 30                          | 28     | 25            | `card_arrival` → `card_delivery_estimate`     | 7               |
+| `qwen3.6:27b-q4_K_M`             | not trained                                        | `names`       | 0                           | 49     | 47            | `verify_my_identity` → `why_verify_identity`  | 17              |
+| `qwen3.6:27b-q4_K_M`             | not trained                                        | `fewshot`     | 30                          | 27     | 21            | `card_arrival` → `card_delivery_estimate`     | 6               |
+| Gemma 4 E4B (MLX), no adapter    | not trained                                        | `definitions` | 0                           | 60     | 26            | `card_arrival` → `card_delivery_estimate`     | 16              |
+| Gemma 4 E4B (MLX) + LoRA adapter | 1000 LLM-written                                   | `definitions` | 0                           | 60     | 34            | `card_arrival` → `card_delivery_estimate`     | 18              |
+| Gemma 4 E4B (MLX) + LoRA adapter | 1284 Banking77 train + validation                  | `definitions` | 1284                        | 57     | 56            | `declined_transfer` → `failed_transfer`       | 24              |
+| TypeSafe System One              | not trained                                        | `definitions` | 0                           | 38     | 35            | `card_delivery_estimate` → `card_arrival` and `why_verify_identity` → `verify_my_identity` | 8 each |
+| TypeSafe System One              | not trained                                        | `fewshot`     | 30                          | 22     | 22            | `card_arrival` → `card_delivery_estimate` and `declined_transfer` → `failed_transfer` | 5 each |
 
 Gemma 4 E4B (MLX) with no adapter is the one classifier with most of its errors outside a pair.
 Those 34 errors outside a pair are its invalid replies. The 26 errors outside a pair of the
@@ -314,8 +320,8 @@ The notes are one draft each. They were written once and not revised after any s
 | Prompt chosen on validation, `gemma4:e4b`: `names` → `definitions`              | 0.8500 | 0.8750 | +5       | validation, 200 |
 | Prompt chosen on validation, `qwen3.6:27b-q4_K_M`: `definitions` → `names`      | 0.8500 | 0.8650 | +3       | validation, 200 |
 | `qwen3.6:27b-q4_K_M` in place of `gemma4:e4b`, `fewshot`                 | 0.9300 | 0.9325 | +1       | test, 400 |
-| LoRA adapter trained on the synthetic set, against no adapter            | 0.8500 | 0.8500 | 0        | test, 400 |
-| LoRA adapter trained on train + validation, against no adapter           | 0.8500 | 0.8575 | +3       | test, 400 |
+| LoRA adapter trained on 1000 LLM-written messages, against no adapter    | 0.8500 | 0.8500 | 0        | test, 400 |
+| LoRA adapter trained on 1284 Banking77 train + validation, against no adapter | 0.8500 | 0.8575 | +3       | test, 400 |
 
 The first row changes three things at once: the reply rule, the runtime and the quantisation. The
 mlx-lm model answered 366 of the 400 test messages with a category name. It is right on 340 of those
@@ -325,26 +331,26 @@ LoRA adapters take the invalid replies from 34 to 0. Theirs is the only LoRA con
 
 ### Costs
 
-| Classifier                       | Training set or prompt | Training minutes | Seconds per message | × ModernBERT |
-|----------------------------------|------------------------|------------------|---------------------|--------------|
-| TF-IDF + logistic regression     | synthetic              | 0.71 s           | 0.00015             | 0.02         |
-| TF-IDF + logistic regression     | diagnosed              | 0.85 s           | 0.00016             | 0.02         |
-| TF-IDF + logistic regression     | train + validation     | 0.65 s           | 0.00015             | 0.02         |
-| ModernBERT-base                  | synthetic              | 1.7              | 0.0073              | 1            |
-| ModernBERT-base                  | diagnosed              | 1.8              | 0.0077              | 1.0          |
-| ModernBERT-base                  | train + validation     | 2.0              | 0.0073              | 1            |
-| UltraBERT-Embed-150M + LR        | synthetic              | 5.86 s           | 0.0107              | 1.5          |
-| UltraBERT-Embed-150M + LR        | diagnosed              | 5.50 s           | 0.0109              | 1.5          |
-| UltraBERT-Embed-150M + LR        | train + validation     | 6.52 s           | 0.0109              | 1.5          |
-| `gemma4:e4b`                     | `definitions`          | none             | 0.63                | 85           |
-| `gemma4:e4b`                     | `fewshot`              | none             | 0.47                | 63           |
-| `qwen3.6:27b-q4_K_M`             | `names`                | none             | 1.5                 | 197          |
-| `qwen3.6:27b-q4_K_M`             | `fewshot`              | none             | 2.5                 | 335          |
-| Gemma 4 E4B (MLX), no adapter    | `definitions`          | none             | 0.258               | 35           |
-| Gemma 4 E4B (MLX) + LoRA adapter | synthetic              | 13.6             | 0.235               | 32           |
-| Gemma 4 E4B (MLX) + LoRA adapter | train + validation     | 17.9             | 0.235               | 32           |
-| TypeSafe System One              | `definitions`          | none             | 0.53                | 72           |
-| TypeSafe System One              | `fewshot`              | none             | 0.53                | 71           |
+| Classifier                       | Trained on                                         | Prompt        | Training minutes | Seconds per message | × ModernBERT |
+|----------------------------------|----------------------------------------------------|---------------|------------------|---------------------|--------------|
+| TF-IDF + logistic regression     | 1000 LLM-written                                   | —             | 0.71 s           | 0.00015             | 0.02         |
+| TF-IDF + logistic regression     | 1000 LLM-written, steered by 200 validation counts | —             | 0.85 s           | 0.00016             | 0.02         |
+| TF-IDF + logistic regression     | 1284 Banking77 train + validation                  | —             | 0.65 s           | 0.00015             | 0.02         |
+| ModernBERT-base                  | 1000 LLM-written                                   | —             | 1.7              | 0.0073              | 1            |
+| ModernBERT-base                  | 1000 LLM-written, steered by 200 validation counts | —             | 1.8              | 0.0077              | 1.0          |
+| ModernBERT-base                  | 1284 Banking77 train + validation                  | —             | 2.0              | 0.0073              | 1            |
+| UltraBERT-Embed-150M + LR        | 1000 LLM-written                                   | —             | 5.86 s           | 0.0107              | 1.5          |
+| UltraBERT-Embed-150M + LR        | 1000 LLM-written, steered by 200 validation counts | —             | 5.50 s           | 0.0109              | 1.5          |
+| UltraBERT-Embed-150M + LR        | 1284 Banking77 train + validation                  | —             | 6.52 s           | 0.0109              | 1.5          |
+| `gemma4:e4b`                     | not trained                                        | `definitions` | none             | 0.63                | 85           |
+| `gemma4:e4b`                     | not trained                                        | `fewshot`     | none             | 0.47                | 63           |
+| `qwen3.6:27b-q4_K_M`             | not trained                                        | `names`       | none             | 1.5                 | 197          |
+| `qwen3.6:27b-q4_K_M`             | not trained                                        | `fewshot`     | none             | 2.5                 | 335          |
+| Gemma 4 E4B (MLX), no adapter    | not trained                                        | `definitions` | none             | 0.258               | 35           |
+| Gemma 4 E4B (MLX) + LoRA adapter | 1000 LLM-written                                   | `definitions` | 13.6             | 0.235               | 32           |
+| Gemma 4 E4B (MLX) + LoRA adapter | 1284 Banking77 train + validation                  | `definitions` | 17.9             | 0.235               | 32           |
+| TypeSafe System One              | not trained                                        | `definitions` | none             | 0.53                | 72           |
+| TypeSafe System One              | not trained                                        | `fewshot`     | none             | 0.53                | 71           |
 
 Seconds per message is the median time to classify one test message. "× ModernBERT" divides a
 row's seconds per message by 0.00735 s, ModernBERT-base trained on train + validation
