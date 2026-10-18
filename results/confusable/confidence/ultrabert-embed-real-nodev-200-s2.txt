@@ -1,0 +1,55 @@
+model     ultrabert-embed-real-nodev-200-s2
+dev       results/confusable/confidence/dumps/ultrabert-embed-real-nodev-200-s2-dev.jsonl (200 rows, accuracy 0.9250)
+test      results/confusable/confidence/dumps/ultrabert-embed-real-nodev-200-s2-test.jsonl (400 rows, accuracy 0.9225)
+score     top probability of each message
+discrimination on test, nothing fitted
+  AUROC of score against correctness  0.8629
+  mean score, right predictions       0.9865 (369)
+  mean score, wrong predictions       0.8267 (31)
+calibration: isotonic regression of correctness on score, fitted on dev
+  test ECE, 10 equal-count bins  before 0.0524  after 0.0250
+routing: accept a message when its score is at least tau, chosen on dev
+  tau     lowest dev score whose accepted dev error is at most alpha
+  tau_cp  the same with the dev error's one-sided 90% Clopper-Pearson upper bound
+  alpha 0.02
+    tau    0.997888  dev coverage 0.6150 error 0.0163  test coverage 0.6250 error 0.0160
+    tau_cp -         dev coverage 0.0000 error -  test coverage 0.0000 error -
+    test recall among accepted at tau, per true class (accepted of total)
+      card_arrival                            0.9615 (26 of 40)
+      card_delivery_estimate                  1.0000 (28 of 40)
+      declined_transfer                       0.8929 (28 of 40)
+      failed_transfer                         1.0000 (22 of 40)
+      card_payment_wrong_exchange_rate        1.0000 (27 of 40)
+      wrong_exchange_rate_for_cash_withdrawal 1.0000 (19 of 40)
+      getting_virtual_card                    1.0000 (32 of 40)
+      get_disposable_virtual_card             1.0000 (29 of 40)
+      verify_my_identity                      1.0000 (15 of 40)
+      why_verify_identity                     1.0000 (24 of 40)
+  alpha 0.05
+    tau    0.920656  dev coverage 0.9050 error 0.0497  test coverage 0.9225 error 0.0407
+    tau_cp 0.994693  dev coverage 0.7300 error 0.0205  test coverage 0.7475 error 0.0201
+    test recall among accepted at tau, per true class (accepted of total)
+      card_arrival                            0.9444 (36 of 40)
+      card_delivery_estimate                  0.9459 (37 of 40)
+      declined_transfer                       0.8684 (38 of 40)
+      failed_transfer                         1.0000 (36 of 40)
+      card_payment_wrong_exchange_rate        1.0000 (40 of 40)
+      wrong_exchange_rate_for_cash_withdrawal 0.9697 (33 of 40)
+      getting_virtual_card                    1.0000 (39 of 40)
+      get_disposable_virtual_card             0.9459 (37 of 40)
+      verify_my_identity                      0.9429 (35 of 40)
+      why_verify_identity                     0.9737 (38 of 40)
+  alpha 0.10
+    tau    0.480683  dev coverage 1.0000 error 0.0750  test coverage 0.9975 error 0.0752
+    tau_cp 0.516995  dev coverage 0.9950 error 0.0704  test coverage 0.9950 error 0.0729
+    test recall among accepted at tau, per true class (accepted of total)
+      card_arrival                            0.8750 (40 of 40)
+      card_delivery_estimate                  0.9250 (40 of 40)
+      declined_transfer                       0.8750 (40 of 40)
+      failed_transfer                         0.9750 (40 of 40)
+      card_payment_wrong_exchange_rate        1.0000 (40 of 40)
+      wrong_exchange_rate_for_cash_withdrawal 0.9000 (40 of 40)
+      getting_virtual_card                    1.0000 (39 of 40)
+      get_disposable_virtual_card             0.8750 (40 of 40)
+      verify_my_identity                      0.9000 (40 of 40)
+      why_verify_identity                     0.9250 (40 of 40)

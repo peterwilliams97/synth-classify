@@ -245,23 +245,29 @@ With 0 hand labels no classifier can be routed, because the threshold is set on 
 messages.
 
 The label curve trains UltraBERT-Embed-150M + logistic regression on stratified subsets of the real
-train set minus dev: 5, 10, 20, 40 and 80 messages per class, drawn with seed 0, each subset inside
-the next. The 200 dev labels set every threshold, on top of the training rows. `getting_virtual_card`
-and `get_disposable_virtual_card` have 78 and 77 rows outside dev, so the 800 subset holds 795.
-Coverage and error are on the 400 test messages at α 0.05; the last column is the coverage under the
-Clopper-Pearson bound of question 1. Each size is one draw.
+train set minus dev: 5, 10, 20, 40 and 80 messages per class, each subset inside the next one drawn
+with the same seed. 50, 100, 200 and 400 are drawn with seeds 0, 1 and 2, and each cell gives the
+mean over the three draws, then the min–max; the error column gives the min–max only. 800 is drawn
+with seed 0 alone, and 1084 is the whole set, so those two rows are single runs. The 200 dev labels
+set every threshold, on top of the training rows. `getting_virtual_card` and
+`get_disposable_virtual_card` have 78 and 77 rows outside dev, so the 800 subset holds 795. Coverage
+and error are on the 400 test messages at α 0.05; the last column is the coverage under the
+Clopper-Pearson bound of question 1.
 
-| Training rows | Accuracy | Test coverage at α 0.05 | Test error at α 0.05 | Test coverage under the Clopper-Pearson bound at α 0.05 |
-|---------------|----------|-------------------------|----------------------|----------------------------------------------------------|
-| 50            | 0.8900   | 0.7250                  | 0.0448               | 0.0000 |
-| 100           | 0.9250   | 0.9250                  | 0.0541               | 0.0000 |
-| 200           | 0.9200   | 0.8625                  | 0.0435               | 0.7975 |
-| 400           | 0.9325   | 0.9325                  | 0.0509               | 0.6800 |
-| 800 (795)     | 0.9475   | 0.9400                  | 0.0293               | 0.8775 |
-| 1084          | 0.9525   | 0.9900                  | 0.0404               | 0.8600 |
+| Training rows | Draws | Accuracy               | Test coverage at α 0.05 | Test error at α 0.05 | Test coverage under the Clopper-Pearson bound at α 0.05 |
+|---------------|-------|------------------------|-------------------------|----------------------|----------------------------------------------------------|
+| 50            | 3     | 0.8692 (0.8350–0.8900) | 0.3925 (0.2200–0.7250)  | 0.0215–0.0448        | 0.0000 (0.0000–0.0000) |
+| 100           | 3     | 0.9192 (0.9075–0.9250) | 0.8558 (0.8075–0.9250)  | 0.0372–0.0541        | 0.1125 (0.0000–0.3375) |
+| 200           | 3     | 0.9275 (0.9200–0.9400) | 0.8175 (0.6675–0.9225)  | 0.0225–0.0435        | 0.5150 (0.0000–0.7975) |
+| 400           | 3     | 0.9317 (0.9250–0.9375) | 0.7758 (0.4775–0.9325)  | 0.0157–0.0509        | 0.4508 (0.0000–0.6800) |
+| 800 (795)     | 1     | 0.9475                 | 0.9400                  | 0.0293               | 0.8775 |
+| 1084          | 1     | 0.9525                 | 0.9900                  | 0.0404               | 0.8600 |
 
-At 100 and 400 the plain threshold misses the 5% target on test. With 50 or 100 training rows the
-bound admits no test message.
+Mean accuracy rises with the training rows, from 0.8692 at 50 to 0.9317 at 400. Coverage does not:
+it varies more between draws of one size than between sizes. At 400 one draw keeps 0.4775 of test
+and another 0.9325, and under the bound one draw at each of 200 and 400 keeps nothing. The plain
+threshold misses the 5% target on test for one draw at 100 (0.0541) and one at 400 (0.0509), both
+seed 0.
 
 The diagnosed notes did not help every classifier equally. From the synthetic set to the diagnosed
 set, UltraBERT-Embed-150M + logistic regression went from 61 errors to 35. ModernBERT-base went
@@ -383,9 +389,9 @@ messages at 0.0404 error.
 200 dev messages are too few to certify 5% error for most classifiers. At a 5% target the
 Clopper-Pearson bound admits no message for any classifier in question 1's table but
 UltraBERT-Embed-150M + logistic regression trained on the real train set minus dev; of the label
-curve under question 3, it admits the models trained on 200, 400 and 800. The plain 5% thresholds
-rest on dev error alone. On test they held for every classifier in question 1's table except TF-IDF
-+ logistic regression, and missed for the label curve's 100 and 400. TypeSafe System One with the
+curve under question 3, it admits the 800 model and some draws at 100, 200 and 400. The plain 5%
+thresholds rest on dev error alone. On test they held for every classifier in question 1's table
+except TF-IDF + logistic regression, and missed for one draw each of the label curve's 100 and 400. TypeSafe System One with the
 `definitions` prompt has no 5% threshold: 111 of the 200 dev messages score exactly 1.00 and 7 of
 those are wrong, so no 5% cut-off exists; its probabilities arrive in steps of 0.01. With the
 `fewshot` prompt 118 score 1.00 and 5 of those are wrong, and the 5% threshold is 0.93.
@@ -571,11 +577,19 @@ instruction before it, to measure what that instruction adds to the UltraBERT-Em
 | `confusable` | UltraBERT-Embed-150M + LR | contrast (`gemma4:e4b`)  | 0.8375 | 0.8353 | 0.0109 |
 | `confusable` | UltraBERT-Embed-150M + LR | real Banking77 train     | 0.9575 | 0.9576 | 0.0109 |
 | `confusable` | UltraBERT-Embed-150M + LR | real Banking77 train minus dev | 0.9525 | 0.9526 | 0.0102 |
-| `confusable` | UltraBERT-Embed-150M + LR | 50 of real train minus dev     | 0.8900 | 0.8893 | 0.0101 |
-| `confusable` | UltraBERT-Embed-150M + LR | 100 of real train minus dev    | 0.9250 | 0.9252 | 0.00995 |
-| `confusable` | UltraBERT-Embed-150M + LR | 200 of real train minus dev    | 0.9200 | 0.9199 | 0.00973 |
-| `confusable` | UltraBERT-Embed-150M + LR | 400 of real train minus dev    | 0.9325 | 0.9325 | 0.0100 |
-| `confusable` | UltraBERT-Embed-150M + LR | 795 of real train minus dev    | 0.9475 | 0.9477 | 0.0100 |
+| `confusable` | UltraBERT-Embed-150M + LR | 50 of real train minus dev, seed 0 | 0.8900 | 0.8893 | 0.0101 |
+| `confusable` | UltraBERT-Embed-150M + LR | 100 of real train minus dev, seed 0 | 0.9250 | 0.9252 | 0.00995 |
+| `confusable` | UltraBERT-Embed-150M + LR | 200 of real train minus dev, seed 0 | 0.9200 | 0.9199 | 0.00973 |
+| `confusable` | UltraBERT-Embed-150M + LR | 400 of real train minus dev, seed 0 | 0.9325 | 0.9325 | 0.0100 |
+| `confusable` | UltraBERT-Embed-150M + LR | 795 of real train minus dev, seed 0 | 0.9475 | 0.9477 | 0.0100 |
+| `confusable` | UltraBERT-Embed-150M + LR | 50 of real train minus dev, seed 1 | 0.8825 | 0.8823 | 0.0102 |
+| `confusable` | UltraBERT-Embed-150M + LR | 100 of real train minus dev, seed 1 | 0.9250 | 0.9251 | 0.0100 |
+| `confusable` | UltraBERT-Embed-150M + LR | 200 of real train minus dev, seed 1 | 0.9400 | 0.9400 | 0.00981 |
+| `confusable` | UltraBERT-Embed-150M + LR | 400 of real train minus dev, seed 1 | 0.9375 | 0.9376 | 0.0101 |
+| `confusable` | UltraBERT-Embed-150M + LR | 50 of real train minus dev, seed 2 | 0.8350 | 0.8267 | 0.0100 |
+| `confusable` | UltraBERT-Embed-150M + LR | 100 of real train minus dev, seed 2 | 0.9075 | 0.9075 | 0.0100 |
+| `confusable` | UltraBERT-Embed-150M + LR | 200 of real train minus dev, seed 2 | 0.9225 | 0.9226 | 0.0100 |
+| `confusable` | UltraBERT-Embed-150M + LR | 400 of real train minus dev, seed 2 | 0.9250 | 0.9251 | 0.0100 |
 | `confusable` | UltraBERT-Embed-150M + LR, no prompt | synthetic (`gemma4:e4b`) | 0.8275 | 0.8245 | 0.0100 |
 | `confusable` | UltraBERT-Embed-150M + LR, no prompt | real Banking77 train     | 0.9325 | 0.9326 | 0.0102 |
 | `confusable` | `gemma4:e4b`             | `definitions` prompt     | 0.9125   | 0.9126   | 0.63    |
@@ -660,11 +674,19 @@ minute is in seconds.
 | `confusable` | UltraBERT-Embed-150M + LR | diagnosed (`gemma4:e4b`) | 1000 | 5.50 s  |
 | `confusable` | UltraBERT-Embed-150M + LR | real Banking77 train     | 1284 | 6.52 s  |
 | `confusable` | UltraBERT-Embed-150M + LR | real Banking77 train minus dev | 1084 | 7.50 s  |
-| `confusable` | UltraBERT-Embed-150M + LR | 50 of real train minus dev     | 50   | 5.01 s  |
-| `confusable` | UltraBERT-Embed-150M + LR | 100 of real train minus dev    | 100  | 2.92 s  |
-| `confusable` | UltraBERT-Embed-150M + LR | 200 of real train minus dev    | 200  | 3.15 s  |
-| `confusable` | UltraBERT-Embed-150M + LR | 400 of real train minus dev    | 400  | 3.65 s  |
-| `confusable` | UltraBERT-Embed-150M + LR | 795 of real train minus dev    | 795  | 4.69 s  |
+| `confusable` | UltraBERT-Embed-150M + LR | 50 of real train minus dev, seed 0 | 50   | 5.01 s  |
+| `confusable` | UltraBERT-Embed-150M + LR | 100 of real train minus dev, seed 0 | 100  | 2.92 s  |
+| `confusable` | UltraBERT-Embed-150M + LR | 200 of real train minus dev, seed 0 | 200  | 3.15 s  |
+| `confusable` | UltraBERT-Embed-150M + LR | 400 of real train minus dev, seed 0 | 400  | 3.65 s  |
+| `confusable` | UltraBERT-Embed-150M + LR | 795 of real train minus dev, seed 0 | 795  | 4.69 s  |
+| `confusable` | UltraBERT-Embed-150M + LR | 50 of real train minus dev, seed 1 | 50   | 5.25 s  |
+| `confusable` | UltraBERT-Embed-150M + LR | 100 of real train minus dev, seed 1 | 100  | 2.76 s  |
+| `confusable` | UltraBERT-Embed-150M + LR | 200 of real train minus dev, seed 1 | 200  | 3.04 s  |
+| `confusable` | UltraBERT-Embed-150M + LR | 400 of real train minus dev, seed 1 | 400  | 3.55 s  |
+| `confusable` | UltraBERT-Embed-150M + LR | 50 of real train minus dev, seed 2 | 50   | 2.68 s  |
+| `confusable` | UltraBERT-Embed-150M + LR | 100 of real train minus dev, seed 2 | 100  | 3.06 s  |
+| `confusable` | UltraBERT-Embed-150M + LR | 200 of real train minus dev, seed 2 | 200  | 3.21 s  |
+| `confusable` | UltraBERT-Embed-150M + LR | 400 of real train minus dev, seed 2 | 400  | 3.74 s  |
 | `confusable` | UltraBERT-Embed-150M + LR, no prompt | synthetic (`gemma4:e4b`) | 1000 | 4.60 s  |
 | `confusable` | UltraBERT-Embed-150M + LR, no prompt | real Banking77 train     | 1284 | 5.57 s  |
 | `confusable` | Gemma 4 E4B (MLX) + LoRA | synthetic (`gemma4:e4b`) | 1000 | 13.6    |
@@ -767,24 +789,28 @@ python score.py --set $S --mlx $M --adapter models/$S/gemma-4-e4b-lora-real
 D=results/confusable/confidence/dumps   # confusable only
 python score.py --set confusable --write-train data/confusable/banking77_train_nodev.jsonl --no-dev
 python train.py --set confusable --train data/confusable/banking77_train_nodev.jsonl --out models/confusable/ultrabert-embed-real-nodev --embed
-# The label curve: per class in CLASS_SETS order, that class's rows shuffled with random.Random(0)
-# and the first k kept, k = 5, 10, 20, 40, 80.
+# The label curve: per class in CLASS_SETS order, that class's rows shuffled with
+# random.Random(seed) and the first k kept; seed 0 has no suffix and also draws k = 80.
 python -c '
 import json, random
 from classes import CLASS_SETS
 rows = [json.loads(l) for l in open("data/confusable/banking77_train_nodev.jsonl")]
-by = {}
-for name in CLASS_SETS["confusable"]:
-    by[name] = [r for r in rows if r["label"] == name]
-    random.Random(0).shuffle(by[name])
-for k in (5, 10, 20, 40, 80):
-    with open(f"data/confusable/banking77_train_nodev_{10 * k}.jsonl", "w") as f:
-        f.writelines(json.dumps(r) + "\n" for name in by for r in by[name][:k])
+for seed, ks in ((0, (5, 10, 20, 40, 80)), (1, (5, 10, 20, 40)), (2, (5, 10, 20, 40))):
+    by = {}
+    for name in CLASS_SETS["confusable"]:
+        by[name] = [r for r in rows if r["label"] == name]
+        random.Random(seed).shuffle(by[name])
+    for k in ks:
+        suffix = f"_s{seed}" if seed else ""
+        with open(f"data/confusable/banking77_train_nodev_{10 * k}{suffix}.jsonl", "w") as f:
+            f.writelines(json.dumps(r) + "\n" for name in by for r in by[name][:k])
 '
-for k in 50 100 200 400 800; do
-  python train.py --set confusable --train data/confusable/banking77_train_nodev_$k.jsonl --out models/confusable/ultrabert-embed-real-nodev-$k --embed
+for n in ultrabert-embed-real-nodev-{50,100,200,400,800} ultrabert-embed-real-nodev-{50,100,200,400}-s{1,2}; do
+  k=${n#ultrabert-embed-real-nodev-}; k=${k/-s/_s}
+  python train.py --set confusable --train data/confusable/banking77_train_nodev_$k.jsonl --out models/confusable/$n --embed
 done
-for n in tfidf-diagnosed modernbert-diagnosed ultrabert-embed-synthetic ultrabert-embed-diagnosed ultrabert-embed-real-nodev ultrabert-embed-real-nodev-{50,100,200,400,800}; do
+for n in tfidf-diagnosed modernbert-diagnosed ultrabert-embed-synthetic ultrabert-embed-diagnosed ultrabert-embed-real-nodev \
+         ultrabert-embed-real-nodev-{50,100,200,400,800} ultrabert-embed-real-nodev-{50,100,200,400}-s{1,2}; do
   python score.py --set confusable --split dev --model models/confusable/$n --dump $D/$n-dev.jsonl
   python score.py --set confusable             --model models/confusable/$n --dump $D/$n-test.jsonl
 done
