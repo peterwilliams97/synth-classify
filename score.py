@@ -6,10 +6,12 @@ optionally a LoRA adapter trained by finetune.py (`--mlx`, `--adapter`; with `--
 adapter and the class read off the letter logits of one forward pass, with `--prompt` `definitions`, the
 default, or `fewshot`), or the Laya decision model
 zero-shot with one of llm.py's `LAYA_PROMPTS` (`--laya`, `--prompt`), or TypeSafe's System One API
-asked jev.py's question (`--jev`, `--prompt`, default `definitions`). `--split test` is the
+asked jev.py's question (`--jev`, `--prompt`, default `definitions`), or a Decision 3.0 model such
+as `vllm-sr/d3-flash` run locally and asked the same question (`--d3`, `--prompt`, default
+`definitions`; d3.py, in `.venv-d3`). `--split test` is the
 Banking77 test split; `--split dev` is `dev_and_shots`' sample of the train split, which is what
 prompts are chosen on; `--split rest` is the rows of data/<set>/banking77_train_nodev.jsonl that
-are not in `--train-file`, for a `--model` trained on a subset of that file, or for `--jev` or
+are not in `--train-file`, for a `--model` trained on a subset of that file, or for `--jev`, `--d3` or
 `--mlx --reply logits`, which were trained on none of it; with `--prompt fewshot` the rows that are
 `fewshot` examples are left out. `--dump` also writes each message's probability over the class set, for
 confidence.py; it refuses `--llm` and `--mlx` without `--reply logits`, which give a class and no
@@ -32,6 +34,7 @@ from datasets import load_dataset
 from sklearn.metrics import accuracy_score, confusion_matrix, f1_score, recall_score
 
 from classes import CLASS_SETS
+from d3 import D3_PROMPTS, classify_d3
 from jev import DOLLARS_PER_MILLION_TOKENS, JEV_PROMPTS, classify_jev
 from llm import (
     LAYA_MODEL,
@@ -228,7 +231,8 @@ def main():
     ap.add_argument("--llm", metavar="MODEL", help="Ollama model to score in place of --model")
     ap.add_argument("--laya", action="store_true", help="score the Laya decision model zero-shot")
     ap.add_argument("--jev", action="store_true", help="score TypeSafe System One, jev.py")
-    ap.add_argument("--prompt", choices=list(PROMPTS), help="required with --llm and --laya; --jev and --reply logits default to definitions")
+    ap.add_argument("--d3", metavar="MODEL", help="Decision 3.0 model to score, d3.py")
+    ap.add_argument("--prompt", choices=list(PROMPTS), help="required with --llm and --laya; --jev, --d3 and --reply logits default to definitions")
     ap.add_argument("--mlx", metavar="MODEL", help=f"mlx-lm model to score, {MLX_PROMPT} prompt")
     ap.add_argument("--adapter", metavar="DIR", help="LoRA adapter from finetune.py, with --mlx")
     ap.add_argument(
@@ -260,19 +264,21 @@ def main():
             for text, label in zip(texts, labels):
                 f.write(json.dumps({"text": text, "label": names[label]}) + "\n")
         print(f"wrote {len(texts)} rows to {args.write_train}", file=sys.stderr)
-    if bool(args.model) + bool(args.llm) + bool(args.mlx) + args.laya + args.jev != 1:
-        if args.write_train and not (args.model or args.llm or args.mlx or args.laya or args.jev):
+    if bool(args.model) + bool(args.llm) + bool(args.mlx) + args.laya + args.jev + bool(args.d3) != 1:
+        if args.write_train and not (args.model or args.llm or args.mlx or args.laya or args.jev or args.d3):
             return
-        ap.error("give exactly one of --model, --llm, --mlx, --laya and --jev, or --write-train alone")
+        ap.error("give exactly one of --model, --llm, --mlx, --laya, --jev and --d3, or --write-train alone")
     logits = args.mlx and args.reply == "logits"
-    if (args.jev or logits) and not args.prompt:
+    if (args.jev or args.d3 or logits) and not args.prompt:
         args.prompt = "definitions"
-    if bool(args.llm or args.laya or args.jev or logits) != bool(args.prompt):
-        ap.error("--prompt goes with --llm, --laya, --jev or --reply logits, and --llm and --laya need it")
+    if bool(args.llm or args.laya or args.jev or args.d3 or logits) != bool(args.prompt):
+        ap.error("--prompt goes with --llm, --laya, --jev, --d3 or --reply logits, and --llm and --laya need it")
     if logits and args.prompt not in ("definitions", "fewshot"):
         ap.error("--reply logits takes --prompt definitions or fewshot")
     if args.jev and args.prompt not in JEV_PROMPTS:
         ap.error(f"--jev takes --prompt {' or '.join(JEV_PROMPTS)}")
+    if args.d3 and args.prompt not in D3_PROMPTS:
+        ap.error(f"--d3 takes --prompt {' or '.join(D3_PROMPTS)}")
     if args.laya and args.prompt not in LAYA_PROMPTS:
         ap.error(f"--laya takes --prompt {' or '.join(LAYA_PROMPTS)}")
     if args.adapter and not args.mlx:
@@ -280,11 +286,11 @@ def main():
     if args.reply == "logits" and (not args.mlx or args.adapter):
         ap.error("--reply logits needs --mlx and takes no --adapter")
     if args.dump and (args.llm or (args.mlx and args.reply != "logits")):
-        ap.error("--dump needs probabilities: --model, --laya, --jev or --mlx --reply logits")
+        ap.error("--dump needs probabilities: --model, --laya, --jev, --d3 or --mlx --reply logits")
     if (args.split == "rest") != bool(args.train_file):
         ap.error("--split rest and --train-file go together")
-    if args.split == "rest" and not (args.model or args.jev or logits):
-        ap.error("--split rest scores a --model, --jev or --mlx --reply logits only")
+    if args.split == "rest" and not (args.model or args.jev or args.d3 or logits):
+        ap.error("--split rest scores a --model, --jev, --d3 or --mlx --reply logits only")
 
     shots = None
     if args.split == "dev":
@@ -316,6 +322,14 @@ def main():
         probs = [v[p] for v, p in zip(vectors, preds)]
         seconds = [s for _, _, s, _, _ in answers]
         tokens = [t for *_, t, _ in answers]
+    elif args.d3:
+        classifier = f"{args.d3} prompt {args.prompt}"
+        stem = f"{os.path.basename(os.path.normpath(args.d3))}-{args.prompt}"
+        answers = classify_d3(texts, ids, args.set, args.prompt, shots, args.d3)
+        preds = [names.index(label) for label, _, _ in answers]
+        vectors = [v for _, v, _ in answers]
+        probs = [v[p] for v, p in zip(vectors, preds)]
+        seconds = [s for _, _, s in answers]
     elif args.laya:
         classifier = f"{LAYA_MODEL} prompt {args.prompt}"
         stem = f"laya-{args.prompt}"

@@ -1,4 +1,5 @@
 .venv/
+.venv-d3/
 __pycache__/
 
 # Downloads, exports and model outputs; the generated training sets are the tracked artifacts.

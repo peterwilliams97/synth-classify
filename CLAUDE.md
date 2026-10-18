@@ -14,10 +14,11 @@ README tables; its `data/pair/synthetic.jsonl` is written by `results/pair/filte
 prompted with the class list (`llm.py`) are scored beside the trained ones, and so is an mlx-lm copy
 of Gemma 4 E4B with and without a LoRA adapter (`finetune.py`), the `convaiinnovations/laya`
 decision model zero-shot (`score.py --laya`), TypeSafe's System One API (`jev.py`,
-`score.py --jev`), and logistic regression on frozen
+`score.py --jev`), vLLM Semantic Router's `vllm-sr/d3-flash` decision model run locally (`d3.py`,
+`score.py --d3`), and logistic regression on frozen
 `dmis-lab/UltraBERT-Embed-150M` embeddings (`train.py --embed`). `confidence.py` asks whether a
 classifier's top probability can route messages, from `score.py --dump` files of dev and test,
-for the README's coverage tables. Eight scripts, a `README.md` that states the aim as three
+for the README's coverage tables. Nine scripts, a `README.md` that states the aim as three
 questions and answers them in three tables, and `docs/details.md`, which keeps the full method,
 the answers to questions 2 and 3 and the three full tables (test, dev, training minutes) under All
 results. All Python
@@ -42,6 +43,7 @@ S=distinct   # or confusable; every script takes --set, default distinct
 .venv/bin/python score.py --set $S --mlx mlx-community/gemma-4-e4b-it-4bit --adapter models/$S/gemma-4-e4b-lora-synthetic
 .venv/bin/python score.py --set $S --split dev --laya --prompt names   # ~10 s; not in the sandbox
 .venv/bin/python score.py --set $S --split dev --jev --dump results/$S/confidence/dumps/jev-definitions-dev.jsonl   # needs TYPESAFE_API_KEY
+.venv-d3/bin/python score.py --set $S --d3 vllm-sr/d3-flash --prompt fewshot --dump results/$S/confidence/dumps/d3-flash-fewshot-test.jsonl   # MPS; not in the sandbox
 D=results/$S/confidence/dumps
 .venv/bin/python score.py --set $S --split dev --model models/$S/tfidf-diagnosed --dump $D/tfidf-diagnosed-dev.jsonl
 .venv/bin/python score.py --set $S --model models/$S/tfidf-diagnosed --dump $D/tfidf-diagnosed-test.jsonl
@@ -50,7 +52,7 @@ D=results/$S/confidence/dumps
 
 `confidence.py` writes `results/$S/confidence/<name>.txt`; the dumps under
 `results/confusable/confidence/dumps/` are tracked, as the inputs those reports were computed from.
-`--dump` takes `--model`, `--laya`, `--jev` and `--mlx --reply logits`, the classifiers that give a
+`--dump` takes `--model`, `--laya`, `--jev`, `--d3` and `--mlx --reply logits`, the classifiers that give a
 probability over the class set, and refuses `--llm` and `--mlx` without `--reply logits`.
 
 Adding `--no-prompt` to the `--embed` line, with `--out models/$S/ultrabert-embed-noprompt-synthetic`,
@@ -60,7 +62,8 @@ gives the model without the instruction prefix. The same `train.py` lines with
 `<name>` is the model directory name, or for `--llm` the Ollama model with `:` replaced by `-`, then
 `-<prompt>`, or for `--mlx` the adapter directory name, and without `--adapter` the last component
 of the mlx-lm model then `-definitions`, and `-<prompt>-logits` with `--reply logits`, which takes `--prompt definitions` or `fewshot` and no
-`--adapter`, or for `--laya` `laya-<prompt>`, or for `--jev` `jev-<prompt>`. `train.py` and
+`--adapter`, or for `--laya` `laya-<prompt>`, or for `--jev` `jev-<prompt>`, or for `--d3` the
+last component of the model id then `-<prompt>`, `d3-flash-<prompt>` for `vllm-sr/d3-flash`. `train.py` and
 `finetune.py` write the minutes a run took, or the seconds if under a minute, to `results/$S/train/<name>.txt`, `<name>` being the `--out`
 directory name. A ModernBERT fine-tune is 1.6 to 2.0 minutes on MPS, a LoRA adapter 8 to 18; the
 TF-IDF model is under a second, an `--embed` model about 6 seconds. An LLM run is one
@@ -142,17 +145,24 @@ in `refs/main`, which is the layout `HF_HUB_OFFLINE=1` loads from.
   The question is `jev_question` (`jev.py`): `laya_question` with `definitions`, Laya's, or for
   `fewshot` the same options with each definition followed by the `dev_and_shots` examples.
   `DOLLARS_PER_MILLION_TOKENS` (`jev.py`) prices billed input tokens on the report's `dollars` line.
+- **A `--d3` report is computed from results/d3/<set>.jsonl** the same way: `classify_d3` (`d3.py`)
+  caches each `system_one` response under the message id, the `--prompt` and the model id, with the
+  seconds the call took, and reuses a row while `REVISIONS` (`d3.py`) and `jev_question` are
+  unchanged, so a re-run loads no model. It is asked `jev_question`, not a copy of it. The model's
+  code needs transformers 5.17.0, so `--d3` runs in `.venv-d3`, made from `requirements-d3.txt`;
+  `requirements.txt` stays as it is. It runs on MPS in bfloat16 and exits if MPS is unavailable,
+  so it does not run in the sandbox.
 - **dev is drawn from the train split, so `--split dev --model` is valid only for a model trained
   on a synthetic file or on `data/<set>/banking77_train_nodev.jsonl`**, which `score.py
   --write-train --no-dev` writes without the dev rows. A model trained on
   `data/<set>/banking77_train.jsonl` saw the dev rows;
-  `--split dev --model` runs on it, and the number means nothing. `--llm`, `--laya`, `--jev` and models
+  `--split dev --model` runs on it, and the number means nothing. `--llm`, `--laya`, `--jev`, `--d3` and models
   trained on `data/<set>/synthetic*.jsonl` saw none of them. The same holds for `confidence.py`,
   which fits its isotonic calibration and its routing thresholds on the dev dump: for a
   real-trained model they would be fitted on rows it was trained on, so it is not run on one.
   `--split rest --train-file F` is the exception that keeps this: the rows of
   `banking77_train_nodev.jsonl` not in `F`, valid for a model trained on `F` alone and for
-  `--jev` and `--mlx --reply logits`, which with `--prompt fewshot` also leave out the `fewshot`
+  `--jev`, `--d3` and `--mlx --reply logits`, which with `--prompt fewshot` also leave out the `fewshot`
   examples, and
   `confidence.py --dev-size` draws its dev from that dump for the dev-size table under question 3 in `docs/details.md`.
 - **Seconds per message are one message per call**, in `predict` (`score.py`) as in `classify`
