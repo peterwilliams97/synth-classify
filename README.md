@@ -12,12 +12,20 @@ The data is [Banking77](https://huggingface.co/datasets/mteb/banking77), custome
 bank, restricted to the `confusable` class set: 10 categories in 5 pairs, the two in a pair sharing
 a topic, such as `verify_my_identity` / `why_verify_identity`. Test is its 400 Banking77 test
 messages, train 1084 Banking77 train messages and validation 200 more; below, validation is 400 rows
-drawn from the train rows a classifier was not trained on. A classifier labels a message with no
-human check when its top probability is at least a threshold: the lowest validation probability at
-which the one-sided 90% Clopper-Pearson upper bound on the validation error above it is at most α,
-0.05. The plain threshold, set on the validation error itself, is not used because it does not hold
-its target: its test error is over 5% in 12 of 36 runs, against 1 of the 28 in which the bound keeps
-a message.
+drawn from the train rows a classifier was not trained on.
+
+Every classifier here gives each message a probability for each of the 10 categories, summing to 1.
+Its label is the category with the highest probability, and that highest probability is the
+message's score. The score is what routing uses: a message whose score is at or above a threshold is
+labelled on its own, one below it goes to a person. So a classifier that returns a label and no
+probabilities, such as an Ollama model with a restricted reply, cannot be routed and is not in the
+tables below.
+
+A classifier labels a message with no human check when its score is at least a threshold: the
+lowest validation probability at which the one-sided 90% Clopper-Pearson upper bound on the
+validation error above it is at most α, 0.05. The plain threshold, set on the validation error
+itself, is not used because it does not hold its target: its test error is over 5% in 12 of 36
+runs, against 1 of the 28 in which the bound keeps a message.
 
 **Fraction of messages labelled with no human check, certified under 5% error, 400 validation rows**
 
@@ -136,7 +144,7 @@ The 30- to 400-row cells are the mean, then the min–max, over 3 training draws
   message's probability over the class set, for `--model`, `--laya`, `--jev`, `--d3` and `--mlx
   --reply logits`.
 - `confidence.py` — from a classifier's validation (`--dev`) and test `--dump` files: AUROC of the
-  top probability against correctness, ECE before and after isotonic calibration fitted on
+  score against correctness, ECE before and after isotonic calibration fitted on
   validation, and test coverage and error at thresholds chosen on validation for α 0.02, 0.05 and
   0.10, with and without a Clopper-Pearson bound, written to `results/<set>/confidence/<name>.txt`.
   `--dev-size N --dev-seed S` fits on N rows of the validation file, N / 10 per class, drawn with
