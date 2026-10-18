@@ -154,7 +154,7 @@ itself.
 | TypeSafe System One              | not trained                                        | `fewshot`     | 0.8214 | 0.0452                         | 0.8850                  | 0.0311               | 0.0000                                  | —                                    |
 
 The plain threshold is not quoted outside the tables, because it does not hold its target: in the
-27 validation-size runs under question 3 its test error is over 5% in 12, against 1 of the 21 runs
+36 validation-size runs under question 3 its test error is over 5% in 12, against 1 of the 28 runs
 in which the bound keeps any message.
 
 Three kinds of classifier are not in the table. The Ollama models return a category name and no
@@ -284,15 +284,26 @@ under the bound is over the runs that keep any test message, counted in brackets
 
 | Validation rows | Test coverage at α 0.05 | Test error at α 0.05   | Test coverage under the Clopper-Pearson bound | Test error under the Clopper-Pearson bound |
 |-----------------|-------------------------|------------------------|-----------------------------------------------|--------------------------------------------|
+| **UltraBERT-Embed-150M + LR, 400-row models, 9 runs per N** | | | | |
 | 100             | 0.8906 (0.7200–1.0000)  | 0.0396 (0.0174–0.0750) | 0.3342 (0.0000–0.9750)                        | 0.0261 (0.0113–0.0641), 4 runs             |
 | 200             | 0.9486 (0.8100–0.9975)  | 0.0542 (0.0309–0.0641) | 0.7142 (0.0000–0.9450)                        | 0.0246 (0.0137–0.0450), 8 runs             |
 | 400 (395)       | 0.9500 (0.8675–1.0000)  | 0.0518 (0.0375–0.0662) | 0.8500 (0.7200–0.9300)                        | 0.0300 (0.0168–0.0490), 9 runs             |
+| **TypeSafe System One, `fewshot`, 3 runs per N** | | | | |
+| 100             | 0.8267 (0.6325–0.9575)  | 0.0299 (0.0119–0.0470) | 0.2825 (0.0000–0.8475)                        | 0.0265, 1 run                              |
+| 200             | 0.9183 (0.8300–0.9650)  | 0.0401 (0.0241–0.0492) | 0.8025 (0.6325–0.9350)                        | 0.0263 (0.0119–0.0401), 3 runs             |
+| 400 (394)       | 0.9308 (0.8850–0.9575)  | 0.0401 (0.0311–0.0470) | 0.8658 (0.8400–0.9100)                        | 0.0297 (0.0265–0.0357), 3 runs             |
 
 More validation rows raise the coverage under the bound, from 0.3342 at 100 to 0.8500 at 395, and
 narrow its range. At 100 validation rows the bound keeps nothing in 5 of 9
 runs, at 200 in 1, at 400 in none. Under the bound, test error stays under 0.05 in every run that
 keeps a message but one, 0.0641 at N = 100. Each run's report is
 `results/confusable/confidence/ultrabert-embed-real-nodev-400[-s<seed>]-dev<N>-ds<validation seed>.txt`.
+
+TypeSafe System One's rest is the 684 rows of the seed-0 400-row model's rest less the 15 that are
+`fewshot` examples, 669 rows, and under the bound it keeps test messages in every run with 200 or
+more validation rows, 0.8025 of them at 200 and 0.8658 at 394, at a test error of at most 0.0401,
+where on the 200 validation messages of question 1 it keeps none
+(`results/confusable/confidence/jev-fewshot-dev<N>-ds<validation seed>.txt`).
 
 The diagnosed notes did not help every classifier equally. From the synthetic set to the diagnosed
 set, UltraBERT-Embed-150M + logistic regression went from 61 errors to 35. ModernBERT-base went
@@ -760,7 +771,8 @@ adapter carries the whole prompt.
   train split; the `fewshot` examples are train messages outside validation. `--write-train` exports
   train + validation as jsonl, and with `--no-dev` leaves out the 200 validation rows, giving train.
   `--split rest --train-file JSONL` is the rows of `data/<set>/banking77_train_nodev.jsonl` not in
-  `JSONL`, for a `--model` trained on a subset of it. `--dump FILE` also writes each message's
+  `JSONL`, for a `--model` trained on a subset of it, or for `--jev`, less the `fewshot` examples
+  with `--prompt fewshot`. `--dump FILE` also writes each message's
   probability over the class set, for `--model`, `--laya`, `--jev` and `--mlx --reply logits`.
 - `confidence.py` — from a classifier's validation (`--dev`) and test `--dump` files: AUROC of the
   top probability against correctness, ECE before and after isotonic calibration fitted on
@@ -868,6 +880,12 @@ for s in "" -s1 -s2; do
       --test $D/$m-test.jsonl --dev-size $n --dev-seed $d
   done; done
 done
+python score.py --set confusable --split rest --train-file data/confusable/banking77_train_nodev_400.jsonl \
+  --jev --prompt fewshot --dump $D/jev-fewshot-rest.jsonl
+for n in 100 200 400; do for d in 0 1 2; do
+  python confidence.py --set confusable --model-name jev-fewshot-dev$n-ds$d --dev $D/jev-fewshot-rest.jsonl \
+    --test $D/jev-fewshot-test.jsonl --dev-size $n --dev-seed $d
+done; done
 ```
 
 `train.py` and `finetune.py` also write the minutes a run took, or the seconds if under a minute,

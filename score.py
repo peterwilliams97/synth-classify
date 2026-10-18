@@ -9,7 +9,9 @@ zero-shot with one of llm.py's `LAYA_PROMPTS` (`--laya`, `--prompt`), or TypeSaf
 asked jev.py's question (`--jev`, `--prompt`, default `definitions`). `--split test` is the
 Banking77 test split; `--split dev` is `dev_and_shots`' sample of the train split, which is what
 prompts are chosen on; `--split rest` is the rows of data/<set>/banking77_train_nodev.jsonl that
-are not in `--train-file`, for a `--model` trained on a subset of that file. `--dump` also writes each message's probability over the class set, for
+are not in `--train-file`, for a `--model` trained on a subset of that file, or for `--jev`, which
+was trained on none of it; with `--prompt fewshot` the rows that are `fewshot` examples are left
+out. `--dump` also writes each message's probability over the class set, for
 confidence.py; it refuses `--llm` and `--mlx` without `--reply logits`, which give a class and no
 probabilities. A `--jev` report also gives the input tokens per message and their price.
 
@@ -81,10 +83,11 @@ def dev_and_shots(names):
 
 
 def rest(set_name, train_file, names):
-    """rest returns the texts and label indices of the rows of data/<set>/banking77_train_nodev.jsonl
-    that are not in `train_file`, so a model trained on a subset of that file has its routing
-    threshold set on rows it did not see. Rows match on text and label; exits if a `train_file` row
-    is not in the file."""
+    """rest returns the texts, label indices and ids of the rows of
+    data/<set>/banking77_train_nodev.jsonl that are not in `train_file`, so a model trained on a
+    subset of that file has its routing threshold set on rows it did not see. Rows match on text and
+    label; exits if a `train_file` row is not in the file. An id is the row's `banking77` train id,
+    which `classify_jev` caches under."""
     def read(path):
         with open(path) as f:
             return [(r["text"], r["label"]) for r in map(json.loads, f)]
@@ -93,7 +96,13 @@ def rest(set_name, train_file, names):
     if missing := train - set(every):
         sys.exit(f"{train_file}: {len(missing)} rows not in banking77_train_nodev.jsonl")
     kept = [(text, label) for text, label in every if (text, label) not in train]
-    return [text for text, _ in kept], [names.index(label) for _, label in kept]
+    texts, labels, ids = banking77("train", names)
+    by_row = {(text, names[label]): mid for text, label, mid in zip(texts, labels, ids)}
+    return (
+        [text for text, _ in kept],
+        [names.index(label) for _, label in kept],
+        [by_row[row] for row in kept],
+    )
 
 
 def predict(model_dir, texts, names):
@@ -214,7 +223,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--set", choices=list(CLASS_SETS), default="distinct")
     ap.add_argument("--split", choices=["dev", "test", "rest"], default="test")
-    ap.add_argument("--train-file", metavar="JSONL", help="with --split rest: the file --model was trained on")
+    ap.add_argument("--train-file", metavar="JSONL", help="with --split rest: the file whose rows are left out")
     ap.add_argument("--model", help="directory written by train.py")
     ap.add_argument("--llm", metavar="MODEL", help="Ollama model to score in place of --model")
     ap.add_argument("--laya", action="store_true", help="score the Laya decision model zero-shot")
@@ -274,14 +283,21 @@ def main():
         ap.error("--dump needs probabilities: --model, --laya, --jev or --mlx --reply logits")
     if (args.split == "rest") != bool(args.train_file):
         ap.error("--split rest and --train-file go together")
-    if args.split == "rest" and not args.model:
-        ap.error("--split rest scores a --model only")
+    if args.split == "rest" and not (args.model or args.jev):
+        ap.error("--split rest scores a --model or --jev only")
 
     shots = None
     if args.split == "dev":
         texts, gold, shots, ids = dev_and_shots(names)
     elif args.split == "rest":
-        texts, gold = rest(args.set, args.train_file, names)
+        texts, gold, ids = rest(args.set, args.train_file, names)
+        if args.prompt == "fewshot":
+            # An example is in the question, so its row would be scored with its own answer given.
+            _, _, shots, _ = dev_and_shots(names)
+            examples = {text for group in shots.values() for text in group}
+            keep = [i for i, text in enumerate(texts) if text not in examples]
+            print(f"left out {len(texts) - len(keep)} rows that are fewshot examples", file=sys.stderr)
+            texts, gold, ids = [texts[i] for i in keep], [gold[i] for i in keep], [ids[i] for i in keep]
     else:
         texts, gold, ids = banking77("test", names)
         if args.prompt == "fewshot":
