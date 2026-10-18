@@ -16,14 +16,18 @@ The short answers, on the 400 Banking77 test messages of the `confusable` class 
 
 1. UltraBERT-Embed-150M + logistic regression trained on train, 1084 real messages, with the 200
    validation messages setting its threshold, handles 86% of messages with no human check at 2.6%
-   error, with the threshold set under a Clopper-Pearson bound at 5% error. No other classifier
-   handles any message under that bound: not TypeSafe System One, an API, with either prompt, and
-   nothing trained on no real messages.
+   error, with the threshold set under a Clopper-Pearson bound at 5% error. Under that bound
+   TypeSafe System One, an API, with the `fewshot` prompt's 30 examples, certifies as much as
+   UltraBERT-Embed-150M + logistic regression trained on 400 to 1084 rows does at the same
+   validation size, at $54 per million messages and 0.53 s a message against free and 0.01 s.
+   Nothing trained on no real messages handles any message under it.
 2. UltraBERT-Embed-150M + logistic regression trained on train, 1084 real messages: 95%. TypeSafe
    System One with 30 real messages as examples: 94.5%. `gemma4:e4b` with the category definitions
    and no labels: 91%.
 3. 0 labels gets 91% accuracy and no safe automation; 30, as examples in System One's question,
-   gets 94.5%, and with the 200 validation labels that set the threshold still no message handled;
+   gets 94.5%, and with 200 validation labels to set the threshold its certified coverage matches
+   that of UltraBERT-Embed-150M + logistic regression trained on 400 to 1084 rows with 200, at $54
+   per million messages and 0.53 s a message against free and 0.01 s;
    200 gets 91% with no real messages to train on, and no message handled; 1084 to train on and 200
    to set the threshold get 95% and the 86% above.
 
@@ -105,8 +109,11 @@ is given, and is "—" for a classifier given none.
 - **TypeSafe System One**: `typesafe/jev-1.13`, an API reached through OpenRouter that picks one
   option from a list and gives a probability for each. It is asked Laya's question with the
   `definitions` prompt, one per message, or with the `fewshot` prompt: the same options, each
-  definition followed by the 30 examples the Ollama models see, 3 per category. It is not trained, and it does not run on the laptop. Under the
-  Clopper-Pearson bound at α 0.05 it keeps 0 test messages with either prompt.
+  definition followed by the 30 examples the Ollama models see, 3 per category. It is not trained,
+  and it does not run on the laptop. Under the Clopper-Pearson bound at α 0.05, with the `fewshot`
+  prompt, its certified coverage matches UltraBERT-Embed-150M + LR's at the same validation size,
+  with 30 examples against 400 to 1084 training rows, at $54 per million messages and 0.53 s a
+  message against free and 0.01 s.
 
 **Routing.** Routing keeps a classifier's label when the classifier's top probability is at least a
 threshold. A message below the threshold goes to a person. The threshold is the lowest validation
@@ -129,8 +136,11 @@ Every table in this section is on `confusable`.
 
 **Under the Clopper-Pearson bound at α 0.05, UltraBERT-Embed-150M + logistic regression trained on
 train labels 344 of the 400 test messages on its own, and 9 of those 344 are
-wrong.** No other classifier in the table labels any. TypeSafe System One labels 0 with either
-prompt.
+wrong.** No other classifier in the table labels any on these 200 validation messages. They are
+one draw of 200: on the validation-size table under question 3, TypeSafe System One with the
+`fewshot` prompt certifies as much as UltraBERT-Embed-150M + LR at the same validation size, with
+30 examples against 400 to 1084 training rows, at $54 per million messages and 0.53 s a message
+against free and 0.01 s.
 
 In the table, α is the error target. AUROC is the chance that a randomly chosen right answer gets a
 higher top probability than a randomly chosen wrong one. ECE is the mean gap between the top
@@ -195,8 +205,10 @@ Every classifier above 0.92 used real labelled examples. The Gemma 4 E4B (MLX) +
 trained on train + validation also used them, and stayed at 0.8575. The `fewshot` prompts of
 `gemma4:e4b` and `qwen3.6:27b-q4_K_M` come within 3 errors of ModernBERT-base trained on train +
 validation, and TypeSafe System One with the `fewshot` prompt makes 3 fewer; under the bound of
-question 1 it keeps 0 messages with either prompt. Every other LLM
-classifier makes at least 10 more errors than ModernBERT-base trained on train + validation.
+question 1 its certified coverage matches UltraBERT-Embed-150M + logistic regression's at the same
+validation size, with 30 examples against 400 to 1084 training rows, at $54 per million messages and
+0.53 s a message against free and 0.01 s. Every other LLM classifier makes at least 10 more errors
+than ModernBERT-base trained on train + validation.
 
 On `distinct`, the choice of classifier matters little. Every classifier in the test table under
 [All results](#all-results) scores 0.9799 to 0.9975 there. The two exceptions are TF-IDF + logistic
@@ -303,7 +315,9 @@ TypeSafe System One's rest is the 684 rows of the seed-0 400-row model's rest le
 `fewshot` examples, 669 rows, and under the bound it keeps test messages in every run with 200 or
 more validation rows, 0.8025 of them at 200 and 0.8658 at 394, at a test error of at most 0.0401,
 where on the 200 validation messages of question 1 it keeps none
-(`results/confusable/confidence/jev-fewshot-dev<N>-ds<validation seed>.txt`).
+(`results/confusable/confidence/jev-fewshot-dev<N>-ds<validation seed>.txt`). With 200 validation
+rows the bound's coverage ranges from 0 to 0.95 for both classifiers, with 400 it ranges from 0.72
+to 0.93.
 
 The diagnosed notes did not help every classifier equally. From the synthetic set to the diagnosed
 set, UltraBERT-Embed-150M + logistic regression went from 61 errors to 35. ModernBERT-base went
@@ -370,12 +384,14 @@ times ModernBERT-base's seconds per message. On `distinct`, a LoRA adapter takes
 training minutes. No file under `results/` records how long `generate.py` took to write a training
 set.
 
-TypeSafe System One's seconds include the round trip to OpenRouter; under the bound of question 1
-it keeps 0 messages with either prompt, so a person checks each one it labels. It is the one classifier
-billed per message: a mean of 787 input tokens per message at $0.042 per million input tokens is
-$33 per million messages, or $0.013 for the 400 (`results/confusable/test/jev-definitions.txt`).
-With the `fewshot` prompt it is a mean of 1294 input tokens, $54 per million messages, or $0.022
-for the 400 (`results/confusable/test/jev-fewshot.txt`).
+TypeSafe System One's seconds include the round trip to OpenRouter. Under the bound of question 1,
+with the `fewshot` prompt, its certified coverage matches UltraBERT-Embed-150M + logistic
+regression's at the same validation size, with 30 examples against 400 to 1084 training rows, at $54
+per million messages and 0.53 s a message against free and 0.01 s. It is the one classifier billed
+per message: a mean of 787 input tokens per message at $0.042 per million input tokens is $33 per
+million messages, or $0.013 for the 400 (`results/confusable/test/jev-definitions.txt`). With the
+`fewshot` prompt it is a mean of 1294 input tokens, $54 per million messages, or $0.022 for the 400
+(`results/confusable/test/jev-fewshot.txt`).
 
 ### What did not help
 
@@ -422,11 +438,13 @@ without the 200 validation rows, the same classifier scores 0.9525 and under the
 200 validation messages are too few to certify 5% error for most classifiers. At a 5% target the
 Clopper-Pearson bound admits no message for any classifier in question 1's table but
 UltraBERT-Embed-150M + logistic regression trained on train; of the label curve under question 3, it
-admits the 800 model and some draws at 100, 200 and 400. TypeSafe System One keeps 0 messages under
-the bound with either prompt. Its probabilities arrive in steps of 0.01, and its highest step holds
-wrong answers: with the `definitions` prompt 111 of the 200 validation messages score exactly 1.00
-and 7 of those are wrong, with the `fewshot` prompt 118 and 5. The bound on those 1.00 answers alone
-is over 5%, so no threshold qualifies.
+admits the 800 model and some draws at 100, 200 and 400. TypeSafe System One's probabilities arrive
+in steps of 0.01, and its highest step holds wrong answers: with the `definitions` prompt 111 of the
+200 validation messages score exactly 1.00 and 7 of those are wrong, with the `fewshot` prompt 118
+and 5. The bound on those 1.00 answers alone is over 5%, so on this draw no threshold qualifies. On
+three other draws of 200, with the `fewshot` prompt, its certified coverage matches
+UltraBERT-Embed-150M + logistic regression's at the same validation size, with 30 examples against
+400 to 1084 training rows, at $54 per million messages and 0.53 s a message against free and 0.01 s.
 
 The pairs are the whole difficulty. On `distinct` every classifier but two scores at least 0.9799.
 On `confusable` most errors of every classifier but one are inside a pair.
@@ -450,8 +468,10 @@ and 22 errors against ModernBERT-base's 25 are such a gap.
   labels 91% of those messages correctly, in about 0.01 s a message. Under the Clopper-Pearson bound
   at 5% error its threshold keeps none, so a person still checks every message.
 - With 30 hand labels as examples in its question, TypeSafe System One labels 94.5% correctly. With
-  the 200 validation labels to set the threshold, it keeps none under the bound, with either prompt.
-  It is an API billed per message, about $54 per million messages.
+  200 validation labels to set the threshold, its certified coverage under the bound matches
+  UltraBERT-Embed-150M + logistic regression's, trained on 400 to 1084 rows, at the same validation
+  size. It is an API billed per message, $54 per million messages and 0.53 s a message, against
+  free and 0.01 s.
 - With 1284 hand labels, 1084 in train and 200 in validation to set the threshold,
   UltraBERT-Embed-150M + logistic regression labels 95% of `confusable` test messages correctly. It
   labels 86% of them on its own under the bound, and 2.6% of the 86% are wrong.
