@@ -14,19 +14,18 @@ TypeSafe System One, an API billed per message.
 
 The short answers, on the 400 Banking77 test messages of the `confusable` class set:
 
-1. UltraBERT-Embed-150M + logistic regression trained on 1084 real messages, the real train set
-   minus the 200 dev messages that set its threshold, handles 86% of messages with no human check
-   at 2.6% error, with the threshold set under a Clopper-Pearson bound at 5% error. No other
-   classifier handles any message under that bound: not TypeSafe System One, an API, with either
-   prompt, and nothing trained on no real messages.
-2. UltraBERT-Embed-150M + logistic regression trained on 1284 real messages: 96%. TypeSafe System
-   One with 30 real messages as examples: 94.5%. `gemma4:e4b` with the category definitions and
-   no labels: 91%.
+1. UltraBERT-Embed-150M + logistic regression trained on train, 1084 real messages, with the 200
+   validation messages setting its threshold, handles 86% of messages with no human check at 2.6%
+   error, with the threshold set under a Clopper-Pearson bound at 5% error. No other classifier
+   handles any message under that bound: not TypeSafe System One, an API, with either prompt, and
+   nothing trained on no real messages.
+2. UltraBERT-Embed-150M + logistic regression trained on train, 1084 real messages: 95%. TypeSafe
+   System One with 30 real messages as examples: 94.5%. `gemma4:e4b` with the category definitions
+   and no labels: 91%.
 3. 0 labels gets 91% accuracy and no safe automation; 30, as examples in System One's question,
-   gets 94.5%, and with the 200 dev labels that set the threshold still no message handled; 200
-   gets 91% with no real messages to train on, and no message handled; 1084 to train on and 200
-   to set the threshold get 95% and the 86% above; all 1284 to train on get 96% and no coverage
-   figure.
+   gets 94.5%, and with the 200 validation labels that set the threshold still no message handled;
+   200 gets 91% with no real messages to train on, and no message handled; 1084 to train on and 200
+   to set the threshold get 95% and the 86% above.
 
 ## Aim
 
@@ -52,13 +51,14 @@ wrong. Accuracy does not say which 9%. So without coverage a person checks every
 
 ## Method
 
-**Test and dev.** The test set is the Banking77 test split restricted to one class set. It has 399
-messages for `distinct` and 400 for `confusable`. Each classifier is scored on it once. The dev set
-is 200 messages per class set, 20 per category, drawn from the Banking77 train split. Every choice
-made before a test run is made on dev. Those choices are the prompt, the notes that steer the
+**Train, validation and test.** The test set is the Banking77 test split restricted to one class
+set. It has 399 messages for `distinct` and 400 for `confusable`. Each classifier is scored on it
+once. The validation set is 200 messages per class set, 20 per category, drawn from the Banking77
+train split. The train set is the rest of that split. Every choice made before a test run is made on
+validation. Those choices are the prompt, the notes that steer the
 generator, and the routing threshold.
 
-**Training sets.** Three kinds are used.
+**Training sets.** Four kinds are used.
 
 - **synthetic**: 1000 messages, 100 per category. `gemma4:e4b`, a Gemma 4 LLM run locally with
   Ollama, wrote them. It was shown each category's name and one-sentence definition from
@@ -66,22 +66,24 @@ generator, and the routing threshold.
 - **diagnosed** (`confusable` only): 1000 messages from the same generator. Each request adds the
   definition of the other category in the pair. For one category in each pair, the request also
   adds a note saying what that category's messages must cover. That category is the one that loses
-  more dev messages to its partner. Those losses are counted from UltraBERT-Embed-150M + logistic
-  regression trained on the synthetic set. The generator sees no dev message. The 200 dev labels
-  reach it only as counts.
-- **real**: the Banking77 train rows of the class set. There are 1188 for `distinct` and 1284 for
-  `confusable`.
+  more validation messages to its partner. Those losses are counted from UltraBERT-Embed-150M +
+  logistic regression trained on the synthetic set. The generator sees no validation message. The
+  200 validation labels reach it only as counts.
+- **train**: the Banking77 train rows of the class set minus the 200 validation rows, 1084 for
+  `confusable`. A classifier trained on it can have its threshold set on validation.
+- **train + validation**: all the Banking77 train rows of the class set, 1188 for `distinct` and
+  1284 for `confusable`.
 
 **Classifiers.** Eight kinds are scored.
 
 - **TF-IDF + logistic regression**: logistic regression on word-frequency features. It is the
-  baseline. It is trained on a synthetic, diagnosed or real set.
+  baseline. It is trained on a synthetic, diagnosed or train + validation set.
 - **ModernBERT-base**: a text encoder, `answerdotai/ModernBERT-base`, fine-tuned in full on a
-  synthetic, diagnosed or real set.
+  synthetic, diagnosed or train + validation set.
 - **UltraBERT-Embed-150M + logistic regression**: logistic regression on embeddings from
   `dmis-lab/UltraBERT-Embed-150M`. An embedding is a fixed-length vector computed from a message.
   The embedding model is not trained here. Only the logistic regression is trained, on a synthetic,
-  diagnosed or real set. The tables write it "UltraBERT-Embed-150M + LR".
+  diagnosed, train or train + validation set. The tables write it "UltraBERT-Embed-150M + LR".
 - **An Ollama model with a prompt from `PROMPTS`** (`llm.py`): `gemma4:e4b` or
   `qwen3.6:27b-q4_K_M`, not trained. The `names` prompt lists the category names. The
   `definitions` prompt adds each category's definition. The `fewshot` prompt adds 3 real train
@@ -91,7 +93,7 @@ generator, and the routing threshold.
   restricts its reply. A reply that is not a category name is invalid and counts as wrong.
 - **Gemma 4 E4B (MLX) + LoRA adapter**: the same model and prompt with a LoRA adapter. A LoRA
   adapter is a small set of extra weights trained while the model's own weights stay fixed. Each
-  adapter is trained on a synthetic or a real set.
+  adapter is trained on a synthetic or a train + validation set.
 - **Laya**: `convaiinnovations/laya`, a model that picks one option from a list. It is asked one
   question per message with the category names as the options. It is not trained.
 - **TypeSafe System One**: `typesafe/jev-1.13`, an API reached through OpenRouter that picks one
@@ -100,12 +102,12 @@ generator, and the routing threshold.
   definition followed by the 30 examples the Ollama models see, 3 per category. It is not trained, and it does not run on the laptop. Under the
   Clopper-Pearson bound at α 0.05 it keeps 0 test messages with either prompt.
 
-**Routing.** Routing keeps a classifier's label when the classifier's top probability is at least
-a threshold. A message below the threshold goes to a person. The threshold is the lowest dev
-probability at which the one-sided 90% Clopper-Pearson upper bound on the error among dev messages
-above it is at most the target, 5%. Coverage and error are then measured on test. The tables also
-give a plain threshold, set on the dev error itself. Only a classifier that gives a probability for each category can
-be routed.
+**Routing.** Routing keeps a classifier's label when the classifier's top probability is at least a
+threshold. A message below the threshold goes to a person. The threshold is the lowest validation
+probability at which the one-sided 90% Clopper-Pearson upper bound on the error among validation
+messages above it is at most the target, 5%. Coverage and error are then measured on test. The
+tables also give a plain threshold, set on the validation error itself. Only a classifier that gives
+a probability for each category can be routed.
 
 **Uncertainty.** Every row is one run with seed 0. The binomial standard error of an accuracy p
 on n messages is √(p(1−p)/n). On the 400 `confusable` test messages it is 0.012 to 0.020, which is
@@ -120,16 +122,17 @@ Every table in this section is on `confusable`.
 ### 1. How much of the work can it do without a person checking?
 
 **Under the Clopper-Pearson bound at α 0.05, UltraBERT-Embed-150M + logistic regression trained on
-the real train set minus dev labels 344 of the 400 test messages on its own, and 9 of those 344 are
+train labels 344 of the 400 test messages on its own, and 9 of those 344 are
 wrong.** No other classifier in the table labels any. TypeSafe System One labels 0 with either
 prompt.
 
 In the table, α is the error target. AUROC is the chance that a randomly chosen right answer gets a
 higher top probability than a randomly chosen wrong one. ECE is the mean gap between the top
 probability and the observed accuracy, over 10 bins of 40 messages. Isotonic calibration is a
-monotone mapping of the top probability onto accuracy, fitted on dev. The bound is the one-sided
-90% Clopper-Pearson upper bound on the dev error: the highest error rate that the dev count does not
-rule out at 90% confidence. The plain threshold uses the dev error itself.
+monotone mapping of the top probability onto accuracy, fitted on validation. The bound is the
+one-sided 90% Clopper-Pearson upper bound on the validation error: the highest error rate that the
+validation count does not rule out at 90% confidence. The plain threshold uses the validation error
+itself.
 
 | Classifier                       | Training set or prompt | AUROC  | ECE after isotonic calibration | Test coverage at α 0.05 | Test error at α 0.05 | Test coverage under the bound at α 0.05 | Test error under the bound at α 0.05 |
 |----------------------------------|------------------------|--------|--------------------------------|-------------------------|----------------------|-----------------------------------------|--------------------------------------|
@@ -137,7 +140,7 @@ rule out at 90% confidence. The plain threshold uses the dev error itself.
 | ModernBERT-base                  | diagnosed              | 0.8394 | 0.0564                         | 0.1575                  | 0.0159               | 0.0000                                  | —                                    |
 | UltraBERT-Embed-150M + LR        | synthetic              | 0.8405 | 0.0495                         | 0.1825                  | 0.0274               | 0.0000                                  | —                                    |
 | UltraBERT-Embed-150M + LR        | diagnosed              | 0.7794 | 0.0333                         | 0.4025                  | 0.0373               | 0.0000                                  | —                                    |
-| UltraBERT-Embed-150M + LR        | real minus dev         | 0.8641 | 0.0240                         | 0.9900                  | 0.0404               | 0.8600                                  | 0.0262                               |
+| UltraBERT-Embed-150M + LR        | train                  | 0.8641 | 0.0240                         | 0.9900                  | 0.0404               | 0.8600                                  | 0.0262                               |
 | Gemma 4 E4B (MLX), letter logits | `definitions`          | 0.7770 | 0.0608                         | 0.0375                  | 0.0000               | 0.0000                                  | —                                    |
 | Gemma 4 E4B (MLX), letter logits | `fewshot`              | 0.7941 | 0.0463                         | 0.2625                  | 0.0381               | 0.0000                                  | —                                    |
 | Laya                             | `names`                | 0.6753 | 0.0705                         | 0.0000                  | —                    | 0.0000                                  | —                                    |
@@ -145,49 +148,49 @@ rule out at 90% confidence. The plain threshold uses the dev error itself.
 | TypeSafe System One              | `fewshot`              | 0.8214 | 0.0452                         | 0.8850                  | 0.0311               | 0.0000                                  | —                                    |
 
 The plain threshold is not quoted outside the tables, because it does not hold its target: in the
-27 dev-size runs under question 3 its test error is over 5% in 12, against 1 of the 21 runs in
-which the bound keeps any message.
+27 validation-size runs under question 3 its test error is over 5% in 12, against 1 of the 21 runs
+in which the bound keeps any message.
 
 Three kinds of classifier are not in the table. The Ollama models return a category name and no
-probability, so they cannot be routed. A classifier trained on the whole real train set cannot be
-routed here, because dev is part of the data it was trained on; the real-minus-dev row is
-UltraBERT-Embed-150M + logistic regression trained on the real train set without the 200 dev rows. The LoRA adapters return a reply and no
-probability.
+probability, so they cannot be routed. A classifier trained on train + validation cannot be routed
+here, because validation is part of the data it was trained on; the train row is
+UltraBERT-Embed-150M + logistic regression trained without the 200 validation rows. The LoRA
+adapters return a reply and no probability.
 
 ### 2. How accurate is it?
 
-**UltraBERT-Embed-150M + logistic regression trained on the real train set makes the fewest
-errors: 17 of 400.**
+**UltraBERT-Embed-150M + logistic regression trained on train makes 19 errors of 400, the fewest
+of any classifier that did not see the validation rows.**
 
 | Classifier                       | Training set or prompt | Real labelled examples used | Accuracy | Errors of 400 |
 |----------------------------------|------------------------|-----------------------------|----------|---------------|
 | TF-IDF + logistic regression     | synthetic              | 0                           | 0.7900   | 84            |
 | TF-IDF + logistic regression     | diagnosed              | 200, as counts              | 0.7925   | 83            |
-| TF-IDF + logistic regression     | real                   | 1284                        | 0.9250   | 30            |
+| TF-IDF + logistic regression     | train + validation     | 1284                        | 0.9250   | 30            |
 | ModernBERT-base                  | synthetic              | 0                           | 0.8425   | 63            |
 | ModernBERT-base                  | diagnosed              | 200, as counts              | 0.8675   | 53            |
-| ModernBERT-base                  | real                   | 1284                        | 0.9375   | 25            |
+| ModernBERT-base                  | train + validation     | 1284                        | 0.9375   | 25            |
 | UltraBERT-Embed-150M + LR        | synthetic              | 0                           | 0.8475   | 61            |
 | UltraBERT-Embed-150M + LR        | diagnosed              | 200, as counts              | 0.9125   | 35            |
-| UltraBERT-Embed-150M + LR        | real                   | 1284                        | 0.9575   | 17            |
-| UltraBERT-Embed-150M + LR        | real minus dev         | 1084                        | 0.9525   | 19            |
+| UltraBERT-Embed-150M + LR        | train + validation     | 1284                        | 0.9575   | 17            |
+| UltraBERT-Embed-150M + LR        | train                  | 1084                        | 0.9525   | 19            |
 | `gemma4:e4b`                     | `definitions`          | 0                           | 0.9125   | 35            |
 | `gemma4:e4b`                     | `fewshot`              | 30                          | 0.9300   | 28            |
 | `qwen3.6:27b-q4_K_M`             | `names`                | 0                           | 0.8775   | 49            |
 | `qwen3.6:27b-q4_K_M`             | `fewshot`              | 30                          | 0.9325   | 27            |
 | Gemma 4 E4B (MLX), no adapter    | `definitions`          | 0                           | 0.8500   | 60            |
 | Gemma 4 E4B (MLX) + LoRA adapter | synthetic              | 0                           | 0.8500   | 60            |
-| Gemma 4 E4B (MLX) + LoRA adapter | real                   | 1284                        | 0.8575   | 57            |
+| Gemma 4 E4B (MLX) + LoRA adapter | train + validation     | 1284                        | 0.8575   | 57            |
 | Gemma 4 E4B (MLX), letter logits | `fewshot`              | 30                          | 0.8600   | 56            |
 | TypeSafe System One              | `definitions`          | 0                           | 0.9050   | 38            |
 | TypeSafe System One              | `fewshot`              | 30                          | 0.9450   | 22            |
 
 Every classifier above 0.92 used real labelled examples. The Gemma 4 E4B (MLX) + LoRA adapter
-trained on the real train set also used them, and stayed at 0.8575. The `fewshot` prompts of
-`gemma4:e4b` and `qwen3.6:27b-q4_K_M` come within 3 errors of ModernBERT-base trained on the real
-train set, and TypeSafe System One with the `fewshot` prompt makes 3 fewer; under the bound of
+trained on train + validation also used them, and stayed at 0.8575. The `fewshot` prompts of
+`gemma4:e4b` and `qwen3.6:27b-q4_K_M` come within 3 errors of ModernBERT-base trained on train +
+validation, and TypeSafe System One with the `fewshot` prompt makes 3 fewer; under the bound of
 question 1 it keeps 0 messages with either prompt. Every other LLM
-classifier makes at least 10 more errors than ModernBERT-base trained on the real train set.
+classifier makes at least 10 more errors than ModernBERT-base trained on train + validation.
 
 On `distinct`, the choice of classifier matters little. Every classifier in the test table under
 [All results](#all-results) scores 0.9799 to 0.9975 there. The two exceptions are TF-IDF + logistic
@@ -200,20 +203,20 @@ categories are the two categories of one pair.
 |----------------------------------|------------------------|-----------------------------|--------|---------------|-----------------------------------------------|-----------------|
 | TF-IDF + logistic regression     | synthetic              | 0                           | 84     | 71            | `why_verify_identity` → `verify_my_identity`  | 23              |
 | TF-IDF + logistic regression     | diagnosed              | 200, as counts              | 83     | 71            | `why_verify_identity` → `verify_my_identity`  | 24              |
-| TF-IDF + logistic regression     | real                   | 1284                        | 30     | 26            | `verify_my_identity` → `why_verify_identity`  | 7               |
+| TF-IDF + logistic regression     | train + validation     | 1284                        | 30     | 26            | `verify_my_identity` → `why_verify_identity`  | 7               |
 | ModernBERT-base                  | synthetic              | 0                           | 63     | 54            | `why_verify_identity` → `verify_my_identity`  | 15              |
 | ModernBERT-base                  | diagnosed              | 200, as counts              | 53     | 48            | `why_verify_identity` → `verify_my_identity`  | 14              |
-| ModernBERT-base                  | real                   | 1284                        | 25     | 24            | `card_arrival` → `card_delivery_estimate`     | 5               |
+| ModernBERT-base                  | train + validation     | 1284                        | 25     | 24            | `card_arrival` → `card_delivery_estimate`     | 5               |
 | UltraBERT-Embed-150M + LR        | synthetic              | 0                           | 61     | 53            | `why_verify_identity` → `verify_my_identity`  | 13              |
 | UltraBERT-Embed-150M + LR        | diagnosed              | 200, as counts              | 35     | 31            | `card_arrival` → `card_delivery_estimate`     | 10              |
-| UltraBERT-Embed-150M + LR        | real                   | 1284                        | 17     | 15            | `declined_transfer` → `failed_transfer`       | 3               |
+| UltraBERT-Embed-150M + LR        | train + validation     | 1284                        | 17     | 15            | `declined_transfer` → `failed_transfer`       | 3               |
 | `gemma4:e4b`                     | `definitions`          | 0                           | 35     | 32            | `card_arrival` → `card_delivery_estimate`     | 13              |
 | `gemma4:e4b`                     | `fewshot`              | 30                          | 28     | 25            | `card_arrival` → `card_delivery_estimate`     | 7               |
 | `qwen3.6:27b-q4_K_M`             | `names`                | 0                           | 49     | 47            | `verify_my_identity` → `why_verify_identity`  | 17              |
 | `qwen3.6:27b-q4_K_M`             | `fewshot`              | 30                          | 27     | 21            | `card_arrival` → `card_delivery_estimate`     | 6               |
 | Gemma 4 E4B (MLX), no adapter    | `definitions`          | 0                           | 60     | 26            | `card_arrival` → `card_delivery_estimate`     | 16              |
 | Gemma 4 E4B (MLX) + LoRA adapter | synthetic              | 0                           | 60     | 34            | `card_arrival` → `card_delivery_estimate`     | 18              |
-| Gemma 4 E4B (MLX) + LoRA adapter | real                   | 1284                        | 57     | 56            | `declined_transfer` → `failed_transfer`       | 24              |
+| Gemma 4 E4B (MLX) + LoRA adapter | train + validation     | 1284                        | 57     | 56            | `declined_transfer` → `failed_transfer`       | 24              |
 | TypeSafe System One              | `definitions`          | 0                           | 38     | 35            | `card_delivery_estimate` → `card_arrival` and `why_verify_identity` → `verify_my_identity` | 8 each |
 | TypeSafe System One              | `fewshot`              | 30                          | 22     | 22            | `card_arrival` → `card_delivery_estimate` and `declined_transfer` → `failed_transfer` | 5 each |
 
@@ -232,22 +235,22 @@ Gemma 4 E4B (MLX) + LoRA adapter trained on the synthetic set are all prediction
 | 0                                                 | 0.9125   | `gemma4:e4b` with the class definitions in the prompt, reply restricted to a class name |
 | 30, as examples in the prompt                     | 0.9300 / 0.9325 / 0.9450 | `gemma4:e4b`, `qwen3.6:27b-q4_K_M` or TypeSafe System One with the `fewshot` prompt |
 | 200, as confusion counts that steer the generator | 0.9125, at about 1/60 of the LLM's time per message | UltraBERT-Embed-150M + LR trained on the diagnosed set |
-| 1284, to train on                                 | 0.9575   | UltraBERT-Embed-150M + LR |
+| 1084, to train on                                 | 0.9525   | UltraBERT-Embed-150M + LR trained on train |
 
-The 200 hand labels are the dev set. They do two jobs. They count the losses that steer the
+The 200 hand labels are the validation set. They do two jobs. They count the losses that steer the
 diagnosed set. They also set the routing threshold of question 1. So 200 hand labels buy the
 0.9125, and under the bound no message labelled without a person.
 
-With 0 hand labels no classifier can be routed, because the threshold is set on labelled dev
+With 0 hand labels no classifier can be routed, because the threshold is set on labelled validation
 messages.
 
-The label curve trains UltraBERT-Embed-150M + logistic regression on stratified subsets of the real
-train set minus dev: 5, 10, 20, 40 and 80 messages per class, each subset inside the next one drawn
+The label curve trains UltraBERT-Embed-150M + logistic regression on stratified subsets of train:
+5, 10, 20, 40 and 80 messages per class, each subset inside the next one drawn
 with the same seed. 50, 100, 200 and 400 are drawn with seeds 0, 1 and 2, and each cell gives the
 mean over the three draws, then the min–max; the error column gives the min–max only. 800 is drawn
-with seed 0 alone, and 1084 is the whole set, so those two rows are single runs. The 200 dev labels
-set every threshold, on top of the training rows. `getting_virtual_card` and
-`get_disposable_virtual_card` have 78 and 77 rows outside dev, so the 800 subset holds 795. Coverage
+with seed 0 alone, and 1084 is the whole set, so those two rows are single runs. The 200
+validation labels set every threshold, on top of the training rows. `getting_virtual_card` and
+`get_disposable_virtual_card` have 78 and 77 rows in train, so the 800 subset holds 795. Coverage
 and error are on the 400 test messages at α 0.05; the last column is the coverage under the
 Clopper-Pearson bound of question 1.
 
@@ -265,25 +268,25 @@ bound does not rise with every step, 0.5150 at 200 and 0.4508 at 400, and it var
 draws of one size than between sizes: at 200 one draw keeps nothing and another 0.7975, at 400
 one keeps nothing and another 0.6800.
 
-How much the threshold depends on the number of dev labels is measured on the three 400-row models
-(seeds 0, 1 and 2). Each model's dev is replaced by its rest: the 684 rows of the real train set
-minus dev that it was not trained on. From the rest, N rows are drawn, N / 10 per class, with dev
+How much the threshold depends on the number of validation labels is measured on the three 400-row
+models (seeds 0, 1 and 2). Each model's validation set is replaced by its rest: the 684 rows of
+train that it was not trained on. From the rest, N rows are drawn, N / 10 per class, with validation
 seeds 0, 1 and 2, and the α 0.05 thresholds are chosen on them; 3 models × 3 draws is 9 runs per N.
 The rest holds 38 `getting_virtual_card` and 37 `get_disposable_virtual_card` rows, so N = 400 draws
 395. Each cell is the mean over the 9 runs, then the min–max, all on the 400 test messages. Error
 under the bound is over the runs that keep any test message, counted in brackets.
 
-| Dev rows  | Test coverage at α 0.05 | Test error at α 0.05   | Test coverage under the Clopper-Pearson bound | Test error under the Clopper-Pearson bound |
-|-----------|-------------------------|------------------------|-----------------------------------------------|--------------------------------------------|
-| 100       | 0.8906 (0.7200–1.0000)  | 0.0396 (0.0174–0.0750) | 0.3342 (0.0000–0.9750)                        | 0.0261 (0.0113–0.0641), 4 runs             |
-| 200       | 0.9486 (0.8100–0.9975)  | 0.0542 (0.0309–0.0641) | 0.7142 (0.0000–0.9450)                        | 0.0246 (0.0137–0.0450), 8 runs             |
-| 400 (395) | 0.9500 (0.8675–1.0000)  | 0.0518 (0.0375–0.0662) | 0.8500 (0.7200–0.9300)                        | 0.0300 (0.0168–0.0490), 9 runs             |
+| Validation rows | Test coverage at α 0.05 | Test error at α 0.05   | Test coverage under the Clopper-Pearson bound | Test error under the Clopper-Pearson bound |
+|-----------------|-------------------------|------------------------|-----------------------------------------------|--------------------------------------------|
+| 100             | 0.8906 (0.7200–1.0000)  | 0.0396 (0.0174–0.0750) | 0.3342 (0.0000–0.9750)                        | 0.0261 (0.0113–0.0641), 4 runs             |
+| 200             | 0.9486 (0.8100–0.9975)  | 0.0542 (0.0309–0.0641) | 0.7142 (0.0000–0.9450)                        | 0.0246 (0.0137–0.0450), 8 runs             |
+| 400 (395)       | 0.9500 (0.8675–1.0000)  | 0.0518 (0.0375–0.0662) | 0.8500 (0.7200–0.9300)                        | 0.0300 (0.0168–0.0490), 9 runs             |
 
-More dev rows raise the coverage under the bound, from 0.3342 at 100 to 0.8500 at 395, and narrow
-its range. At 100 dev rows the bound keeps nothing in 5 of 9
+More validation rows raise the coverage under the bound, from 0.3342 at 100 to 0.8500 at 395, and
+narrow its range. At 100 validation rows the bound keeps nothing in 5 of 9
 runs, at 200 in 1, at 400 in none. Under the bound, test error stays under 0.05 in every run that
 keeps a message but one, 0.0641 at N = 100. Each run's report is
-`results/confusable/confidence/ultrabert-embed-real-nodev-400[-s<seed>]-dev<N>-ds<dev seed>.txt`.
+`results/confusable/confidence/ultrabert-embed-real-nodev-400[-s<seed>]-dev<N>-ds<validation seed>.txt`.
 
 The diagnosed notes did not help every classifier equally. From the synthetic set to the diagnosed
 set, UltraBERT-Embed-150M + logistic regression went from 61 errors to 35. ModernBERT-base went
@@ -308,17 +311,17 @@ The notes are one draft each. They were written once and not revised after any s
 | 3 real examples per class, `gemma4:e4b`: `definitions` → `fewshot`       | 0.9125 | 0.9300 | +7       | test, 400 |
 | 3 real examples per class, `qwen3.6:27b-q4_K_M`: `names` → `fewshot`     | 0.8775 | 0.9325 | +22      | test, 400 |
 | 3 real examples per class, TypeSafe System One: `definitions` → `fewshot` | 0.9050 | 0.9450 | +16     | test, 400 |
-| Prompt chosen on dev, `gemma4:e4b`: `names` → `definitions`              | 0.8500 | 0.8750 | +5       | dev, 200  |
-| Prompt chosen on dev, `qwen3.6:27b-q4_K_M`: `definitions` → `names`      | 0.8500 | 0.8650 | +3       | dev, 200  |
+| Prompt chosen on validation, `gemma4:e4b`: `names` → `definitions`              | 0.8500 | 0.8750 | +5       | validation, 200 |
+| Prompt chosen on validation, `qwen3.6:27b-q4_K_M`: `definitions` → `names`      | 0.8500 | 0.8650 | +3       | validation, 200 |
 | `qwen3.6:27b-q4_K_M` in place of `gemma4:e4b`, `fewshot`                 | 0.9300 | 0.9325 | +1       | test, 400 |
 | LoRA adapter trained on the synthetic set, against no adapter            | 0.8500 | 0.8500 | 0        | test, 400 |
-| LoRA adapter trained on the real train set, against no adapter           | 0.8500 | 0.8575 | +3       | test, 400 |
+| LoRA adapter trained on train + validation, against no adapter           | 0.8500 | 0.8575 | +3       | test, 400 |
 
 The first row changes three things at once: the reply rule, the runtime and the quantisation. The
-mlx-lm model answered 366 of the 400 test messages with a category name. It is right on 340 of
-those 366. The two dev rows are scored on dev because the prompt not chosen was never run on test.
-Without examples in the prompt, `qwen3.6:27b-q4_K_M` is 14 messages below `gemma4:e4b`. Both LoRA
-adapters take the invalid replies from 34 to 0. Theirs is the only LoRA configuration tried.
+mlx-lm model answered 366 of the 400 test messages with a category name. It is right on 340 of those
+366. The two validation rows are scored on validation because the prompt not chosen was never run on
+test. Without examples in the prompt, `qwen3.6:27b-q4_K_M` is 14 messages below `gemma4:e4b`. Both
+LoRA adapters take the invalid replies from 34 to 0. Theirs is the only LoRA configuration tried.
 
 ### Costs
 
@@ -326,25 +329,25 @@ adapters take the invalid replies from 34 to 0. Theirs is the only LoRA configur
 |----------------------------------|------------------------|------------------|---------------------|--------------|
 | TF-IDF + logistic regression     | synthetic              | 0.71 s           | 0.00015             | 0.02         |
 | TF-IDF + logistic regression     | diagnosed              | 0.85 s           | 0.00016             | 0.02         |
-| TF-IDF + logistic regression     | real                   | 0.65 s           | 0.00015             | 0.02         |
+| TF-IDF + logistic regression     | train + validation     | 0.65 s           | 0.00015             | 0.02         |
 | ModernBERT-base                  | synthetic              | 1.7              | 0.0073              | 1            |
 | ModernBERT-base                  | diagnosed              | 1.8              | 0.0077              | 1.0          |
-| ModernBERT-base                  | real                   | 2.0              | 0.0073              | 1            |
+| ModernBERT-base                  | train + validation     | 2.0              | 0.0073              | 1            |
 | UltraBERT-Embed-150M + LR        | synthetic              | 5.86 s           | 0.0107              | 1.5          |
 | UltraBERT-Embed-150M + LR        | diagnosed              | 5.50 s           | 0.0109              | 1.5          |
-| UltraBERT-Embed-150M + LR        | real                   | 6.52 s           | 0.0109              | 1.5          |
+| UltraBERT-Embed-150M + LR        | train + validation     | 6.52 s           | 0.0109              | 1.5          |
 | `gemma4:e4b`                     | `definitions`          | none             | 0.63                | 85           |
 | `gemma4:e4b`                     | `fewshot`              | none             | 0.47                | 63           |
 | `qwen3.6:27b-q4_K_M`             | `names`                | none             | 1.5                 | 197          |
 | `qwen3.6:27b-q4_K_M`             | `fewshot`              | none             | 2.5                 | 335          |
 | Gemma 4 E4B (MLX), no adapter    | `definitions`          | none             | 0.258               | 35           |
 | Gemma 4 E4B (MLX) + LoRA adapter | synthetic              | 13.6             | 0.235               | 32           |
-| Gemma 4 E4B (MLX) + LoRA adapter | real                   | 17.9             | 0.235               | 32           |
+| Gemma 4 E4B (MLX) + LoRA adapter | train + validation     | 17.9             | 0.235               | 32           |
 | TypeSafe System One              | `definitions`          | none             | 0.53                | 72           |
 | TypeSafe System One              | `fewshot`              | none             | 0.53                | 71           |
 
 Seconds per message is the median time to classify one test message. "× ModernBERT" divides a
-row's seconds per message by 0.00735 s, ModernBERT-base trained on the real train set
+row's seconds per message by 0.00735 s, ModernBERT-base trained on train + validation
 (`results/confusable/test/modernbert-real.txt`). On `distinct`, an LLM classifier takes 19 to 332
 times ModernBERT-base's seconds per message. On `distinct`, a LoRA adapter takes 7.8 to 9.1
 training minutes. No file under `results/` records how long `generate.py` took to write a training
@@ -360,9 +363,9 @@ for the 400 (`results/confusable/test/jev-fewshot.txt`).
 ### What did not help
 
 - **Training on LLM-written text with nothing to steer the generator.** On `confusable`, the
-  synthetic set cost TF-IDF + logistic regression 13.5 points of accuracy against the real train
-  set. It cost ModernBERT-base 9.5 points. It cost UltraBERT-Embed-150M + logistic regression 11.0
-  points.
+  synthetic set cost TF-IDF + logistic regression 13.5 points of accuracy against train +
+  validation. It cost ModernBERT-base 9.5 points. It cost UltraBERT-Embed-150M + logistic regression
+  11.0 points.
 - **A prompt rule telling the generator to avoid the words of the category name** (the contrast
   set). TF-IDF + logistic regression went from 84 errors of 400 to 127. UltraBERT-Embed-150M +
   logistic regression went from 61 to 65.
@@ -380,33 +383,33 @@ for the 400 (`results/confusable/test/jev-fewshot.txt`).
 Accuracy and coverage rank the classifiers differently. UltraBERT-Embed-150M + logistic regression
 trained on the diagnosed set and `gemma4:e4b` with the `definitions` prompt both make 35 errors of
 400. Of the two, only UltraBERT-Embed-150M + logistic regression gives a probability that a
-threshold can use. Under the bound, its threshold set on 200 dev messages keeps no test message, so
-neither takes work away from a person here.
+     threshold can use. Under the bound, its threshold set on 200 validation messages keeps no test
+     message, so neither takes work away from a person here.
 
 UltraBERT-Embed-150M + logistic regression trained on the diagnosed set does not rank its answers
 best. Its AUROC of 0.7794 is below the 0.8405 of the same classifier trained on the synthetic set.
-It makes fewer errors: on dev it is right on 0.8850 of messages, against 0.8150 for the
+It makes fewer errors: on validation it is right on 0.8850 of messages, against 0.8150 for the
 synthetic-trained one. A classifier with fewer errors overall can keep more messages before its
 error passes 5%, even when it ranks its answers worse.
 
 Under the bound the one 5% threshold in question 1's table, that of UltraBERT-Embed-150M + logistic
-regression trained on the real train set minus dev, is 0.992611. A threshold of 0.9 does not
+regression trained on train, is 0.992611. A threshold of 0.9 does not
 separate the `definitions` letter-logits answers: the 378 above it are 0.8783 accurate.
 
-Routing needs a labelled dev set as well as a classifier. With 0 hand labels nothing sets the
-threshold, so a person checks every message. The 96% classifier, UltraBERT-Embed-150M + logistic
-regression trained on the whole real train set, has no coverage figure here. Trained on the real
-train set minus the 200 dev rows, the same classifier scores 0.9525 and under the bound keeps
+Routing needs a labelled validation set as well as a classifier. With 0 hand labels nothing sets
+the threshold, so a person checks every message. The 96% classifier, UltraBERT-Embed-150M +
+logistic regression trained on train + validation, has no coverage figure here. Trained on train,
+without the 200 validation rows, the same classifier scores 0.9525 and under the bound keeps
 0.8600 of test messages at 0.0262 error.
 
-200 dev messages are too few to certify 5% error for most classifiers. At a 5% target the
+200 validation messages are too few to certify 5% error for most classifiers. At a 5% target the
 Clopper-Pearson bound admits no message for any classifier in question 1's table but
-UltraBERT-Embed-150M + logistic regression trained on the real train set minus dev; of the label
-curve under question 3, it admits the 800 model and some draws at 100, 200 and 400. TypeSafe System
-One keeps 0 messages under the bound with either prompt. Its probabilities arrive in steps of 0.01,
-and its highest step holds wrong answers: with the `definitions` prompt 111 of the 200 dev messages
-score exactly 1.00 and 7 of those are wrong, with the `fewshot` prompt 118 and 5. The bound on
-those 1.00 answers alone is over 5%, so no threshold qualifies.
+UltraBERT-Embed-150M + logistic regression trained on train; of the label curve under question 3, it
+admits the 800 model and some draws at 100, 200 and 400. TypeSafe System One keeps 0 messages under
+the bound with either prompt. Its probabilities arrive in steps of 0.01, and its highest step holds
+wrong answers: with the `definitions` prompt 111 of the 200 validation messages score exactly 1.00
+and 7 of those are wrong, with the `fewshot` prompt 118 and 5. The bound on those 1.00 answers alone
+is over 5%, so no threshold qualifies.
 
 The pairs are the whole difficulty. On `distinct` every classifier but two scores at least 0.9799.
 On `confusable` most errors of every classifier but one are inside a pair.
@@ -430,12 +433,11 @@ and 22 errors against ModernBERT-base's 25 are such a gap.
   labels 91% of those messages correctly, in about 0.01 s a message. Under the Clopper-Pearson bound
   at 5% error its threshold keeps none, so a person still checks every message.
 - With 30 hand labels as examples in its question, TypeSafe System One labels 94.5% correctly. With
-  the 200 dev labels to set the threshold, it keeps none under the bound, with either prompt. It is
-  an API billed per message, about $54 per million messages.
-- With 1284 hand labels, 1084 to train on and the 200 dev labels to set the threshold,
-  UltraBERT-Embed-150M + logistic regression labels 86% of those messages on its own under the
-  bound, and 2.6% of the 86% are wrong. Trained on all 1284 it reaches 96% accuracy, and its
-  coverage cannot be measured here.
+  the 200 validation labels to set the threshold, it keeps none under the bound, with either prompt.
+  It is an API billed per message, about $54 per million messages.
+- With 1284 hand labels, 1084 in train and 200 in validation to set the threshold,
+  UltraBERT-Embed-150M + logistic regression labels 95% of `confusable` test messages correctly. It
+  labels 86% of them on its own under the bound, and 2.6% of the 86% are wrong.
 - On 10 unrelated categories, the method matters little. Every classifier but two scores at least
   0.9799.
 
@@ -462,15 +464,19 @@ the other category in its pair.
 model the category name and its definition from `CLASS_SETS`. It shows no Banking77 text. The 1000
 messages are `data/<set>/synthetic.jsonl`.
 
-**The real train set.** It is the Banking77 train split restricted to the class set.
+**Train and validation.** train + validation is the Banking77 train split restricted to the class
+set; validation is 200 of its rows and train the rest. Files, flags and result paths keep the names
+the code uses: train is `data/<set>/banking77_train_nodev.jsonl` (`--no-dev`, the
+`ultrabert-embed-real-nodev-*` models), validation is dev (`--split dev`, `results/<set>/dev/`) and
+train + validation is `data/<set>/banking77_train.jsonl`.
 
 **The diagnosed notes.** `generate.py --method diagnosed` starts from the synthetic set's request.
 It adds the other category's definition under "Do not write messages with this other intent". For
 one category in each `confusable` pair it also adds a note from `DIAGNOSED_NOTES` in `generate.py`.
-That category is the one losing more of its 20 dev messages to its partner in
+That category is the one losing more of its 20 validation messages to its partner in
 `results/confusable/dev/ultrabert-embed-synthetic.txt`. The comment above each note gives the two
-dev cells it came from. Each note was written from those counts and from that category's rows in
-`data/confusable/synthetic.jsonl`. No note was written from a Banking77 message. Each note names
+validation cells it came from. Each note was written from those counts and from that category's rows
+in `data/confusable/synthetic.jsonl`. No note was written from a Banking77 message. Each note names
 the kind of message those rows lack. No note asks the model to avoid any word. The requests are
 `data/confusable/synthetic-diagnosed.prompt.txt`. The 1000 messages are
 `data/confusable/synthetic-diagnosed.jsonl`.
@@ -480,37 +486,38 @@ pair of `confusable` alone. It was a pilot for generation methods. No table abov
 reports are under `results/pair/`. The `contrast` method it piloted was superseded by the
 `confusable` diagnosed run.
 
-**dev and test.** `dev_and_shots` in `score.py` draws dev with a fixed seed: 20 messages per
-category from the Banking77 train split. The 3 examples per category in a `fewshot` prompt are train
-messages outside dev. dev scores the Ollama models, the mlx-lm models and Laya. It also scores
-UltraBERT-Embed-150M + logistic regression trained on the synthetic set, which is where the
-diagnosed counts come from. dev does not score a classifier trained on the real train set, because
-that classifier saw the dev rows.
+**Validation and test.** `dev_and_shots` in `score.py` draws validation with a fixed seed: 20
+messages per category from the Banking77 train split. The 3 examples per category in a `fewshot`
+prompt are train messages, outside validation. Validation scores the Ollama models, the mlx-lm
+models and Laya. It also scores UltraBERT-Embed-150M + logistic regression trained on the synthetic
+set, which is where the diagnosed counts come from. Validation does not score a classifier trained
+on train + validation, because that classifier saw the validation rows.
 
-**How prompts were chosen.** Each Ollama model was run on dev with every prompt in `PROMPTS`. Test
-was run with `fewshot`. Test was also run with whichever of `names` and `definitions` scored higher
-on dev. On `distinct` the two tie for both models, in macro F1 as well as accuracy. On a tie `names`
-was taken, being the shorter prompt. The third prompt was not run on test. The choice used the 200
-labelled dev messages. The Real labelled examples column does not count them. The mlx-lm rows all
-use `definitions`. That prompt was not chosen on dev for them. It is the prompt the adapters are
-trained with.
+**How prompts were chosen.** Each Ollama model was run on validation with every prompt in `PROMPTS`.
+Test was run with `fewshot`. Test was also run with whichever of `names` and `definitions` scored
+higher on validation. On `distinct` the two tie for both models, in macro F1 as well as accuracy. On
+a tie `names` was taken, being the shorter prompt. The third prompt was not run on test. The choice
+used the 200 labelled validation messages. The Real labelled examples column does not count them.
+The mlx-lm rows all use `definitions`. That prompt was not chosen on validation for them. It is the
+prompt the adapters are trained with.
 
 **Fixed before any test run.**
 
-- ModernBERT-base: 5 epochs, learning rate 5e-5, batch size 16, seed 0, no validation set.
+- ModernBERT-base: 5 epochs, learning rate 5e-5, batch size 16, seed 0, no early stopping on
+  validation.
 - UltraBERT-Embed-150M: revision `367d534`, float32 with SDPA attention. Each message is prefixed
   with MTEB's Banking77Classification instruction. The embedding is the position-0 vector of the
   last layer. The logistic regression uses scikit-learn's default regularisation.
 - LoRA adapters: rank 8, scale 20, dropout 0, on every linear layer of the last 16 of 42
   transformer blocks. Adam at learning rate 1e-4, batch size 4, 2 passes over the rows, seed 0.
-  Nothing was tuned. There is no held-out split to choose another configuration on, because dev is
-  part of the real train split.
+  Nothing was tuned. There is no held-out split to choose another configuration on, because
+  validation is part of train + validation.
 - Ollama models: temperature 0. The answer is restricted to an enum of the category names.
 - mlx-lm replies: nothing restricts them. The reply is the text after the model's reasoning, if it
   wrote any. A reply that is not exactly a category name is invalid and counts as wrong. The
-  512-token limit on a reply was settled on dev. So was that rule. With no adapter on `confusable`,
-  34 of 400 test replies are invalid. All 34 are reasoning cut off at 512 tokens. The other five
-  mlx-lm test runs have no invalid replies.
+  512-token limit on a reply was settled on validation. So was that rule. With no adapter on
+  `confusable`, 34 of 400 test replies are invalid. All 34 are reasoning cut off at 512 tokens. The
+  other five mlx-lm test runs have no invalid replies.
 
 **Ollama against mlx-lm.** The two Gemma 4 E4B classifiers without an adapter differ in runtime.
 They also differ in whether the reply is restricted. Ollama's `gemma4:e4b` is
@@ -541,15 +548,15 @@ models run fully on the GPU. The median hides the 34 cut-off mlx-lm replies, whi
 seconds each. Training minutes are the wall time of one `train.py` or `finetune.py` run, from
 `results/<set>/train/<name>.txt`.
 
-**Routing.** `confidence.py` reads a classifier's `score.py --dump` files of dev and test. A
+**Routing.** `confidence.py` reads a classifier's `score.py --dump` files of validation and test. A
 message's score is its top probability over the class set. AUROC is of that score against
 correctness on test, with nothing fitted. Isotonic regression of correctness on the score is fitted
-on the 200 dev messages and applied to test. ECE is over 10 bins of equal count. For each α the
-threshold is the lowest dev score at which the dev error among messages scoring at least that is at
-most α. The bounded threshold uses the error's one-sided 90% Clopper-Pearson upper bound in place
-of the error. Test coverage is the share of test messages at or above the threshold. Test error is the
-error among them. Reports are `results/confusable/confidence/<name>.txt`. They are computed from the
-dumps under `results/confusable/confidence/dumps/`.
+on the 200 validation messages and applied to test. ECE is over 10 bins of equal count. For each α
+the threshold is the lowest validation score at which the validation error among messages scoring at
+least that is at most α. The bounded threshold uses the error's one-sided 90% Clopper-Pearson upper
+bound in place of the error. Test coverage is the share of test messages at or above the threshold.
+Test error is the error among them. Reports are `results/confusable/confidence/<name>.txt`. They are
+computed from the dumps under `results/confusable/confidence/dumps/`.
 
 ## All results
 
@@ -558,59 +565,60 @@ dumps under `results/confusable/confidence/dumps/`.
 Each row's full report is `results/<class set>/test/<model>.txt`. The "no prompt" rows
 (`ultrabert-embed-noprompt-*`) embed each message without MTEB's Banking77Classification
 instruction before it, to measure what that instruction adds to the UltraBERT-Embed-150M + LR rows.
+The train + validation rows include the 200 validation rows, so they cannot be routed.
 
 | Class set    | Model                | Training set or prompt   | Accuracy | Macro F1 | Seconds |
 |--------------|----------------------|--------------------------|----------|----------|---------|
 | `distinct`   | ModernBERT-base      | synthetic (`gemma4:e4b`) | 0.9925   | 0.9925   | 0.0073  |
-| `distinct`   | ModernBERT-base      | real Banking77 train     | 0.9950   | 0.9950   | 0.0073  |
+| `distinct`   | ModernBERT-base      | train + validation | 0.9950   | 0.9950   | 0.0073  |
 | `distinct`   | TF-IDF + logistic regression | synthetic (`gemma4:e4b`) | 0.9373 | 0.9375 | 0.00015 |
-| `distinct`   | TF-IDF + logistic regression | real Banking77 train     | 0.9875 | 0.9874 | 0.00015 |
+| `distinct`   | TF-IDF + logistic regression | train + validation | 0.9875 | 0.9874 | 0.00015 |
 | `distinct`   | UltraBERT-Embed-150M + LR | synthetic (`gemma4:e4b`) | 0.9925 | 0.9925 | 0.0112 |
-| `distinct`   | UltraBERT-Embed-150M + LR | real Banking77 train     | 0.9975 | 0.9975 | 0.0106 |
+| `distinct`   | UltraBERT-Embed-150M + LR | train + validation | 0.9975 | 0.9975 | 0.0106 |
 | `distinct`   | UltraBERT-Embed-150M + LR, no prompt | synthetic (`gemma4:e4b`) | 0.9950 | 0.9950 | 0.0100 |
-| `distinct`   | UltraBERT-Embed-150M + LR, no prompt | real Banking77 train     | 0.9975 | 0.9975 | 0.0107 |
+| `distinct`   | UltraBERT-Embed-150M + LR, no prompt | train + validation | 0.9975 | 0.9975 | 0.0107 |
 | `distinct`   | `gemma4:e4b`         | `names` prompt           | 0.9825   | 0.9822   | 0.49    |
 | `distinct`   | `gemma4:e4b`         | `fewshot` prompt         | 0.9875   | 0.9874   | 0.44    |
 | `distinct`   | `qwen3.6:27b-q4_K_M` | `names` prompt           | 0.9900   | 0.9899   | 1.6     |
 | `distinct`   | `qwen3.6:27b-q4_K_M` | `fewshot` prompt         | 0.9925   | 0.9925   | 2.4     |
 | `distinct`   | Gemma 4 E4B (MLX)    | `definitions` prompt     | 0.9975   | 0.9975   | 0.141   |
 | `distinct`   | Gemma 4 E4B (MLX) + LoRA | synthetic (`gemma4:e4b`) | 0.9950 | 0.9950 | 0.163   |
-| `distinct`   | Gemma 4 E4B (MLX) + LoRA | real Banking77 train     | 0.9950 | 0.9950 | 0.167   |
+| `distinct`   | Gemma 4 E4B (MLX) + LoRA | train + validation | 0.9950 | 0.9950 | 0.167   |
 | `distinct`   | Gemma 4 E4B (MLX), letter logits | `definitions` prompt | 0.9799 | 0.9797 | 0.147 |
 | `confusable` | ModernBERT-base      | synthetic (`gemma4:e4b`) | 0.8425   | 0.8413   | 0.0073  |
 | `confusable` | ModernBERT-base      | diagnosed (`gemma4:e4b`) | 0.8675   | 0.8674   | 0.0077  |
-| `confusable` | ModernBERT-base      | real Banking77 train     | 0.9375   | 0.9376   | 0.0073  |
+| `confusable` | ModernBERT-base      | train + validation | 0.9375   | 0.9376   | 0.0073  |
 | `confusable` | TF-IDF + logistic regression | synthetic (`gemma4:e4b`) | 0.7900 | 0.7849 | 0.00015 |
 | `confusable` | TF-IDF + logistic regression | diagnosed (`gemma4:e4b`) | 0.7925 | 0.7887 | 0.00016 |
 | `confusable` | TF-IDF + logistic regression | contrast (`gemma4:e4b`)  | 0.6825 | 0.6681 | 0.00015 |
-| `confusable` | TF-IDF + logistic regression | real Banking77 train     | 0.9250 | 0.9251 | 0.00015 |
+| `confusable` | TF-IDF + logistic regression | train + validation | 0.9250 | 0.9251 | 0.00015 |
 | `confusable` | UltraBERT-Embed-150M + LR | synthetic (`gemma4:e4b`) | 0.8475 | 0.8456 | 0.0107 |
 | `confusable` | UltraBERT-Embed-150M + LR | diagnosed (`gemma4:e4b`) | 0.9125 | 0.9134 | 0.0109 |
 | `confusable` | UltraBERT-Embed-150M + LR | contrast (`gemma4:e4b`)  | 0.8375 | 0.8353 | 0.0109 |
-| `confusable` | UltraBERT-Embed-150M + LR | real Banking77 train     | 0.9575 | 0.9576 | 0.0109 |
-| `confusable` | UltraBERT-Embed-150M + LR | real Banking77 train minus dev | 0.9525 | 0.9526 | 0.0102 |
-| `confusable` | UltraBERT-Embed-150M + LR | 50 of real train minus dev, seed 0 | 0.8900 | 0.8893 | 0.0101 |
-| `confusable` | UltraBERT-Embed-150M + LR | 100 of real train minus dev, seed 0 | 0.9250 | 0.9252 | 0.00995 |
-| `confusable` | UltraBERT-Embed-150M + LR | 200 of real train minus dev, seed 0 | 0.9200 | 0.9199 | 0.00973 |
-| `confusable` | UltraBERT-Embed-150M + LR | 400 of real train minus dev, seed 0 | 0.9325 | 0.9325 | 0.0100 |
-| `confusable` | UltraBERT-Embed-150M + LR | 795 of real train minus dev, seed 0 | 0.9475 | 0.9477 | 0.0100 |
-| `confusable` | UltraBERT-Embed-150M + LR | 50 of real train minus dev, seed 1 | 0.8825 | 0.8823 | 0.0102 |
-| `confusable` | UltraBERT-Embed-150M + LR | 100 of real train minus dev, seed 1 | 0.9250 | 0.9251 | 0.0100 |
-| `confusable` | UltraBERT-Embed-150M + LR | 200 of real train minus dev, seed 1 | 0.9400 | 0.9400 | 0.00981 |
-| `confusable` | UltraBERT-Embed-150M + LR | 400 of real train minus dev, seed 1 | 0.9375 | 0.9376 | 0.0101 |
-| `confusable` | UltraBERT-Embed-150M + LR | 50 of real train minus dev, seed 2 | 0.8350 | 0.8267 | 0.0100 |
-| `confusable` | UltraBERT-Embed-150M + LR | 100 of real train minus dev, seed 2 | 0.9075 | 0.9075 | 0.0100 |
-| `confusable` | UltraBERT-Embed-150M + LR | 200 of real train minus dev, seed 2 | 0.9225 | 0.9226 | 0.0100 |
-| `confusable` | UltraBERT-Embed-150M + LR | 400 of real train minus dev, seed 2 | 0.9250 | 0.9251 | 0.0100 |
+| `confusable` | UltraBERT-Embed-150M + LR | train + validation | 0.9575 | 0.9576 | 0.0109 |
+| `confusable` | UltraBERT-Embed-150M + LR | train | 0.9525 | 0.9526 | 0.0102 |
+| `confusable` | UltraBERT-Embed-150M + LR | 50 of train, seed 0 | 0.8900 | 0.8893 | 0.0101 |
+| `confusable` | UltraBERT-Embed-150M + LR | 100 of train, seed 0 | 0.9250 | 0.9252 | 0.00995 |
+| `confusable` | UltraBERT-Embed-150M + LR | 200 of train, seed 0 | 0.9200 | 0.9199 | 0.00973 |
+| `confusable` | UltraBERT-Embed-150M + LR | 400 of train, seed 0 | 0.9325 | 0.9325 | 0.0100 |
+| `confusable` | UltraBERT-Embed-150M + LR | 795 of train, seed 0 | 0.9475 | 0.9477 | 0.0100 |
+| `confusable` | UltraBERT-Embed-150M + LR | 50 of train, seed 1 | 0.8825 | 0.8823 | 0.0102 |
+| `confusable` | UltraBERT-Embed-150M + LR | 100 of train, seed 1 | 0.9250 | 0.9251 | 0.0100 |
+| `confusable` | UltraBERT-Embed-150M + LR | 200 of train, seed 1 | 0.9400 | 0.9400 | 0.00981 |
+| `confusable` | UltraBERT-Embed-150M + LR | 400 of train, seed 1 | 0.9375 | 0.9376 | 0.0101 |
+| `confusable` | UltraBERT-Embed-150M + LR | 50 of train, seed 2 | 0.8350 | 0.8267 | 0.0100 |
+| `confusable` | UltraBERT-Embed-150M + LR | 100 of train, seed 2 | 0.9075 | 0.9075 | 0.0100 |
+| `confusable` | UltraBERT-Embed-150M + LR | 200 of train, seed 2 | 0.9225 | 0.9226 | 0.0100 |
+| `confusable` | UltraBERT-Embed-150M + LR | 400 of train, seed 2 | 0.9250 | 0.9251 | 0.0100 |
 | `confusable` | UltraBERT-Embed-150M + LR, no prompt | synthetic (`gemma4:e4b`) | 0.8275 | 0.8245 | 0.0100 |
-| `confusable` | UltraBERT-Embed-150M + LR, no prompt | real Banking77 train     | 0.9325 | 0.9326 | 0.0102 |
+| `confusable` | UltraBERT-Embed-150M + LR, no prompt | train + validation | 0.9325 | 0.9326 | 0.0102 |
 | `confusable` | `gemma4:e4b`             | `definitions` prompt     | 0.9125   | 0.9126   | 0.63    |
 | `confusable` | `gemma4:e4b`             | `fewshot` prompt         | 0.9300   | 0.9302   | 0.47    |
 | `confusable` | `qwen3.6:27b-q4_K_M`     | `names` prompt           | 0.8775   | 0.8756   | 1.5     |
 | `confusable` | `qwen3.6:27b-q4_K_M`     | `fewshot` prompt         | 0.9325   | 0.9329   | 2.5     |
 | `confusable` | Gemma 4 E4B (MLX)        | `definitions` prompt     | 0.8500   | 0.8858   | 0.258   |
 | `confusable` | Gemma 4 E4B (MLX) + LoRA | synthetic (`gemma4:e4b`) | 0.8500 | 0.8510 | 0.235   |
-| `confusable` | Gemma 4 E4B (MLX) + LoRA | real Banking77 train     | 0.8575 | 0.8513 | 0.235   |
+| `confusable` | Gemma 4 E4B (MLX) + LoRA | train + validation | 0.8575 | 0.8513 | 0.235   |
 | `confusable` | Gemma 4 E4B (MLX), letter logits | `definitions` prompt | 0.8675 | 0.8648 | 0.338 |
 | `confusable` | Gemma 4 E4B (MLX), letter logits | `fewshot` prompt     | 0.8600 | 0.8582 | 0.471 |
 | `distinct`   | Laya                     | `names` prompt           | 0.9123   | 0.9139   | 0.0225  |
@@ -623,14 +631,14 @@ against 0.7900, so it has no rows in the Results tables but the routing table. O
 whose top probability is above 0.9, 338 of 399 on `distinct` are 0.9734 accurate and 273 of 400 on
 `confusable` 0.7912.
 
-The `definitions` letter-logits rows read the class from the probability of its letter at the last position in one
-forward pass, thinking off; they score below the Ollama `gemma4:e4b` row with the prompt chosen on
-dev on both sets, 0.8675 against 0.9125 (`definitions`) on `confusable` and 0.9799 against 0.9825
-(`names`) on `distinct`, and their top probability is above 0.9 on 378 of 400 `confusable` answers
-at 0.8783 accuracy and 397 of 399 `distinct` at 0.9798, so they have no rows in the Results tables
-but the routing table, and a threshold of 0.9 does not separate right from wrong answers; the
-routing table under question 1 of Results gives the AUROC. The `fewshot` letter-logits row adds
-the 30 `fewshot` examples under each lettered category; it scores 0.8600 on `confusable`, 3
+The `definitions` letter-logits rows read the class from the probability of its letter at the last
+position in one forward pass, thinking off; they score below the Ollama `gemma4:e4b` row with the
+prompt chosen on validation on both sets, 0.8675 against 0.9125 (`definitions`) on `confusable` and
+0.9799 against 0.9825 (`names`) on `distinct`, and their top probability is above 0.9 on 378 of 400
+`confusable` answers at 0.8783 accuracy and 397 of 399 `distinct` at 0.9798, so they have no rows in
+the Results tables but the routing table, and a threshold of 0.9 does not separate right from wrong
+answers; the routing table under question 1 of Results gives the AUROC. The `fewshot` letter-logits
+row adds the 30 `fewshot` examples under each lettered category; it scores 0.8600 on `confusable`, 3
 messages below `definitions`, and is in the routing and accuracy tables.
 
 The contrast rows are `generate.py --method contrast`, which shows both definitions in a pair and
@@ -638,12 +646,12 @@ asks for at least half the messages to avoid the words of the class name; that r
 classifiers worse than the synthetic set, 84 to 127 errors of 400 for TF-IDF and 61 to 65 for
 UltraBERT-Embed-150M + LR, so they have no rows in the sections above All results.
 
-### Prompts on dev
+### Prompts on validation
 
-Accuracy of each Ollama model, of Laya and of TypeSafe System One with each prompt on the 200 dev
-messages; full reports are `results/<class set>/dev/<model>-<prompt>.txt`. Laya takes no `fewshot`
-prompt and System One no `names` prompt. System One's two prompts tie on dev, and both were run on
-test.
+Accuracy of each Ollama model, of Laya and of TypeSafe System One with each prompt on the 200
+validation messages; full reports are `results/<class set>/dev/<model>-<prompt>.txt`. Laya takes no
+`fewshot` prompt and System One no `names` prompt. System One's two prompts tie on validation, and
+both were run on test.
 
 | Class set    | Model                | `names` | `definitions` | `fewshot` |
 |--------------|----------------------|---------|---------------|-----------|
@@ -661,48 +669,49 @@ Wall time of one `train.py` or `finetune.py` run on the same M5 Pro, from loadin
 saving, with nothing else on the GPU; files are `results/<class set>/train/<model>.txt`. A file
 whose `model` line is under `xtmp/` is a re-run of the training command into a scratch directory,
 and the model scored in the test table was not replaced; one under `models/` is the run whose model
-was scored. The UltraBERT-Embed-150M times are mostly embedding the train set. A time under a
-minute is in seconds.
+was scored. The UltraBERT-Embed-150M times are mostly embedding the training set. A time under a
+minute is in seconds. The train + validation rows include the 200 validation rows, so their models
+cannot be routed.
 
 | Class set    | Model                    | Training set             | Rows | Minutes |
 |--------------|--------------------------|--------------------------|------|---------|
 | `distinct`   | ModernBERT-base          | synthetic (`gemma4:e4b`) | 1000 | 1.6     |
-| `distinct`   | ModernBERT-base          | real Banking77 train     | 1188 | 1.8     |
+| `distinct`   | ModernBERT-base          | train + validation | 1188 | 1.8     |
 | `distinct`   | TF-IDF + logistic regression | synthetic (`gemma4:e4b`) | 1000 | 0.65 s  |
-| `distinct`   | TF-IDF + logistic regression | real Banking77 train     | 1188 | 0.60 s  |
+| `distinct`   | TF-IDF + logistic regression | train + validation | 1188 | 0.60 s  |
 | `distinct`   | UltraBERT-Embed-150M + LR | synthetic (`gemma4:e4b`) | 1000 | 6.92 s  |
-| `distinct`   | UltraBERT-Embed-150M + LR | real Banking77 train     | 1188 | 6.40 s  |
+| `distinct`   | UltraBERT-Embed-150M + LR | train + validation | 1188 | 6.40 s  |
 | `distinct`   | UltraBERT-Embed-150M + LR, no prompt | synthetic (`gemma4:e4b`) | 1000 | 5.19 s  |
-| `distinct`   | UltraBERT-Embed-150M + LR, no prompt | real Banking77 train     | 1188 | 6.86 s  |
+| `distinct`   | UltraBERT-Embed-150M + LR, no prompt | train + validation | 1188 | 6.86 s  |
 | `distinct`   | Gemma 4 E4B (MLX) + LoRA | synthetic (`gemma4:e4b`) | 1000 | 7.8     |
-| `distinct`   | Gemma 4 E4B (MLX) + LoRA | real Banking77 train     | 1188 | 9.1     |
+| `distinct`   | Gemma 4 E4B (MLX) + LoRA | train + validation | 1188 | 9.1     |
 | `confusable` | ModernBERT-base          | synthetic (`gemma4:e4b`) | 1000 | 1.7     |
 | `confusable` | ModernBERT-base          | diagnosed (`gemma4:e4b`) | 1000 | 1.8     |
-| `confusable` | ModernBERT-base          | real Banking77 train     | 1284 | 2.0     |
+| `confusable` | ModernBERT-base          | train + validation | 1284 | 2.0     |
 | `confusable` | TF-IDF + logistic regression | synthetic (`gemma4:e4b`) | 1000 | 0.71 s  |
 | `confusable` | TF-IDF + logistic regression | diagnosed (`gemma4:e4b`) | 1000 | 0.85 s  |
-| `confusable` | TF-IDF + logistic regression | real Banking77 train     | 1284 | 0.65 s  |
+| `confusable` | TF-IDF + logistic regression | train + validation | 1284 | 0.65 s  |
 | `confusable` | UltraBERT-Embed-150M + LR | synthetic (`gemma4:e4b`) | 1000 | 5.86 s  |
 | `confusable` | UltraBERT-Embed-150M + LR | diagnosed (`gemma4:e4b`) | 1000 | 5.50 s  |
-| `confusable` | UltraBERT-Embed-150M + LR | real Banking77 train     | 1284 | 6.52 s  |
-| `confusable` | UltraBERT-Embed-150M + LR | real Banking77 train minus dev | 1084 | 7.50 s  |
-| `confusable` | UltraBERT-Embed-150M + LR | 50 of real train minus dev, seed 0 | 50   | 5.01 s  |
-| `confusable` | UltraBERT-Embed-150M + LR | 100 of real train minus dev, seed 0 | 100  | 2.92 s  |
-| `confusable` | UltraBERT-Embed-150M + LR | 200 of real train minus dev, seed 0 | 200  | 3.15 s  |
-| `confusable` | UltraBERT-Embed-150M + LR | 400 of real train minus dev, seed 0 | 400  | 3.65 s  |
-| `confusable` | UltraBERT-Embed-150M + LR | 795 of real train minus dev, seed 0 | 795  | 4.69 s  |
-| `confusable` | UltraBERT-Embed-150M + LR | 50 of real train minus dev, seed 1 | 50   | 5.25 s  |
-| `confusable` | UltraBERT-Embed-150M + LR | 100 of real train minus dev, seed 1 | 100  | 2.76 s  |
-| `confusable` | UltraBERT-Embed-150M + LR | 200 of real train minus dev, seed 1 | 200  | 3.04 s  |
-| `confusable` | UltraBERT-Embed-150M + LR | 400 of real train minus dev, seed 1 | 400  | 3.55 s  |
-| `confusable` | UltraBERT-Embed-150M + LR | 50 of real train minus dev, seed 2 | 50   | 2.68 s  |
-| `confusable` | UltraBERT-Embed-150M + LR | 100 of real train minus dev, seed 2 | 100  | 3.06 s  |
-| `confusable` | UltraBERT-Embed-150M + LR | 200 of real train minus dev, seed 2 | 200  | 3.21 s  |
-| `confusable` | UltraBERT-Embed-150M + LR | 400 of real train minus dev, seed 2 | 400  | 3.74 s  |
+| `confusable` | UltraBERT-Embed-150M + LR | train + validation | 1284 | 6.52 s  |
+| `confusable` | UltraBERT-Embed-150M + LR | train | 1084 | 7.50 s  |
+| `confusable` | UltraBERT-Embed-150M + LR | 50 of train, seed 0 | 50   | 5.01 s  |
+| `confusable` | UltraBERT-Embed-150M + LR | 100 of train, seed 0 | 100  | 2.92 s  |
+| `confusable` | UltraBERT-Embed-150M + LR | 200 of train, seed 0 | 200  | 3.15 s  |
+| `confusable` | UltraBERT-Embed-150M + LR | 400 of train, seed 0 | 400  | 3.65 s  |
+| `confusable` | UltraBERT-Embed-150M + LR | 795 of train, seed 0 | 795  | 4.69 s  |
+| `confusable` | UltraBERT-Embed-150M + LR | 50 of train, seed 1 | 50   | 5.25 s  |
+| `confusable` | UltraBERT-Embed-150M + LR | 100 of train, seed 1 | 100  | 2.76 s  |
+| `confusable` | UltraBERT-Embed-150M + LR | 200 of train, seed 1 | 200  | 3.04 s  |
+| `confusable` | UltraBERT-Embed-150M + LR | 400 of train, seed 1 | 400  | 3.55 s  |
+| `confusable` | UltraBERT-Embed-150M + LR | 50 of train, seed 2 | 50   | 2.68 s  |
+| `confusable` | UltraBERT-Embed-150M + LR | 100 of train, seed 2 | 100  | 3.06 s  |
+| `confusable` | UltraBERT-Embed-150M + LR | 200 of train, seed 2 | 200  | 3.21 s  |
+| `confusable` | UltraBERT-Embed-150M + LR | 400 of train, seed 2 | 400  | 3.74 s  |
 | `confusable` | UltraBERT-Embed-150M + LR, no prompt | synthetic (`gemma4:e4b`) | 1000 | 4.60 s  |
-| `confusable` | UltraBERT-Embed-150M + LR, no prompt | real Banking77 train     | 1284 | 5.57 s  |
+| `confusable` | UltraBERT-Embed-150M + LR, no prompt | train + validation | 1284 | 5.57 s  |
 | `confusable` | Gemma 4 E4B (MLX) + LoRA | synthetic (`gemma4:e4b`) | 1000 | 13.6    |
-| `confusable` | Gemma 4 E4B (MLX) + LoRA | real Banking77 train     | 1284 | 17.9    |
+| `confusable` | Gemma 4 E4B (MLX) + LoRA | train + validation | 1284 | 17.9    |
 
 ModernBERT runs 5 passes over the rows and the adapters 2. The `confusable` prompt is about twice
 the length of the `distinct` one (2060 characters against 1012), and every training example for an
@@ -735,24 +744,24 @@ adapter carries the whole prompt.
   as the user turn, the class name as the assistant turn.
 - `score.py` — scores a saved model (`--model`), an Ollama model (`--llm MODEL --prompt NAME`), an
   mlx-lm model with the `definitions` prompt (`--mlx MODEL`, and `--adapter DIR` for a LoRA adapter,
-  or `--reply logits` for letter logits, `--mlx` only, no adapter, with
-  `--prompt definitions|fewshot`, default `definitions`), Laya
-  (`--laya --prompt names|definitions`) or TypeSafe System One (`--jev`, `--prompt definitions|fewshot`, default `definitions`) on Banking77 restricted to
-  the class set: accuracy, macro F1, median seconds per message, per-class recall and a confusion
-  matrix, printed and written to `results/<set>/<split>/<name>.txt`. An `--mlx` report also counts the invalid replies.
-  `--split test` (the default) is the Banking77 test split. `--split dev` is 20 messages per class
-  sampled with a fixed seed from the Banking77 train split; the `fewshot` examples are train
-  messages outside dev. `--write-train` exports the restricted train split as jsonl, and with `--no-dev` leaves
-  out the 200 dev rows. `--split rest --train-file JSONL` is the rows of
-  `data/<set>/banking77_train_nodev.jsonl` not in `JSONL`, for a `--model` trained on a subset of
-  it. `--dump FILE`
-  also writes each message's probability over the class set, for `--model`, `--laya`, `--jev` and
-  `--mlx --reply logits`.
-- `confidence.py` — from a classifier's dev and test `--dump` files: AUROC of the top probability
-  against correctness, ECE before and after isotonic calibration fitted on dev, and test coverage
-  and error at thresholds chosen on dev for α 0.02, 0.05 and 0.10, with and without a
-  Clopper-Pearson bound, written to `results/<set>/confidence/<name>.txt`. `--dev-size N
-  --dev-seed S` fits on N rows of the dev file, N / 10 per class, drawn with seed S.
+  or `--reply logits` for letter logits, `--mlx` only, no adapter, with `--prompt
+  definitions|fewshot`, default `definitions`), Laya (`--laya --prompt names|definitions`) or
+  TypeSafe System One (`--jev`, `--prompt definitions|fewshot`, default `definitions`) on Banking77
+  restricted to the class set: accuracy, macro F1, median seconds per message, per-class recall and
+  a confusion matrix, printed and written to `results/<set>/<split>/<name>.txt`. An `--mlx` report
+  also counts the invalid replies. `--split test` (the default) is the Banking77 test split.
+  `--split dev` is validation, 20 messages per class sampled with a fixed seed from the Banking77
+  train split; the `fewshot` examples are train messages outside validation. `--write-train` exports
+  train + validation as jsonl, and with `--no-dev` leaves out the 200 validation rows, giving train.
+  `--split rest --train-file JSONL` is the rows of `data/<set>/banking77_train_nodev.jsonl` not in
+  `JSONL`, for a `--model` trained on a subset of it. `--dump FILE` also writes each message's
+  probability over the class set, for `--model`, `--laya`, `--jev` and `--mlx --reply logits`.
+- `confidence.py` — from a classifier's validation (`--dev`) and test `--dump` files: AUROC of the
+  top probability against correctness, ECE before and after isotonic calibration fitted on
+  validation, and test coverage and error at thresholds chosen on validation for α 0.02, 0.05 and
+  0.10, with and without a Clopper-Pearson bound, written to `results/<set>/confidence/<name>.txt`.
+  `--dev-size N --dev-seed S` fits on N rows of the validation file, N / 10 per class, drawn with
+  seed S.
 
 Banking77 is loaded from [`mteb/banking77`](https://huggingface.co/datasets/mteb/banking77), a
 parquet copy. The original `PolyAI/banking77` is a dataset script, which `datasets` 5.1.0 refuses
@@ -788,11 +797,11 @@ for m in models/$S/*; do python score.py --set $S --model $m; done
 for p in names definitions fewshot; do
   python score.py --set $S --split dev --llm gemma4:e4b --prompt $p
 done
-python score.py --set $S --llm gemma4:e4b --prompt fewshot      # test, with the prompts chosen on dev
+python score.py --set $S --llm gemma4:e4b --prompt fewshot      # test, with the prompts chosen on validation
 
 python score.py --set $S --split dev --laya --prompt names
 python score.py --set $S --split dev --laya --prompt definitions
-python score.py --set $S --laya --prompt names                  # test, with the prompt chosen on dev
+python score.py --set $S --laya --prompt names                  # test, with the prompt chosen on validation
 
 M=mlx-community/gemma-4-e4b-it-4bit
 python finetune.py --set $S --train data/$S/synthetic.jsonl       --out models/$S/gemma-4-e4b-lora-synthetic
@@ -843,7 +852,7 @@ for d in $D/*-dev.jsonl; do
   n=$(basename $d -dev.jsonl)
   python confidence.py --set confusable --model-name $n --dev $d --test $D/$n-test.jsonl
 done
-# Dev size: the 400-row models' thresholds chosen on N rows of the rows they were not trained on.
+# Validation size: thresholds of the 400-row models chosen on N of their rest rows.
 for s in "" -s1 -s2; do
   m=ultrabert-embed-real-nodev-400$s
   python score.py --set confusable --split rest --train-file data/confusable/banking77_train_nodev_400${s/-/_}.jsonl \
