@@ -14,13 +14,13 @@ TypeSafe System One, an API billed per message.
 
 The short answers, on the 400 Banking77 test messages of the `confusable` class set:
 
-1. UltraBERT-Embed-150M + logistic regression trained on train, 1084 real messages, with the 200
-   validation messages setting its threshold, handles 86% of messages with no human check at 2.6%
-   error, with the threshold set under a Clopper-Pearson bound at 5% error. Under that bound
-   TypeSafe System One, an API, with the `fewshot` prompt's 30 examples, certifies as much as
-   UltraBERT-Embed-150M + logistic regression trained on 400 to 1084 rows does at the same
-   validation size, at $54 per million messages and 0.53 s a message against free and 0.01 s.
-   Nothing trained on no real messages handles any message under it.
+1. Under a Clopper-Pearson bound at 5% error, with 400 validation messages setting the threshold,
+   TypeSafe System One, an API, with the `fewshot` prompt's 30 examples, and UltraBERT-Embed-150M +
+   logistic regression trained on 400 real messages both handle about 85% of messages with no human
+   check at 3% error, System One at $54 per million messages and 0.53 s a message against free and
+   0.01 s. UltraBERT-Embed-150M + logistic regression trained on train, 1084 real messages, handles
+   86% at 2.6% error on its one draw of 200 validation messages. Nothing trained on no real messages
+   handles any message under the bound on 200.
 2. UltraBERT-Embed-150M + logistic regression trained on train, 1084 real messages: 95%. TypeSafe
    System One with 30 real messages as examples: 94.5%. `gemma4:e4b` with the category definitions
    and no labels: 91%.
@@ -133,13 +133,14 @@ Every table in this section is on `confusable`.
 
 ### 1. How much of the work can it do without a person checking?
 
-**Under the Clopper-Pearson bound at α 0.05, UltraBERT-Embed-150M + logistic regression trained on
-train labels 344 of the 400 test messages on its own, and 9 of those 344 are
-wrong.** No other classifier in the table labels any on these 200 validation messages. They are
-one draw of 200: on the validation-size table under question 3, TypeSafe System One with the
-`fewshot` prompt certifies as much as UltraBERT-Embed-150M + LR at the same validation size, with
-30 examples against 400 to 1084 training rows, at $54 per million messages and 0.53 s a message
-against free and 0.01 s.
+**Under the Clopper-Pearson bound at α 0.05 with 400 validation rows, TypeSafe System One with the
+`fewshot` prompt's 30 examples and UltraBERT-Embed-150M + logistic regression trained on 400
+Banking77 train rows both certify about 85% of the 400 test messages at 3% error: 0.8658 at 0.0297
+and 0.8500 at 0.0300, means over the runs of the validation-size table under question 3.
+UltraBERT-Embed-150M + LR trained on train, 1084 rows, certifies 86% on its one draw of 200
+validation rows, 344 of the 400 with 9 wrong.** No other classifier in the table labels any message
+on that draw. System One costs $54 per million messages and 0.53 s a message against free and
+0.01 s.
 
 AUROC is the chance that a randomly chosen right answer gets a higher top probability than a
 randomly chosen wrong one. ECE is the mean gap between the top probability and the observed
@@ -148,18 +149,19 @@ probability onto accuracy, fitted on validation. The bound is the one-sided 90% 
 upper bound on the validation error: the highest error rate that the validation count does not rule
 out at 90% confidence.
 
-| Classifier                       | Trained on                                         | Prompt        | AUROC  | ECE after isotonic calibration | Test coverage under the bound at α 0.05 | Test error under the bound at α 0.05 | Test coverage under the bound at α 0.10 | Test error under the bound at α 0.10 |
-|----------------------------------|----------------------------------------------------|---------------|--------|--------------------------------|-----------------------------------------|--------------------------------------|-----------------------------------------|--------------------------------------|
-| TF-IDF + logistic regression     | 1000 LLM-written, steered by 200 validation counts | —             | 0.7855 | 0.0319                         | 0.0000                                  | —                                    | 0.0000                                  | —                                    |
-| ModernBERT-base                  | 1000 LLM-written, steered by 200 validation counts | —             | 0.8394 | 0.0564                         | 0.0000                                  | —                                    | 0.0000                                  | —                                    |
-| UltraBERT-Embed-150M + LR        | 1000 LLM-written                                   | —             | 0.8405 | 0.0495                         | 0.0000                                  | —                                    | 0.1550                                  | 0.0323                               |
-| UltraBERT-Embed-150M + LR        | 1000 LLM-written, steered by 200 validation counts | —             | 0.7794 | 0.0333                         | 0.0000                                  | —                                    | 0.7175                                  | 0.0383                               |
-| UltraBERT-Embed-150M + LR        | 1084 Banking77 train                               | —             | 0.8641 | 0.0240                         | 0.8600                                  | 0.0262                               | 1.0000                                  | 0.0475                               |
-| Gemma 4 E4B (MLX), letter logits | not trained                                        | `definitions` | 0.7770 | 0.0608                         | 0.0000                                  | —                                    | 0.0000                                  | —                                    |
-| Gemma 4 E4B (MLX), letter logits | not trained                                        | `fewshot`     | 0.7941 | 0.0463                         | 0.0000                                  | —                                    | 0.0000                                  | —                                    |
-| Laya                             | not trained                                        | `names`       | 0.6753 | 0.0705                         | 0.0000                                  | —                                    | 0.0000                                  | —                                    |
-| TypeSafe System One              | not trained                                        | `definitions` | 0.7867 | 0.0534                         | 0.0000                                  | —                                    | 0.8050                                  | 0.0404                               |
-| TypeSafe System One              | not trained                                        | `fewshot`     | 0.8214 | 0.0452                         | 0.0000                                  | —                                    | 0.9500                                  | 0.0421                               |
+| Classifier                       | Trained on                                         | Prompt        | AUROC  | ECE after isotonic calibration | Test coverage under the bound at α 0.05, 200 validation rows, one draw | Test error under the bound at α 0.05, 200 validation rows, one draw | Test coverage under the bound at α 0.05, 400 validation rows | Test error under the bound at α 0.05, 400 validation rows | Test coverage under the bound at α 0.10 | Test error under the bound at α 0.10 |
+|----------------------------------|----------------------------------------------------|---------------|--------|--------------------------------|------------------------------------------------------------------------|---------------------------------------------------------------------|--------------------------------------------------------------|-----------------------------------------------------------|-----------------------------------------|--------------------------------------|
+| TF-IDF + logistic regression     | 1000 LLM-written, steered by 200 validation counts | —             | 0.7855 | 0.0319                         | 0.0000                                                                 | —                                                                   | not measured                                                 | not measured                                              | 0.0000                                  | —                                    |
+| ModernBERT-base                  | 1000 LLM-written, steered by 200 validation counts | —             | 0.8394 | 0.0564                         | 0.0000                                                                 | —                                                                   | not measured                                                 | not measured                                              | 0.0000                                  | —                                    |
+| UltraBERT-Embed-150M + LR        | 1000 LLM-written                                   | —             | 0.8405 | 0.0495                         | 0.0000                                                                 | —                                                                   | not measured                                                 | not measured                                              | 0.1550                                  | 0.0323                               |
+| UltraBERT-Embed-150M + LR        | 1000 LLM-written, steered by 200 validation counts | —             | 0.7794 | 0.0333                         | 0.0000                                                                 | —                                                                   | not measured                                                 | not measured                                              | 0.7175                                  | 0.0383                               |
+| UltraBERT-Embed-150M + LR        | 1084 Banking77 train                               | —             | 0.8641 | 0.0240                         | 0.8600                                                                 | 0.0262                                                              | not measured                                                 | not measured                                              | 1.0000                                  | 0.0475                               |
+| UltraBERT-Embed-150M + LR        | 400 Banking77 train                                | —             | —      | —                              | —                                                                      | —                                                                   | 0.8500 (0.7200–0.9300)                                       | 0.0300 (0.0168–0.0490)                                    | —                                       | —                                    |
+| Gemma 4 E4B (MLX), letter logits | not trained                                        | `definitions` | 0.7770 | 0.0608                         | 0.0000                                                                 | —                                                                   | not measured                                                 | not measured                                              | 0.0000                                  | —                                    |
+| Gemma 4 E4B (MLX), letter logits | not trained                                        | `fewshot`     | 0.7941 | 0.0463                         | 0.0000                                                                 | —                                                                   | not measured                                                 | not measured                                              | 0.0000                                  | —                                    |
+| Laya                             | not trained                                        | `names`       | 0.6753 | 0.0705                         | 0.0000                                                                 | —                                                                   | not measured                                                 | not measured                                              | 0.0000                                  | —                                    |
+| TypeSafe System One              | not trained                                        | `definitions` | 0.7867 | 0.0534                         | 0.0000                                                                 | —                                                                   | not measured                                                 | not measured                                              | 0.8050                                  | 0.0404                               |
+| TypeSafe System One              | not trained                                        | `fewshot`     | 0.8214 | 0.0452                         | 0.0000                                                                 | —                                                                   | 0.8658 (0.8400–0.9100)                                       | 0.0297 (0.0265–0.0357)                                    | 0.9500                                  | 0.0421                               |
 
 Under the bound, certifying α needs about 2.3/α accepted validation messages with no error among
 them, so 2% needs 115 of the 200 and no classifier here has an error-free prefix that long; 200
