@@ -1,0 +1,321 @@
+{"text": "I am still waiting on my card?", "label": "card_arrival"}
+{"text": "When did you send me my new card?", "label": "card_arrival"}
+{"text": "Does the package with my card have tracking?", "label": "card_arrival"}
+{"text": "I ordered my card but it still isn't here", "label": "card_arrival"}
+{"text": "Why has my new card still not come?", "label": "card_arrival"}
+{"text": "How do I know when my new card is going to arrive?", "label": "card_arrival"}
+{"text": "It's been a week since you issued me a card and I still didn't get it. Should I keep waiting?", "label": "card_arrival"}
+{"text": "How do I track the card you sent me?", "label": "card_arrival"}
+{"text": "Is there a tracking number for the card you sent me?", "label": "card_arrival"}
+{"text": "I would like to track the card you sent to me.", "label": "card_arrival"}
+{"text": "Where is the card I ordered 2 weeks ago?", "label": "card_arrival"}
+{"text": "I need to find out where the card is that I ordered.", "label": "card_arrival"}
+{"text": "Is my card lost? I am still waiting for it to be delivered.", "label": "card_arrival"}
+{"text": "A card has been sent to me, how do I track it?", "label": "card_arrival"}
+{"text": "What can I do to track the card you sent me?", "label": "card_arrival"}
+{"text": "What's the reason my new card hasn't come?", "label": "card_arrival"}
+{"text": "My card hasn't arrived.", "label": "card_arrival"}
+{"text": "How long will it take for me to get my card?", "label": "card_arrival"}
+{"text": "maximum how many days get the courier?", "label": "card_arrival"}
+{"text": "Can I track the card that was just sent to me?", "label": "card_arrival"}
+{"text": "Can you tell me why I haven't received my new card yet?", "label": "card_arrival"}
+{"text": "What do I need to do to get my new card which I have requested 2 weeks ago?", "label": "card_arrival"}
+{"text": "Can you help me track my card?", "label": "card_arrival"}
+{"text": "Is there a way I can check on the card on route to me?", "label": "card_arrival"}
+{"text": "When will my new card arrive?", "label": "card_arrival"}
+{"text": "What is the expected delivery date of my card?", "label": "card_arrival"}
+{"text": "I was issued a card about a week ago. why hasn't it come in yet?", "label": "card_arrival"}
+{"text": "I still haven't gotten my new card.  When will it get here?", "label": "card_arrival"}
+{"text": "How long does it take to recieve my new card?", "label": "card_arrival"}
+{"text": "My card has not come in the mail yet.", "label": "card_arrival"}
+{"text": "Am I able to track a card that has already been sent?", "label": "card_arrival"}
+{"text": "I was expecting my new card by now.", "label": "card_arrival"}
+{"text": "Can I track the card that you sent me in the mail?", "label": "card_arrival"}
+{"text": "Why have I not gotten my new card?", "label": "card_arrival"}
+{"text": "My new card isn't here and it was issued a week ago.", "label": "card_arrival"}
+{"text": "Was there a number to track that I could get?", "label": "card_arrival"}
+{"text": "I haven't gotten my credit card in the mail.", "label": "card_arrival"}
+{"text": "My card never arrived.", "label": "card_arrival"}
+{"text": "Hi, I am disappointed to see such a bad exchange rate and hope you can assist me. Would you be able to confirm the official interbank exchange rate for me?", "label": "card_payment_wrong_exchange_rate"}
+{"text": "The exchange rate I was charged for a purchase was not right.", "label": "card_payment_wrong_exchange_rate"}
+{"text": "My payment has an incorrect exchange rate.", "label": "card_payment_wrong_exchange_rate"}
+{"text": "my exchange rate looks wrong for my last payment", "label": "card_payment_wrong_exchange_rate"}
+{"text": "Why is the exchange rate terrible?  That can't be close to the actual interbank rate.", "label": "card_payment_wrong_exchange_rate"}
+{"text": "An incorrect exchange rate was applied to an item I bought.", "label": "card_payment_wrong_exchange_rate"}
+{"text": "The exchange rate was incorrect for an item I bought.", "label": "card_payment_wrong_exchange_rate"}
+{"text": "I just saw the exchange rate you use, but it's so bad that I can't believe that it's the official interbank exchange rate! Is this truly the official interbank exchange rate?", "label": "card_payment_wrong_exchange_rate"}
+{"text": "The exchange rate from my card payment isn't right.", "label": "card_payment_wrong_exchange_rate"}
+{"text": "My exchange rate isn't correct.", "label": "card_payment_wrong_exchange_rate"}
+{"text": "There was a problem with the exchange rate on a purchase.", "label": "card_payment_wrong_exchange_rate"}
+{"text": "I recently purchased something, and the exchange rate was wrong.", "label": "card_payment_wrong_exchange_rate"}
+{"text": "Please check my payment from last Saturday as I feel I have been overcharged on the exchange rate.  Thank you.", "label": "card_payment_wrong_exchange_rate"}
+{"text": "This exchange rate on my purchase is wrong.", "label": "card_payment_wrong_exchange_rate"}
+{"text": "I think there has been a mistake on my exchange rate for this purchase.", "label": "card_payment_wrong_exchange_rate"}
+{"text": "I question today's exchange rate for rubles into pounds. I was hoping for a better return.", "label": "card_payment_wrong_exchange_rate"}
+{"text": "I feel as though I have been over charged for the exchange rate on my payment on last Saturday.", "label": "card_payment_wrong_exchange_rate"}
+{"text": "I purchased something abroad and the incorrect exchange rate was applied.", "label": "card_payment_wrong_exchange_rate"}
+{"text": "I was charged the wrong exchange rate on a purchase", "label": "card_payment_wrong_exchange_rate"}
+{"text": "The currency exchange for my purchase in foreign currency is incorrect.", "label": "card_payment_wrong_exchange_rate"}
+{"text": "It seems that something went wrong with my exchange. I changed Russian Ruble into UK pounds but have been charged entirely too much!", "label": "card_payment_wrong_exchange_rate"}
+{"text": "They used the wrong rate when I made a purchase with foreign currency.", "label": "card_payment_wrong_exchange_rate"}
+{"text": "It seems that the rate I got is incorrect.", "label": "card_payment_wrong_exchange_rate"}
+{"text": "What is your exchange rate between UK pounds and Russian rubles for my last transaction", "label": "card_payment_wrong_exchange_rate"}
+{"text": "My card payment has the wrong exchange rate", "label": "card_payment_wrong_exchange_rate"}
+{"text": "I have been charged way to much so something is apparently wrong with my exchange. I changed Russian Ruble into UK pounds.", "label": "card_payment_wrong_exchange_rate"}
+{"text": "Why was the wrong rate applied when I bought something in a different currency?", "label": "card_payment_wrong_exchange_rate"}
+{"text": "An item I bought had the wrong exchange rate applied.", "label": "card_payment_wrong_exchange_rate"}
+{"text": "I recently bought something abroad but the exchange rate is incorrect. Why?", "label": "card_payment_wrong_exchange_rate"}
+{"text": "Why is the exchange rate for my payment incorrect?", "label": "card_payment_wrong_exchange_rate"}
+{"text": "Your foreign exchange rate is wrong.", "label": "card_payment_wrong_exchange_rate"}
+{"text": "It looks like the exchange rates on my card payment are wrong", "label": "card_payment_wrong_exchange_rate"}
+{"text": "I bought an item that I was charged a different exchange rate for.", "label": "card_payment_wrong_exchange_rate"}
+{"text": "The exchange rate for my card payment doesn't seem right.", "label": "card_payment_wrong_exchange_rate"}
+{"text": "I am being charged the wrong amount on my card.", "label": "card_payment_wrong_exchange_rate"}
+{"text": "The exchange rate is incorrect for something I bought", "label": "card_payment_wrong_exchange_rate"}
+{"text": "My payment had a wrong exchange rate.", "label": "card_payment_wrong_exchange_rate"}
+{"text": "Why is the exchange rate on my card payment different than I expected?", "label": "card_payment_wrong_exchange_rate"}
+{"text": "I purchased something abroad but the exchange rate is incorrect.", "label": "card_payment_wrong_exchange_rate"}
+{"text": "I'm going on a trip soon and I needed to convert my Russian ruble to UK pounds, but when I did, your company charged me above the exchange rate. Did you mess up my transaction?", "label": "card_payment_wrong_exchange_rate"}
+{"text": "I was charged extra. Was the exchange rate for my payment last Saturday wrong?", "label": "card_payment_wrong_exchange_rate"}
+{"text": "Why am I being charged more on exchange with things I bought abroad?", "label": "card_payment_wrong_exchange_rate"}
+{"text": "Help! When will the card arrive at my home?", "label": "card_delivery_estimate"}
+{"text": "i need to expedite my card", "label": "card_delivery_estimate"}
+{"text": "i am express delivering my card to the us, how long will that take", "label": "card_delivery_estimate"}
+{"text": "When will my card be here?", "label": "card_delivery_estimate"}
+{"text": "I'm worried my card might be lost in the mail? How long does it usually take to arrive?", "label": "card_delivery_estimate"}
+{"text": "When will my card be delivered?", "label": "card_delivery_estimate"}
+{"text": "can I choose delivery times to suite me?", "label": "card_delivery_estimate"}
+{"text": "Give me my card, I need it now!", "label": "card_delivery_estimate"}
+{"text": "What is the delivery time to the US?", "label": "card_delivery_estimate"}
+{"text": "When can I expect my card to arrive?", "label": "card_delivery_estimate"}
+{"text": "Can I have it delivered on the date I need it delivered?", "label": "card_delivery_estimate"}
+{"text": "Can cards be dispatched on a specific date?", "label": "card_delivery_estimate"}
+{"text": "When will I receive the card?", "label": "card_delivery_estimate"}
+{"text": "When should I expect my card to arrive?", "label": "card_delivery_estimate"}
+{"text": "How long is the delivery to the US?", "label": "card_delivery_estimate"}
+{"text": "How long is US delivery?", "label": "card_delivery_estimate"}
+{"text": "how soon will my card arrive?", "label": "card_delivery_estimate"}
+{"text": "I ordered my card a couple weeks ago and haven't received it yet. When can I expect it?", "label": "card_delivery_estimate"}
+{"text": "how much to get my card in 2 days?", "label": "card_delivery_estimate"}
+{"text": "When are cards shipped?", "label": "card_delivery_estimate"}
+{"text": "How soon do cards arrive after I order them?", "label": "card_delivery_estimate"}
+{"text": "i need to add express delivery if that's an option", "label": "card_delivery_estimate"}
+{"text": "I need my card right away.", "label": "card_delivery_estimate"}
+{"text": "Can i choose a specific delivery date?", "label": "card_delivery_estimate"}
+{"text": "I need my card delivered as soon as possible.", "label": "card_delivery_estimate"}
+{"text": "When will I receive my card?", "label": "card_delivery_estimate"}
+{"text": "What's the earliest time to receive my card?", "label": "card_delivery_estimate"}
+{"text": "When will it be delivered to the US?", "label": "card_delivery_estimate"}
+{"text": "i need a virtual card", "label": "getting_virtual_card"}
+{"text": "I don't have a virtual card - how do I get one?", "label": "getting_virtual_card"}
+{"text": "Where do I order a virtual card?", "label": "getting_virtual_card"}
+{"text": "Where do I get a virtual card?", "label": "getting_virtual_card"}
+{"text": "Where can i find the virtual card?", "label": "getting_virtual_card"}
+{"text": "What do I have to do to get my virtual card?", "label": "getting_virtual_card"}
+{"text": "How can I obtain a virtual card?", "label": "getting_virtual_card"}
+{"text": "When will my virtual card arrive?", "label": "getting_virtual_card"}
+{"text": "How do I get my virtual card?", "label": "getting_virtual_card"}
+{"text": "Hello, what is a virtual card and how do I get one?", "label": "getting_virtual_card"}
+{"text": "How do I get a virtual card on my device?", "label": "getting_virtual_card"}
+{"text": "How do I access the virtual card?", "label": "getting_virtual_card"}
+{"text": "I have yet to receive my virtual card", "label": "getting_virtual_card"}
+{"text": "I can't find the virtual card", "label": "getting_virtual_card"}
+{"text": "How come I didn't get a virtual card yet?", "label": "getting_virtual_card"}
+{"text": "Where can virtual cards be ordered?", "label": "getting_virtual_card"}
+{"text": "How long do you have to wait to see your virtual card your ordered?", "label": "getting_virtual_card"}
+{"text": "I want to get a virtual card!", "label": "getting_virtual_card"}
+{"text": "Please let me know how to place an order for a virtual card", "label": "getting_virtual_card"}
+{"text": "I have lost my card, but need to place an online order! How do I get a virtual card instantly?", "label": "getting_virtual_card"}
+{"text": "I need to order a new card, can you please direct me to the virtual cards?", "label": "getting_virtual_card"}
+{"text": "I need my virtual card", "label": "getting_virtual_card"}
+{"text": "I did not get my virtual card yet, Why?", "label": "getting_virtual_card"}
+{"text": "Where do I find a virtual card?", "label": "getting_virtual_card"}
+{"text": "I answered so many questions about my identity. Why do you need this info?", "label": "why_verify_identity"}
+{"text": "Is getting my identity verified required before I can use my account?", "label": "why_verify_identity"}
+{"text": "I would like to know why so much identity information is required?", "label": "why_verify_identity"}
+{"text": "Why do you need verification for my identity?", "label": "why_verify_identity"}
+{"text": "Can I use my account before my Identity verification has passed?", "label": "why_verify_identity"}
+{"text": "Why do you need so much information about me", "label": "why_verify_identity"}
+{"text": "Can I use my account now, even though my identity verification has not gone through yet?", "label": "why_verify_identity"}
+{"text": "What is the function of the identity check", "label": "why_verify_identity"}
+{"text": "Why is the identity check involved?", "label": "why_verify_identity"}
+{"text": "My ID verification hasn't gone through yet, but can I use my account anyway?", "label": "why_verify_identity"}
+{"text": "Can I go ahead and use my account even though my identify hasn't been verified yet?", "label": "why_verify_identity"}
+{"text": "Is my account accessible even though my verification of my identity has not passed yet?", "label": "why_verify_identity"}
+{"text": "Why do you need to know so much about me for my account?", "label": "why_verify_identity"}
+{"text": "How does identity check work?", "label": "why_verify_identity"}
+{"text": "Can I make transfers before my identity verification?", "label": "why_verify_identity"}
+{"text": "What is with the need to have all my ID information?", "label": "why_verify_identity"}
+{"text": "Why is there an identify check?", "label": "why_verify_identity"}
+{"text": "Am I able to use my account if the identity verification is not complete?", "label": "why_verify_identity"}
+{"text": "Is it possible to go ahead and log in, although I have not been confirmed yet?", "label": "why_verify_identity"}
+{"text": "can I use my card before identity verification?", "label": "why_verify_identity"}
+{"text": "Why is there an identity check?", "label": "why_verify_identity"}
+{"text": "Why do I have to give you my drivers license", "label": "why_verify_identity"}
+{"text": "what are you going to use my identification details for?", "label": "why_verify_identity"}
+{"text": "Can I use my account without verifying identity?", "label": "why_verify_identity"}
+{"text": "Why is verifaction required for my Identity?", "label": "why_verify_identity"}
+{"text": "Why does my identity need verification?", "label": "why_verify_identity"}
+{"text": "Is there anyway to bypass identity verification?", "label": "why_verify_identity"}
+{"text": "Why do you need so much information about my identity?", "label": "why_verify_identity"}
+{"text": "What if I don't want to disclose all of my identity details?", "label": "why_verify_identity"}
+{"text": "Can we skip verifying?", "label": "why_verify_identity"}
+{"text": "Transfer unable to be completed, states 'declined'", "label": "declined_transfer"}
+{"text": "Why was my transfer request decline?", "label": "declined_transfer"}
+{"text": "My transfer was rejected", "label": "declined_transfer"}
+{"text": "I am having trouble doing a transfer. A \"Decline \" message appears after making the transfer.", "label": "declined_transfer"}
+{"text": "the bank transfer was declined", "label": "declined_transfer"}
+{"text": "why was a transfer declined", "label": "declined_transfer"}
+{"text": "Transfer was declined.", "label": "declined_transfer"}
+{"text": "Please check and let me know why my transfers are getting declined.", "label": "declined_transfer"}
+{"text": "Why has my transfer been declined?", "label": "declined_transfer"}
+{"text": "Why do you keep declining my transfers? it's always been working really well so far but when I tried to buy something just now the card got declined . I tried couple of times already  but same thing is happening .", "label": "declined_transfer"}
+{"text": "I am trying to make a transfer to a different account but they keep getting declined. I have double checked all the details and the information is correct.", "label": "declined_transfer"}
+{"text": "Why am I getting declines when trying to make a purchase online?", "label": "declined_transfer"}
+{"text": "I have been trying to make transfers to another account but I keep getting a declined notice. I have checked all of my information more than once and my information is accurate.", "label": "declined_transfer"}
+{"text": "On my transfer there was a \"decline\" message", "label": "declined_transfer"}
+{"text": "Hello, my transfers are getting failed continuously, in spite of the fact that all the recipient details are correct. Please advise.", "label": "declined_transfer"}
+{"text": "I get a \"decline\" message when doing a transfer", "label": "declined_transfer"}
+{"text": "Why are my transfers getting declined?", "label": "declined_transfer"}
+{"text": "I couldn't make a transfer because it was declined", "label": "declined_transfer"}
+{"text": "How do I contact customer support about my declined transfer?", "label": "declined_transfer"}
+{"text": "It appears my transfer was declined.", "label": "declined_transfer"}
+{"text": "I was declined a transfer", "label": "declined_transfer"}
+{"text": "I was making a purchase and it was declined and I wanted to know why.", "label": "declined_transfer"}
+{"text": "Hi, during online shopping payment is getting declined yesterday and today as well. Please check the issue.", "label": "declined_transfer"}
+{"text": "It's declining my transfers. Normally this works, but my card is being declined now and I've tried more than once.", "label": "declined_transfer"}
+{"text": "I had everything lined up to make a transfer, and then it rejected it.", "label": "declined_transfer"}
+{"text": "What do I do with my \"decline\" message on a transfer?", "label": "declined_transfer"}
+{"text": "why did i get declined transfer", "label": "declined_transfer"}
+{"text": "It says the transfer wasn't accepted.", "label": "declined_transfer"}
+{"text": "I tried to buy something online yesterday but it kept saying declined. Tried again today but same thing happened. What's wrong?", "label": "declined_transfer"}
+{"text": "unsupported transfer declined", "label": "declined_transfer"}
+{"text": "Why does my card continually get declined? I thought I had enough money in there but I've tried several times now and it still isn't working.", "label": "declined_transfer"}
+{"text": "please help me with this transfer, for some reason i can't transfer to a cryptocurency account", "label": "declined_transfer"}
+{"text": "i have tried everything to complete a transfer but can't, what should i do next", "label": "declined_transfer"}
+{"text": "Your system is broken. My transfers keep failing, 5 times now.", "label": "failed_transfer"}
+{"text": "Can you tell me why I wasn't able to complete my transfer?", "label": "failed_transfer"}
+{"text": "A transfer could not be completed.", "label": "failed_transfer"}
+{"text": "Transfer isn't working?", "label": "failed_transfer"}
+{"text": "Hi, I'm in progress of purchasing a flat and am trying to make to make a payment.  An error is appearing, and I need assistance.", "label": "failed_transfer"}
+{"text": "Why did my transfer not work?", "label": "failed_transfer"}
+{"text": "I tried to make a transfer and it didn't work.", "label": "failed_transfer"}
+{"text": "Why can't I make a transfer?", "label": "failed_transfer"}
+{"text": "Why didn't my transfer work?", "label": "failed_transfer"}
+{"text": "The app says my transfer failed", "label": "failed_transfer"}
+{"text": "Why can't I transfer my money into someone else's account? I should be able to do so right? Why does it keep rejecting my transfer? There's no reason, all my info is correct and the money is there.", "label": "failed_transfer"}
+{"text": "Why can't I complete my transfer?", "label": "failed_transfer"}
+{"text": "Why does it say my transfer failed?", "label": "failed_transfer"}
+{"text": "What stopped my transfer, from being accepted?", "label": "failed_transfer"}
+{"text": "I tried to make a transfer, but it didn't work.", "label": "failed_transfer"}
+{"text": "This morning, I tried to send money to my friends several times but each time the transfer fails.  Why does it keep failing?  The transfer gets rejected but I do not know what is causing it to be rejected.", "label": "failed_transfer"}
+{"text": "I can't seem to make a standard bank transfer. I have tried at least five times already but none of them are going through. Please tell me what is wrong?", "label": "failed_transfer"}
+{"text": "I tried to transfer money but it didn't go through", "label": "failed_transfer"}
+{"text": "Been trying to transfer money this morning but keep getting rejected. I don't understand why this is happening.", "label": "failed_transfer"}
+{"text": "My transfer didn't work how come?", "label": "failed_transfer"}
+{"text": "I attempted a transfer, but it failed.", "label": "failed_transfer"}
+{"text": "Why wouldn't a transfer go through?", "label": "failed_transfer"}
+{"text": "Why has my payment not transferred?", "label": "failed_transfer"}
+{"text": "The attempted transfer failed.", "label": "failed_transfer"}
+{"text": "I need help making this transfer. I keep getting an error. I'm trying to purchase a flat but i need my mortgage payment to go through first. Can you help?", "label": "failed_transfer"}
+{"text": "Why does my transfer keep failing? I've tried 5 times and they all failed.", "label": "failed_transfer"}
+{"text": "Hi, can you tell me why my transfer keeps being rejected? I've been trying to send money to my friends this morning but failed every time and I have no idea why?", "label": "failed_transfer"}
+{"text": "I need assistance completing a transfer. I'm trying to purchase a flat and need the money for the initial mortgage payment. I keep getting an error and the transfer is not going through. What is going on here?", "label": "failed_transfer"}
+{"text": "What are the reasons that my mortgage payment won't go through? I'm getting an error and don't know how to correct to get this transfer to go through.", "label": "failed_transfer"}
+{"text": "Why was I unable to complete my transfer?", "label": "failed_transfer"}
+{"text": "I can't transfer any money from my account to my friend's account, it keeps rejecting it. Can you tell me why? I have enough funds in my account to transfer.", "label": "failed_transfer"}
+{"text": "I'm getting an error when trying to make a payment. I want to purchase a flat but my mortgage payment needs to go through. Can you help me?", "label": "failed_transfer"}
+{"text": "why do i have a failed transfer", "label": "failed_transfer"}
+{"text": "Why can't I complete the transfer?", "label": "failed_transfer"}
+{"text": "I tried using a foreign currency at an ATM, but the ATM provided me an incorrect rate. Why is that?", "label": "wrong_exchange_rate_for_cash_withdrawal"}
+{"text": "I think when I withdrew money when out of country the exchange rate was wrong.", "label": "wrong_exchange_rate_for_cash_withdrawal"}
+{"text": "When I got cash, the exchange rate applied was wrong.", "label": "wrong_exchange_rate_for_cash_withdrawal"}
+{"text": "Hi, I have withdrawn cash from the ATM on holiday and i guess withdrawal amount has been overcharged. I did it as i was not aware of these charges.", "label": "wrong_exchange_rate_for_cash_withdrawal"}
+{"text": "Do any of your machines provide cash from my home country? I don't have any money on me and I'm on holiday so I'm concerned. Also, will I be charged anything to do this?", "label": "wrong_exchange_rate_for_cash_withdrawal"}
+{"text": "Why did you give me so little currency?", "label": "wrong_exchange_rate_for_cash_withdrawal"}
+{"text": "what are the exchange rates for getting cash", "label": "wrong_exchange_rate_for_cash_withdrawal"}
+{"text": "I didn't get the right amount of  cash because of the exchange rate.", "label": "wrong_exchange_rate_for_cash_withdrawal"}
+{"text": "Using international ATMs messes up the exchange rate.", "label": "wrong_exchange_rate_for_cash_withdrawal"}
+{"text": "You've incorrectly calculated the exchange rate for my cash withdrawal", "label": "wrong_exchange_rate_for_cash_withdrawal"}
+{"text": "I was needing you to see if the exchange rate is correct from when i got cash", "label": "wrong_exchange_rate_for_cash_withdrawal"}
+{"text": "The wrong exchange rate applied to my cash withdrawal.", "label": "wrong_exchange_rate_for_cash_withdrawal"}
+{"text": "Why is the exchange rate so high? This should have been a much higher amount of cash for that to apply.", "label": "wrong_exchange_rate_for_cash_withdrawal"}
+{"text": "Why did I only receive this much currency?", "label": "wrong_exchange_rate_for_cash_withdrawal"}
+{"text": "When I got cash the exchange rate was wrong", "label": "wrong_exchange_rate_for_cash_withdrawal"}
+{"text": "I'm unhappy with the exchange rate your cash transactions.", "label": "wrong_exchange_rate_for_cash_withdrawal"}
+{"text": "I wasn't applied the correct exchange rate when getting cash", "label": "wrong_exchange_rate_for_cash_withdrawal"}
+{"text": "what is going on with my cash withdrawal? the exchange rate is wrong", "label": "wrong_exchange_rate_for_cash_withdrawal"}
+{"text": "How can I get money in my home currency while I'm traveling internationally? I wanted to take it out of a local ATM but am worried that I will get charged extra fees.", "label": "wrong_exchange_rate_for_cash_withdrawal"}
+{"text": "Can I get money in my home currency at an ATM? I'm on vacation and don't have cash with me. This is cause for a bit of concern. Is it possible to withdraw here without additional cost?", "label": "wrong_exchange_rate_for_cash_withdrawal"}
+{"text": "The exchange rate was different when I got cash", "label": "wrong_exchange_rate_for_cash_withdrawal"}
+{"text": "I found the exchange rate for my cash withdrawal is wrong", "label": "wrong_exchange_rate_for_cash_withdrawal"}
+{"text": "My cash withdrawl has the wrong rate of exchange.", "label": "wrong_exchange_rate_for_cash_withdrawal"}
+{"text": "the exchange rate I got for cash was wrong", "label": "wrong_exchange_rate_for_cash_withdrawal"}
+{"text": "The exchange rate for case abroad is applied wrong.", "label": "wrong_exchange_rate_for_cash_withdrawal"}
+{"text": "How did you arrive at the rate of exchange? I thought that I would get more cash.", "label": "wrong_exchange_rate_for_cash_withdrawal"}
+{"text": "I was given the wrong exchange rate when getting cash", "label": "wrong_exchange_rate_for_cash_withdrawal"}
+{"text": "what are the exchange rates for foreign currency ATMs", "label": "wrong_exchange_rate_for_cash_withdrawal"}
+{"text": "I'm upset because I got charged a ridiculous fee when making an ATM withdrawal over a holiday weekend.  It didn't notify me beforehand either or I wouldn't have ever done it.", "label": "wrong_exchange_rate_for_cash_withdrawal"}
+{"text": "When I received my cash, the exchange rate was wrong.", "label": "wrong_exchange_rate_for_cash_withdrawal"}
+{"text": "The exchange rate applied was incorrect when I was traveling outside the country.", "label": "wrong_exchange_rate_for_cash_withdrawal"}
+{"text": "Whats wrong with my currency exchange?", "label": "wrong_exchange_rate_for_cash_withdrawal"}
+{"text": "The exchange rate for my cash withdrawal was incorrect", "label": "wrong_exchange_rate_for_cash_withdrawal"}
+{"text": "The wrong exchange rate was used for my cash withdrawal", "label": "wrong_exchange_rate_for_cash_withdrawal"}
+{"text": "I was charged an incorrect exchange rate for a withdrawal.", "label": "wrong_exchange_rate_for_cash_withdrawal"}
+{"text": "I draw out money from your ATM during holidays, and was charged insanely. I wouldn't have done it, if i had a little sense about the shocking charges.", "label": "wrong_exchange_rate_for_cash_withdrawal"}
+{"text": "I made an ATM withdrawal over the holiday and then later realized I was charged an exorbitant fee!  I never would've made this withdrawal if I'd known I'd be charged so much.", "label": "wrong_exchange_rate_for_cash_withdrawal"}
+{"text": "I am travelling and I tried to withdraw cash but didn't get what I was supposed to get.", "label": "wrong_exchange_rate_for_cash_withdrawal"}
+{"text": "The exchange rate was wrong in the foreign country I got cash in.", "label": "wrong_exchange_rate_for_cash_withdrawal"}
+{"text": "I have a question about ATM transactions. Can I take money out of an ATM when I'm traveling abroad? And, can I get the money in my home currancy?", "label": "wrong_exchange_rate_for_cash_withdrawal"}
+{"text": "you got the exchange rate wrong for my cash withdrawal", "label": "wrong_exchange_rate_for_cash_withdrawal"}
+{"text": "What do you use disposable cards on?", "label": "get_disposable_virtual_card"}
+{"text": "Can you tell me about these disposable virtual cards?", "label": "get_disposable_virtual_card"}
+{"text": "How do I request a disposable virtual card?", "label": "get_disposable_virtual_card"}
+{"text": "Is there a disposable virtual card?", "label": "get_disposable_virtual_card"}
+{"text": "Can you please explain disposable virtual cards for me?", "label": "get_disposable_virtual_card"}
+{"text": "Will you tell me how I am supposed to use the disposable cards?", "label": "get_disposable_virtual_card"}
+{"text": "How about disposable virtual cards?", "label": "get_disposable_virtual_card"}
+{"text": "Please send me a disposable virtual card.", "label": "get_disposable_virtual_card"}
+{"text": "What are disposable virtual cards?", "label": "get_disposable_virtual_card"}
+{"text": "I would like a disposable virtual card, could I get one?", "label": "get_disposable_virtual_card"}
+{"text": "How can I go about getting a disposable virtual card?", "label": "get_disposable_virtual_card"}
+{"text": "I would like to know more about what a disposable virtual card is?", "label": "get_disposable_virtual_card"}
+{"text": "What can you use the disposable cards for?", "label": "get_disposable_virtual_card"}
+{"text": "How do I use disposable cards?", "label": "get_disposable_virtual_card"}
+{"text": "Can you tell me what the disposable cards are used for?", "label": "get_disposable_virtual_card"}
+{"text": "What are the uses for disposable cards?", "label": "get_disposable_virtual_card"}
+{"text": "How can I get a virtual card for a one-time transaction?", "label": "get_disposable_virtual_card"}
+{"text": "What are these disposable cards meant for?", "label": "get_disposable_virtual_card"}
+{"text": "What do the disposable cards do?", "label": "get_disposable_virtual_card"}
+{"text": "How do I know if i need a disposable card?", "label": "get_disposable_virtual_card"}
+{"text": "Am I able to order a disposable virtual card?", "label": "get_disposable_virtual_card"}
+{"text": "Can you tell me where to go to get a disposable virtual card?", "label": "get_disposable_virtual_card"}
+{"text": "Is there any way i get a disposable virtual card as well?", "label": "get_disposable_virtual_card"}
+{"text": "What is the disposable card for?", "label": "get_disposable_virtual_card"}
+{"text": "I have heard about these disposable virtual cards but don't understand how they work.", "label": "get_disposable_virtual_card"}
+{"text": "What are the requirements to verify my identity?", "label": "verify_my_identity"}
+{"text": "How recent do my documents need to be for verification?", "label": "verify_my_identity"}
+{"text": "How do I perform identity checks?", "label": "verify_my_identity"}
+{"text": "Can you tell me what I need for identity validation?", "label": "verify_my_identity"}
+{"text": "What do you need for the identity verification", "label": "verify_my_identity"}
+{"text": "What are the steps to verify identity?", "label": "verify_my_identity"}
+{"text": "What are all of the different steps for identity checks?", "label": "verify_my_identity"}
+{"text": "Where do I go to fill out the identity form?", "label": "verify_my_identity"}
+{"text": "What works for identity verification?", "label": "verify_my_identity"}
+{"text": "Where can I verify my identity?", "label": "verify_my_identity"}
+{"text": "What do you require to verify someone's identity?", "label": "verify_my_identity"}
+{"text": "What do I need for the verification check?", "label": "verify_my_identity"}
+{"text": "with what can I verify my identity?", "label": "verify_my_identity"}
+{"text": "How do I fill out the identity check?", "label": "verify_my_identity"}
+{"text": "What documentation do you accept for the identity check?", "label": "verify_my_identity"}
+{"text": "How do I validate my identity.", "label": "verify_my_identity"}
+{"text": "Which documents do I need for this identity check?", "label": "verify_my_identity"}
+{"text": "What can I use to verify my identity?", "label": "verify_my_identity"}
+{"text": "For the identity check, do I need any kind of documentation?", "label": "verify_my_identity"}
+{"text": "What are acceptable documents to prove my identity?", "label": "verify_my_identity"}
+{"text": "How do i change my identity?", "label": "verify_my_identity"}
+{"text": "Where in the app do I go to verify my identity?", "label": "verify_my_identity"}
+{"text": "How can you assist on verifying my identity?", "label": "verify_my_identity"}
+{"text": "why do I need to show ID", "label": "verify_my_identity"}
+{"text": "What ID do I need to verify my identity?", "label": "verify_my_identity"}
+{"text": "What documents do I need for the identity check?", "label": "verify_my_identity"}

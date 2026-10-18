@@ -11,4 +11,7 @@ data/*/*
 !data/*/banking77_train_nodev.jsonl
 # Its stratified subsets, behind the ultrabert-embed-real-nodev-<n> label curve.
 !data/*/banking77_train_nodev_*.jsonl
+# The --write-folds cross-validation folds of the train split.
+!data/*/banking77_fold*_train.jsonl
+!data/*/banking77_fold*_val.jsonl
 models/

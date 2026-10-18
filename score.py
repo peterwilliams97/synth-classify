@@ -13,14 +13,17 @@ Banking77 test split; `--split dev` is `dev_and_shots`' sample of the train spli
 prompts are chosen on; `--split rest` is the rows of data/<set>/banking77_train_nodev.jsonl that
 are not in `--train-file`, for a `--model` trained on a subset of that file, or for `--jev`, `--d3` or
 `--mlx --reply logits`, which were trained on none of it; with `--prompt fewshot` the rows that are
-`fewshot` examples are left out. `--dump` also writes each message's probability over the class set, for
+`fewshot` examples are left out. `--split file` is the rows of `--val-file`, scored under the
+same rules as `--split rest`, with the report written to results/<set>/<val file name>/ so each
+fold of `--write-folds` has its own. `--dump` also writes each message's probability over the class set, for
 confidence.py; it refuses `--llm` and `--mlx` without `--reply logits`, which give a class and no
 probabilities. A `--jev` report also gives the input tokens per message and their price.
 
 It is the only file that reads Banking77, loaded from the `mteb/banking77` parquet copy (the
 original `PolyAI/banking77` is a dataset script, which `datasets` no longer runs). `--write-train`
 exports the restricted train split as jsonl so train.py can fit the real-data comparison model;
-with `--no-dev` it leaves out the dev rows, so a model trained on it can be scored on dev."""
+with `--no-dev` it leaves out the dev rows, so a model trained on it can be scored on dev.
+`--write-folds K` deals the same rows into K folds and writes each fold's train and val files."""
 
 import argparse
 import json
@@ -106,6 +109,33 @@ def rest(set_name, train_file, names):
         [names.index(label) for _, label in kept],
         [by_row[row] for row in kept],
     )
+
+
+def from_file(path, names):
+    """from_file returns the texts, label indices and `banking77` train ids of the rows of the jsonl
+    file at `path`, matched on text and label; exits if a row is not in the train split."""
+    with open(path) as f:
+        rows = [(r["text"], r["label"]) for r in map(json.loads, f)]
+    texts, labels, ids = banking77("train", names)
+    by_row = {(text, names[label]): mid for text, label, mid in zip(texts, labels, ids)}
+    if missing := [row for row in rows if row not in by_row]:
+        sys.exit(f"{path}: {len(missing)} rows not in the {DATASET} train split")
+    return [text for text, _ in rows], [names.index(label) for _, label in rows], [by_row[r] for r in rows]
+
+
+def deal_folds(labels, names, k, seed):
+    """deal_folds assigns each of the rows with `labels` a fold in 0..`k`-1: each class's rows, in
+    `names` order, are shuffled by one random.Random(`seed`) and dealt round-robin, the deal
+    carrying on from one class to the next so fold sizes differ by at most one row overall as well as
+    within a class."""
+    rng = random.Random(seed)
+    fold, turn = [None] * len(labels), 0
+    for i in range(len(names)):
+        rows = [j for j, label in enumerate(labels) if label == i]
+        rng.shuffle(rows)
+        for j in rows:
+            fold[j], turn = turn % k, turn + 1
+    return fold
 
 
 def predict(model_dir, texts, names):
@@ -225,8 +255,9 @@ def report(classifier, split, gold, preds, seconds, names, invalid=None, probs=N
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--set", choices=list(CLASS_SETS), default="distinct")
-    ap.add_argument("--split", choices=["dev", "test", "rest"], default="test")
+    ap.add_argument("--split", choices=["dev", "test", "rest", "file"], default="test")
     ap.add_argument("--train-file", metavar="JSONL", help="with --split rest: the file whose rows are left out")
+    ap.add_argument("--val-file", metavar="JSONL", help="with --split file: the rows to score")
     ap.add_argument("--model", help="directory written by train.py")
     ap.add_argument("--llm", metavar="MODEL", help="Ollama model to score in place of --model")
     ap.add_argument("--laya", action="store_true", help="score the Laya decision model zero-shot")
@@ -243,6 +274,8 @@ def main():
     )
     ap.add_argument("--write-train", metavar="JSONL", help="export the restricted train split")
     ap.add_argument("--no-dev", action="store_true", help="with --write-train: leave out the dev rows")
+    ap.add_argument("--write-folds", type=int, metavar="K", help="write K cross-validation folds of the train split")
+    ap.add_argument("--fold-seed", type=int, default=0, metavar="S", help="seed of the --write-folds deal")
     ap.add_argument(
         "--dump",
         metavar="JSONL",
@@ -264,10 +297,24 @@ def main():
             for text, label in zip(texts, labels):
                 f.write(json.dumps({"text": text, "label": names[label]}) + "\n")
         print(f"wrote {len(texts)} rows to {args.write_train}", file=sys.stderr)
+    if args.write_folds is not None:
+        if args.write_folds < 2:
+            ap.error("--write-folds needs at least 2 folds")
+        texts, labels, _ = banking77("train", names)
+        fold = deal_folds(labels, names, args.write_folds, args.fold_seed)
+        os.makedirs(os.path.join("data", args.set), exist_ok=True)
+        for i in range(args.write_folds):
+            for part, keep in [("train", lambda f: f != i), ("val", lambda f: f == i)]:
+                path = os.path.join("data", args.set, f"banking77_fold{i}_{part}.jsonl")
+                rows = [j for j in range(len(texts)) if keep(fold[j])]
+                with open(path, "w") as f:
+                    for j in rows:
+                        f.write(json.dumps({"text": texts[j], "label": names[labels[j]]}) + "\n")
+                print(f"wrote {len(rows)} rows to {path}", file=sys.stderr)
     if bool(args.model) + bool(args.llm) + bool(args.mlx) + args.laya + args.jev + bool(args.d3) != 1:
-        if args.write_train and not (args.model or args.llm or args.mlx or args.laya or args.jev or args.d3):
+        if (args.write_train or args.write_folds) and not (args.model or args.llm or args.mlx or args.laya or args.jev or args.d3):
             return
-        ap.error("give exactly one of --model, --llm, --mlx, --laya, --jev and --d3, or --write-train alone")
+        ap.error("give exactly one of --model, --llm, --mlx, --laya, --jev and --d3, or --write-train or --write-folds alone")
     logits = args.mlx and args.reply == "logits"
     if (args.jev or args.d3 or logits) and not args.prompt:
         args.prompt = "definitions"
@@ -289,14 +336,19 @@ def main():
         ap.error("--dump needs probabilities: --model, --laya, --jev, --d3 or --mlx --reply logits")
     if (args.split == "rest") != bool(args.train_file):
         ap.error("--split rest and --train-file go together")
-    if args.split == "rest" and not (args.model or args.jev or args.d3 or logits):
-        ap.error("--split rest scores a --model, --jev, --d3 or --mlx --reply logits only")
+    if (args.split == "file") != bool(args.val_file):
+        ap.error("--split file and --val-file go together")
+    if args.split in ("rest", "file") and not (args.model or args.jev or args.d3 or logits):
+        ap.error(f"--split {args.split} scores a --model, --jev, --d3 or --mlx --reply logits only")
 
     shots = None
     if args.split == "dev":
         texts, gold, shots, ids = dev_and_shots(names)
-    elif args.split == "rest":
-        texts, gold, ids = rest(args.set, args.train_file, names)
+    elif args.split in ("rest", "file"):
+        if args.split == "rest":
+            texts, gold, ids = rest(args.set, args.train_file, names)
+        else:
+            texts, gold, ids = from_file(args.val_file, names)
         if args.prompt == "fewshot":
             # An example is in the question, so its row would be scored with its own answer given.
             _, _, shots, _ = dev_and_shots(names)
@@ -368,9 +420,12 @@ def main():
         stem = os.path.basename(os.path.normpath(args.model))
         preds, vectors, seconds = predict(args.model, texts, names)
 
-    text = report(classifier, args.split, gold, preds, seconds, names, invalid, probs, tokens)
+    split = args.split
+    if args.split == "file":
+        split = os.path.splitext(os.path.basename(args.val_file))[0]
+    text = report(classifier, split, gold, preds, seconds, names, invalid, probs, tokens)
     sys.stdout.write(text)
-    out = os.path.join("results", args.set, args.split, stem + ".txt")
+    out = os.path.join("results", args.set, split, stem + ".txt")
     os.makedirs(os.path.dirname(out), exist_ok=True)
     with open(out, "w") as f:
         f.write(text)
