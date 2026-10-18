@@ -142,7 +142,9 @@ in `refs/main`, which is the layout `HF_HUB_OFFLINE=1` loads from.
   `fewshot` the same options with each definition followed by the `dev_and_shots` examples.
   `DOLLARS_PER_MILLION_TOKENS` (`jev.py`) prices billed input tokens on the report's `dollars` line.
 - **dev is drawn from the train split, so `--split dev --model` is valid only for a model trained
-  on a synthetic file.** A model trained on `data/<set>/banking77_train.jsonl` saw the dev rows;
+  on a synthetic file or on `data/<set>/banking77_train_nodev.jsonl`**, which `score.py
+  --write-train --no-dev` writes without the dev rows. A model trained on
+  `data/<set>/banking77_train.jsonl` saw the dev rows;
   `--split dev --model` runs on it, and the number means nothing. `--llm`, `--laya`, `--jev` and models
   trained on `data/<set>/synthetic*.jsonl` saw none of them. The same holds for `confidence.py`,
   which fits its isotonic calibration and its routing thresholds on the dev dump: for a
@@ -192,7 +194,9 @@ in `refs/main`, which is the layout `HF_HUB_OFFLINE=1` loads from.
 restricted to `confusable`, 1284 and 400.
 
 `data/<set>/synthetic.jsonl` are the only tracked files under `data/` besides `pair`'s and `confusable`'s
-`synthetic-<method>.jsonl` and `.prompt.txt` from `generate.py --method`; they are the `gemma4:e4b`
+`synthetic-<method>.jsonl` and `.prompt.txt` from `generate.py --method`, and
+`data/confusable/banking77_train_nodev.jsonl`, the training set of `ultrabert-embed-real-nodev`;
+the synthetic files are the `gemma4:e4b`
 output the README test table's synthetic rows were computed from, and
 `results/<set>/<split>/*.txt` are the `score.py` reports behind each row of the dev and test
 tables. Regenerating a synthetic file changes the committed training set, so retrain, re-score and

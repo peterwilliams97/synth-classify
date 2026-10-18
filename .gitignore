@@ -6,4 +6,6 @@ data/*/*
 !data/*/synthetic.jsonl
 !data/*/synthetic-*.jsonl
 !data/*/synthetic-*.prompt.txt
+# The real train split minus dev, behind the ultrabert-embed-real-nodev reports.
+!data/*/banking77_train_nodev.jsonl
 models/

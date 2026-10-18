@@ -14,16 +14,18 @@ TypeSafe System One, an API billed per message.
 
 The short answers, on the 400 Banking77 test messages of the `confusable` class set:
 
-1. TypeSafe System One, with 30 real messages as examples in its question (`fewshot`), handles
-   88% of messages with no human check at 3.1% error. The best that runs on the laptop,
-   UltraBERT-Embed-150M + logistic regression trained on the diagnosed set, handles 40% at under
-   5% error. No other classifier that runs on the laptop passes 27%.
+1. UltraBERT-Embed-150M + logistic regression trained on 1084 real messages, the real train set
+   minus the 200 dev messages that set its threshold, handles 99% of messages with no human check
+   at 4.0% error. TypeSafe System One, an API, with 30 real messages as examples in its question
+   (`fewshot`), handles 88% at 3.1% error. Trained on no real messages, the best is
+   UltraBERT-Embed-150M + logistic regression trained on the diagnosed set: 40% at under 5% error.
 2. UltraBERT-Embed-150M + logistic regression trained on 1284 real messages: 96%. TypeSafe System
    One with 30 real messages as examples: 94.5%. `gemma4:e4b` with the category definitions and
    no labels: 91%.
 3. 0 labels gets 91% accuracy and no safe automation; 30, as examples in System One's question,
    gets 94.5%, and with the 200 dev labels that set the threshold the 88% above; 200 gets the 40%
-   above on the laptop; 1284 gets 96%.
+   above with no real messages to train on; 1084 to train on and 200 to set the threshold get 95%
+   and the 99% above; all 1284 to train on get 96% and no coverage figure.
 
 ## Aim
 
@@ -114,9 +116,11 @@ Every table in this section is on `confusable`.
 
 ### 1. How much of the work can it do without a person checking?
 
-**TypeSafe System One with the `fewshot` prompt labels 354 of the 400 test messages on its own,
-and 11 of those 354 are wrong.** Of the classifiers that run on the laptop, UltraBERT-Embed-150M +
-logistic regression trained on the diagnosed set labels the most: 161, of which 6 are wrong.
+**UltraBERT-Embed-150M + logistic regression trained on the real train set minus dev labels 396 of
+the 400 test messages on its own, and 16 of those 396 are wrong.** TypeSafe System One with the
+`fewshot` prompt labels 354, of which 11 are wrong. Of the classifiers trained on no real messages,
+UltraBERT-Embed-150M + logistic regression trained on the diagnosed set labels the most: 161, of
+which 6 are wrong.
 
 In the table, α is the error target. AUROC is the chance that a randomly chosen right answer gets a
 higher top probability than a randomly chosen wrong one. ECE is the mean gap between the top
@@ -129,6 +133,7 @@ monotone mapping of the top probability onto accuracy, fitted on dev.
 | ModernBERT-base                  | diagnosed              | 0.8394 | 0.0564                         | 0.1575                  | 0.0159               |
 | UltraBERT-Embed-150M + LR        | synthetic              | 0.8405 | 0.0495                         | 0.1825                  | 0.0274               |
 | UltraBERT-Embed-150M + LR        | diagnosed              | 0.7794 | 0.0333                         | 0.4025                  | 0.0373               |
+| UltraBERT-Embed-150M + LR        | real minus dev         | 0.8641 | 0.0240                         | 0.9900                  | 0.0404               |
 | Gemma 4 E4B (MLX), letter logits | `definitions`          | 0.7770 | 0.0608                         | 0.0375                  | 0.0000               |
 | Gemma 4 E4B (MLX), letter logits | `fewshot`              | 0.7941 | 0.0463                         | 0.2625                  | 0.0381               |
 | Laya                             | `names`                | 0.6753 | 0.0705                         | 0.0000                  | —                    |
@@ -139,14 +144,18 @@ TF-IDF + logistic regression's 0.2375 misses the target: 5 of the 95 messages it
 
 A stricter threshold replaces the dev error with its one-sided 90% Clopper-Pearson upper bound. The
 bound is the highest error rate that the dev count does not rule out at 90% confidence. Under that
-bound at a 5% target, no classifier keeps any test message. Under that bound at a 10% target,
+bound at a 5% target, only UltraBERT-Embed-150M + logistic regression trained on the real train set
+minus dev keeps any test message: 344 of 400, 0.8600, of which 9 are wrong, 0.0262. Under that
+bound at a 10% target it keeps all 400, of which 19 are wrong, 0.0475. Under that bound at a 10%
+target,
 UltraBERT-Embed-150M + logistic regression trained on the diagnosed set keeps 287 of the 400 test
 messages, 0.7175. 11 of those 287 are wrong, 0.0383. TypeSafe System One with the `fewshot` prompt
 keeps 380, 0.9500, and 16 of those 380 are wrong, 0.0421.
 
 Three kinds of classifier are not in the table. The Ollama models return a category name and no
-probability, so they cannot be routed. A classifier trained on the real train set cannot be routed
-here, because dev is part of the data it was trained on. The LoRA adapters return a reply and no
+probability, so they cannot be routed. A classifier trained on the whole real train set cannot be
+routed here, because dev is part of the data it was trained on; the real-minus-dev row is
+UltraBERT-Embed-150M + logistic regression trained on the real train set without the 200 dev rows. The LoRA adapters return a reply and no
 probability.
 
 ### 2. How accurate is it?
@@ -165,6 +174,7 @@ errors: 17 of 400.**
 | UltraBERT-Embed-150M + LR        | synthetic              | 0                           | 0.8475   | 61            |
 | UltraBERT-Embed-150M + LR        | diagnosed              | 200, as counts              | 0.9125   | 35            |
 | UltraBERT-Embed-150M + LR        | real                   | 1284                        | 0.9575   | 17            |
+| UltraBERT-Embed-150M + LR        | real minus dev         | 1084                        | 0.9525   | 19            |
 | `gemma4:e4b`                     | `definitions`          | 0                           | 0.9125   | 35            |
 | `gemma4:e4b`                     | `fewshot`              | 30                          | 0.9300   | 28            |
 | `qwen3.6:27b-q4_K_M`             | `names`                | 0                           | 0.8775   | 49            |
@@ -341,16 +351,19 @@ The thresholds sit very close to 1. For UltraBERT-Embed-150M + logistic regressi
 thresholds are 0.999821 (diagnosed) and 0.999993 (synthetic). For ModernBERT-base trained on the
 diagnosed set it is 0.999994. For the letter logits it is 1.000000 (`definitions`) and 0.999974
 (`fewshot`). TF-IDF + logistic regression's
-threshold, 0.904269, is not close to 1. A threshold of 0.9 does not separate the
+threshold, 0.904269, is not close to 1, and nor is the 0.652009 of UltraBERT-Embed-150M + logistic
+regression trained on the real train set minus dev. A threshold of 0.9 does not separate the
 `definitions` letter-logits answers: the 378 above it are 0.8783 accurate.
 
 Routing needs a labelled dev set as well as a classifier. With 0 hand labels nothing sets the
 threshold, so a person checks every message. The 96% classifier, UltraBERT-Embed-150M + logistic
-regression trained on the real train set, has no coverage figure here. Measuring one needs labelled
-messages outside its training data.
+regression trained on the whole real train set, has no coverage figure here. Trained on the real
+train set minus the 200 dev rows, the same classifier scores 0.9525 and keeps 0.9900 of test
+messages at 0.0404 error.
 
-200 dev messages are too few to certify 5% error. At a 5% target the Clopper-Pearson bound admits
-no message for any classifier. The plain 5% thresholds rest on dev error alone. On test they held
+200 dev messages are too few to certify 5% error for most classifiers. At a 5% target the
+Clopper-Pearson bound admits no message for any classifier but UltraBERT-Embed-150M + logistic
+regression trained on the real train set minus dev. The plain 5% thresholds rest on dev error alone. On test they held
 for every classifier except TF-IDF + logistic regression. TypeSafe System One with the
 `definitions` prompt has no 5% threshold: 111 of the 200 dev messages score exactly 1.00 and 7 of
 those are wrong, so no 5% cut-off exists; its probabilities arrive in steps of 0.01. With the
@@ -380,8 +393,10 @@ and 22 errors against ModernBERT-base's 25 are such a gap.
 - With 30 hand labels as examples in its question and the 200 dev labels to set the threshold,
   TypeSafe System One labels 88% of those messages on its own. Under 5% of the 88% are wrong. It is
   an API billed per message, about $54 per million messages.
-- With 1284 hand labels, UltraBERT-Embed-150M + logistic regression reaches 96% accuracy. Its
-  coverage was not measured.
+- With 1284 hand labels, 1084 to train on and the 200 dev labels to set the threshold,
+  UltraBERT-Embed-150M + logistic regression labels 99% of those messages on its own. Under 5% of
+  the 99% are wrong. Trained on all 1284 it reaches 96% accuracy, and its coverage cannot be
+  measured here.
 - On 10 unrelated categories, the method matters little. Every classifier but two scores at least
   0.9799.
 
@@ -534,6 +549,7 @@ instruction before it, to measure what that instruction adds to the UltraBERT-Em
 | `confusable` | UltraBERT-Embed-150M + LR | diagnosed (`gemma4:e4b`) | 0.9125 | 0.9134 | 0.0109 |
 | `confusable` | UltraBERT-Embed-150M + LR | contrast (`gemma4:e4b`)  | 0.8375 | 0.8353 | 0.0109 |
 | `confusable` | UltraBERT-Embed-150M + LR | real Banking77 train     | 0.9575 | 0.9576 | 0.0109 |
+| `confusable` | UltraBERT-Embed-150M + LR | real Banking77 train minus dev | 0.9525 | 0.9526 | 0.0102 |
 | `confusable` | UltraBERT-Embed-150M + LR, no prompt | synthetic (`gemma4:e4b`) | 0.8275 | 0.8245 | 0.0100 |
 | `confusable` | UltraBERT-Embed-150M + LR, no prompt | real Banking77 train     | 0.9325 | 0.9326 | 0.0102 |
 | `confusable` | `gemma4:e4b`             | `definitions` prompt     | 0.9125   | 0.9126   | 0.63    |
@@ -617,6 +633,7 @@ minute is in seconds.
 | `confusable` | UltraBERT-Embed-150M + LR | synthetic (`gemma4:e4b`) | 1000 | 5.86 s  |
 | `confusable` | UltraBERT-Embed-150M + LR | diagnosed (`gemma4:e4b`) | 1000 | 5.50 s  |
 | `confusable` | UltraBERT-Embed-150M + LR | real Banking77 train     | 1284 | 6.52 s  |
+| `confusable` | UltraBERT-Embed-150M + LR | real Banking77 train minus dev | 1084 | 7.50 s  |
 | `confusable` | UltraBERT-Embed-150M + LR, no prompt | synthetic (`gemma4:e4b`) | 1000 | 4.60 s  |
 | `confusable` | UltraBERT-Embed-150M + LR, no prompt | real Banking77 train     | 1284 | 5.57 s  |
 | `confusable` | Gemma 4 E4B (MLX) + LoRA | synthetic (`gemma4:e4b`) | 1000 | 13.6    |
@@ -660,7 +677,8 @@ adapter carries the whole prompt.
   matrix, printed and written to `results/<set>/<split>/<name>.txt`. An `--mlx` report also counts the invalid replies.
   `--split test` (the default) is the Banking77 test split. `--split dev` is 20 messages per class
   sampled with a fixed seed from the Banking77 train split; the `fewshot` examples are train
-  messages outside dev. `--write-train` exports the restricted train split as jsonl. `--dump FILE`
+  messages outside dev. `--write-train` exports the restricted train split as jsonl, and with `--no-dev` leaves
+  out the 200 dev rows. `--dump FILE`
   also writes each message's probability over the class set, for `--model`, `--laya`, `--jev` and
   `--mlx --reply logits`.
 - `confidence.py` — from a classifier's dev and test `--dump` files: AUROC of the top probability
@@ -716,7 +734,9 @@ python score.py --set $S --mlx $M --adapter models/$S/gemma-4-e4b-lora-synthetic
 python score.py --set $S --mlx $M --adapter models/$S/gemma-4-e4b-lora-real
 
 D=results/confusable/confidence/dumps   # confusable only
-for n in tfidf-diagnosed modernbert-diagnosed ultrabert-embed-synthetic ultrabert-embed-diagnosed; do
+python score.py --set confusable --write-train data/confusable/banking77_train_nodev.jsonl --no-dev
+python train.py --set confusable --train data/confusable/banking77_train_nodev.jsonl --out models/confusable/ultrabert-embed-real-nodev --embed
+for n in tfidf-diagnosed modernbert-diagnosed ultrabert-embed-synthetic ultrabert-embed-diagnosed ultrabert-embed-real-nodev; do
   python score.py --set confusable --split dev --model models/confusable/$n --dump $D/$n-dev.jsonl
   python score.py --set confusable             --model models/confusable/$n --dump $D/$n-test.jsonl
 done

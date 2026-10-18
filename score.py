@@ -14,7 +14,8 @@ probabilities. A `--jev` report also gives the input tokens per message and thei
 
 It is the only file that reads Banking77, loaded from the `mteb/banking77` parquet copy (the
 original `PolyAI/banking77` is a dataset script, which `datasets` no longer runs). `--write-train`
-exports the restricted train split as jsonl so train.py can fit the real-data comparison model."""
+exports the restricted train split as jsonl so train.py can fit the real-data comparison model;
+with `--no-dev` it leaves out the dev rows, so a model trained on it can be scored on dev."""
 
 import argparse
 import json
@@ -210,6 +211,7 @@ def main():
         help="with --mlx: generate a class name, or read a class letter off one forward pass",
     )
     ap.add_argument("--write-train", metavar="JSONL", help="export the restricted train split")
+    ap.add_argument("--no-dev", action="store_true", help="with --write-train: leave out the dev rows")
     ap.add_argument(
         "--dump",
         metavar="JSONL",
@@ -218,8 +220,14 @@ def main():
     args = ap.parse_args()
     names = list(CLASS_SETS[args.set])
 
+    if args.no_dev and not args.write_train:
+        ap.error("--no-dev needs --write-train")
     if args.write_train:
-        texts, labels, _ = banking77("train", names)
+        texts, labels, ids = banking77("train", names)
+        if args.no_dev:
+            dev = set(dev_and_shots(names)[3])
+            keep = [i for i, mid in enumerate(ids) if mid not in dev]
+            texts, labels = [texts[i] for i in keep], [labels[i] for i in keep]
         os.makedirs(os.path.dirname(args.write_train) or ".", exist_ok=True)
         with open(args.write_train, "w") as f:
             for text, label in zip(texts, labels):
