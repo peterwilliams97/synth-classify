@@ -53,7 +53,7 @@ LLM-written, steered by 200 validation counts", train "1084 Banking77 train" and
 "1284 Banking77 train + validation". An untrained classifier is "not trained". Their Prompt column
 names the prompt a model is given, and is "—" for a classifier given none.
 
-**Classifiers.** Eight kinds are scored.
+**Classifiers.** Nine kinds are scored.
 
 - **TF-IDF + logistic regression**: logistic regression on word-frequency features. It is the
   baseline. It is trained on a synthetic, diagnosed or train + validation set.
@@ -83,6 +83,12 @@ names the prompt a model is given, and is "—" for a classifier given none.
   prompt, its certified coverage matches UltraBERT-Embed-150M + LR's at the same validation size,
   with 30 examples against 400 to 1084 training rows, at $54 per million messages and 0.53 s a
   message against free and 0.01 s.
+- **d3-flash**: `vllm-sr/d3-flash`, an 8B open-weight decision model (Apache-2.0) from vLLM
+  Semantic Router, built on Qwen3.5-9B, that likewise gives a probability for each option. It is
+  asked System One's `fewshot` question, one per message, and runs on the laptop with transformers
+  on MPS in bfloat16 (`d3.py`). It is not trained. Its 2.21 s a message runs on transformers'
+  reference kernels, as the fast ones need a CUDA or ROCm GPU; the model card gives 19 ms on a
+  server GPU.
 
 **Routing.** Routing keeps a classifier's label when the classifier's top probability is at least a
 threshold. A message below the threshold goes to a person. The threshold is the lowest validation
@@ -313,6 +319,7 @@ The train + validation rows include the 200 validation rows, so they cannot be r
 | `confusable` | Laya                     | `names` prompt           | 0.7075   | 0.6750   | 0.0241  |
 | `confusable` | TypeSafe System One      | `definitions` prompt     | 0.9050   | 0.9053   | 0.53    |
 | `confusable` | TypeSafe System One      | `fewshot` prompt         | 0.9450   | 0.9449   | 0.53    |
+| `confusable` | d3-flash                 | `fewshot` prompt         | 0.9500   | 0.9499   | 2.21    |
 
 On `confusable` Laya scores below TF-IDF + logistic regression trained on the synthetic set, 0.7075
 against 0.7900, so it has no rows in the tables under [question 2](#2-how-accurate-is-it) and
@@ -455,6 +462,7 @@ of any classifier that did not see the validation rows.**
 | Gemma 4 31B (MLX), letter logits | not trained                                        | `fewshot`     | 30                          | 0.9375   | 25            |
 | TypeSafe System One              | not trained                                        | `definitions` | 0                           | 0.9050   | 38            |
 | TypeSafe System One              | not trained                                        | `fewshot`     | 30                          | 0.9450   | 22            |
+| d3-flash                         | not trained                                        | `fewshot`     | 30                          | 0.9500   | 20            |
 
 Every classifier above 0.92 used real labelled examples. The Gemma 4 E4B (MLX) + LoRA adapter
 trained on train + validation also used them, and stayed at 0.8575. The `fewshot` prompts of
@@ -492,6 +500,7 @@ categories are the two categories of one pair.
 | Gemma 4 E4B (MLX) + LoRA adapter | 1284 Banking77 train + validation                  | `definitions` | 1284                        | 57     | 56            | `declined_transfer` → `failed_transfer`       | 24              |
 | TypeSafe System One              | not trained                                        | `definitions` | 0                           | 38     | 35            | `card_delivery_estimate` → `card_arrival` and `why_verify_identity` → `verify_my_identity` | 8 each |
 | TypeSafe System One              | not trained                                        | `fewshot`     | 30                          | 22     | 22            | `card_arrival` → `card_delivery_estimate` and `declined_transfer` → `failed_transfer` | 5 each |
+| d3-flash                         | not trained                                        | `fewshot`     | 30                          | 20     | 19            | `card_arrival` → `card_delivery_estimate`     | 5               |
 
 Gemma 4 E4B (MLX) with no adapter is the one classifier with most of its errors outside a pair.
 Those 34 errors outside a pair are its invalid replies. The 26 errors outside a pair of the
@@ -550,6 +559,10 @@ under the bound is over the runs that keep any test message, counted in brackets
 
 | Validation rows | Test coverage under the Clopper-Pearson bound | Test error under the Clopper-Pearson bound |
 |-----------------|-----------------------------------------------|--------------------------------------------|
+| **d3-flash, `fewshot`, 3 runs per N** | | |
+| 100             | 0.6842 (0.6400–0.7650)                        | 0.0095 (0.0077–0.0131), 3 runs             |
+| 200             | 0.8775 (0.7650–0.9525)                        | 0.0257 (0.0131–0.0367), 3 runs             |
+| 400 (394)       | 0.9225 (0.8875–0.9600)                        | 0.0287 (0.0225–0.0365), 3 runs             |
 | **UltraBERT-Embed-150M + LR, 400-row models, 9 runs per N** | | |
 | 100             | 0.3342 (0.0000–0.9750)                        | 0.0261 (0.0113–0.0641), 4 runs             |
 | 200             | 0.7142 (0.0000–0.9450)                        | 0.0246 (0.0137–0.0450), 8 runs             |
@@ -586,6 +599,11 @@ where on the 200 validation messages of question 1 it keeps none
 (`results/confusable/confidence/jev-fewshot-dev<N>-ds<validation seed>.txt`). With 200 validation
 rows the bound's coverage ranges from 0 to 0.95 for both classifiers, with 400 it ranges from 0.72
 to 0.93.
+
+d3-flash with the `fewshot` prompt is drawn from the same 669 rows, on which it is 0.9372 accurate
+(`results/confusable/rest/d3-flash-fewshot.txt`), and under the bound it keeps test messages in all
+9 runs, 0.6842 of them at 100 validation rows and 0.9225 at 394, at a test error of at most 0.0367
+(`results/confusable/confidence/d3-flash-fewshot-dev<N>-ds<validation seed>.txt`).
 
 Gemma 4 31B (MLX) with letter logits and the `fewshot` prompt is drawn from the same 669
 rows. 650 of them score above 0.9, at 0.9246 accuracy
@@ -651,6 +669,7 @@ LoRA adapters take the invalid replies from 34 to 0. Theirs is the only LoRA con
 | Gemma 4 31B (MLX), letter logits | not trained                                        | `fewshot`     | none             | 4.28                | 582          |
 | TypeSafe System One              | not trained                                        | `definitions` | none             | 0.53                | 72           |
 | TypeSafe System One              | not trained                                        | `fewshot`     | none             | 0.53                | 71           |
+| d3-flash                         | not trained                                        | `fewshot`     | none             | 2.21                | 301          |
 
 Seconds per message is the median time to classify one test message. "× ModernBERT" divides a
 row's seconds per message by 0.00735 s, ModernBERT-base trained on train + validation
@@ -863,6 +882,19 @@ for n in 100 200 400; do for d in 0 1 2; do
   python confidence.py --set confusable --model-name gemma-4-31b-it-4bit-fewshot-logits-dev$n-ds$d \
     --dev $D/gemma-4-31b-it-4bit-fewshot-logits-rest.jsonl \
     --test $D/gemma-4-31b-it-4bit-fewshot-logits-test.jsonl --dev-size $n --dev-seed $d
+done; done
+
+# d3-flash needs transformers 5.17.0 and MPS, so it has a venv of its own and does not run in the
+# Claude Code sandbox.
+uv venv --python 3.13 .venv-d3
+uv pip install --python .venv-d3/bin/python -r requirements-d3.txt
+.venv-d3/bin/python score.py --set confusable --d3 vllm-sr/d3-flash --prompt fewshot \
+  --dump $D/d3-flash-fewshot-test.jsonl
+.venv-d3/bin/python score.py --set confusable --split rest --train-file data/confusable/banking77_train_nodev_400.jsonl \
+  --d3 vllm-sr/d3-flash --prompt fewshot --dump $D/d3-flash-fewshot-rest.jsonl
+for n in 100 200 400; do for d in 0 1 2; do
+  python confidence.py --set confusable --model-name d3-flash-fewshot-dev$n-ds$d \
+    --dev $D/d3-flash-fewshot-rest.jsonl --test $D/d3-flash-fewshot-test.jsonl --dev-size $n --dev-seed $d
 done; done
 ```
 

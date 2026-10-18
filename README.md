@@ -23,6 +23,7 @@ a message.
 
 | Classifier                                                 | Labels to build | Certified coverage     | Error                  | Seconds per message | $ per million messages |
 |------------------------------------------------------------|-----------------|------------------------|------------------------|---------------------|------------------------|
+| d3-flash, `fewshot` (30 examples)                          | 30 + 400        | 0.9225 (0.8875–0.9600) | 0.0287 (0.0225–0.0365) | 2.2                 | free                   |
 | TypeSafe System One, `fewshot` (30 examples)               | 30 + 400        | 0.8658 (0.8400–0.9100) | 0.0297 (0.0265–0.0357) | 0.53                | 54                     |
 | Gemma 4 31B (MLX), letter logits, `fewshot` (30 examples) | 30 + 400 | 0.3042 (0.0000–0.9125) | 0.0384, 1 run | 4.3 | free |
 | UltraBERT-Embed-150M + LR, 30 training rows                | 30 + 400        | 0.3278 (0.0000–0.6100) | 0.0267 (0.0071–0.0574) | 0.01                | free                   |
@@ -33,9 +34,14 @@ a message.
 
 UltraBERT-Embed-150M + LR is logistic regression on frozen `dmis-lab/UltraBERT-Embed-150M`
 embeddings, run on a laptop; TypeSafe System One is an API given the 30 examples in its question.
+d3-flash is `vllm-sr/d3-flash`, an 8B open-weight decision model (Apache-2.0) built on Qwen3.5-9B
+by vLLM Semantic Router, asked the same question as System One and run on the laptop with
+transformers on MPS; its 2.2 s a message runs on transformers' reference kernels, as the fast ones
+need a CUDA or ROCm GPU, and the model card gives 19 ms on a server GPU.
 Labels to build is training or example labels + validation labels. Each cell is the mean, then the
 min–max, over 9 runs for an UltraBERT-Embed-150M + LR row (3 training draws × 3 validation draws)
-and 3 for System One and Gemma 4 31B; at 400 the validation draws hold 395 and 394 rows. Error is
+and 3 for d3-flash, System One and Gemma 4 31B; at 400 the validation draws hold 395 rows for
+UltraBERT-Embed-150M + LR and 394 for the other three. Error is
 over the runs that keep any message. Gemma 4 31B is `mlx-community/gemma-4-31b-it-4bit`, run with
 mlx-lm on the laptop, the class read from the letter logits of one forward pass; 650 of its 669
 validation messages score above 0.9, right or wrong, so the bound certifies nothing in 2 of its 3
@@ -45,6 +51,7 @@ draws at 200 and 400 validation rows and in all 3 at 100.
 
 | Classifier                                     | Labels in training or prompt | Accuracy               |
 |------------------------------------------------|------------------------------|------------------------|
+| d3-flash, `fewshot` (30 examples)              | 30                           | 0.9500                 |
 | TypeSafe System One, `fewshot` (30 examples)   | 30                           | 0.9450                 |
 | Gemma 4 31B (MLX), letter logits, `fewshot` (30 examples) | 30 | 0.9375 |
 | UltraBERT-Embed-150M + LR, 30 training rows    | 30                           | 0.8550 (0.8400–0.8850) |
@@ -58,23 +65,26 @@ The 30- to 400-row cells are the mean, then the min–max, over 3 training draws
 
 **Certified coverage against validation rows**
 
-| Validation rows | UltraBERT-Embed-150M + LR, 400 training rows, 9 runs | TypeSafe System One, `fewshot`, 3 runs |
-|-----------------|------------------------------------------------------|----------------------------------------|
-| 100             | 0.3342 (0.0000–0.9750)                               | 0.2825 (0.0000–0.8475)                 |
-| 200             | 0.7142 (0.0000–0.9450)                               | 0.8025 (0.6325–0.9350)                 |
-| 400             | 0.8500 (0.7200–0.9300)                               | 0.8658 (0.8400–0.9100)                 |
+| Validation rows | d3-flash, `fewshot`, 3 runs | UltraBERT-Embed-150M + LR, 400 training rows, 9 runs | TypeSafe System One, `fewshot`, 3 runs | Gemma 4 31B (MLX), letter logits, `fewshot`, 3 runs |
+|-----------------|-----------------------------|------------------------------------------------------|----------------------------------------|-----------------------------------------------------|
+| 100             | 0.6842 (0.6400–0.7650)      | 0.3342 (0.0000–0.9750)                               | 0.2825 (0.0000–0.8475)                 | 0.0000 (0.0000–0.0000)                              |
+| 200             | 0.8775 (0.7650–0.9525)      | 0.7142 (0.0000–0.9450)                               | 0.8025 (0.6325–0.9350)                 | 0.3100 (0.0000–0.9300)                              |
+| 400             | 0.9225 (0.8875–0.9600)      | 0.8500 (0.7200–0.9300)                               | 0.8658 (0.8400–0.9100)                 | 0.3042 (0.0000–0.9125)                              |
 
 ## Conclusion
 
-- With 30 labels as examples in its question and 400 to set the threshold, TypeSafe System One
-  labels 87% of test messages with no human check at 3% error, and is 94.5% accurate. It is an API,
-  $54 per million messages and 0.53 s a message.
+- With 30 labels as examples in its question and 400 to set the threshold, d3-flash, an 8B
+  open-weight decision model on the laptop, labels 92% of test messages with no human check at 2.9%
+  error, and is 95.0% accurate. With 100 validation rows it still certifies 68%; the next highest at
+  100 is UltraBERT-Embed-150M + LR's 33%.
+- TypeSafe System One, an API, with the same 30 examples and 400 validation rows, certifies 87% at
+  3% error and is 94.5% accurate; $54 per million messages and 0.53 s a message.
 - UltraBERT-Embed-150M + LR needs 200 training rows and 400 validation rows to do the same, 91% at
   4.5% error; with 30 training rows it certifies 33%. It is free and 0.01 s a message.
 - A local 31B LLM with the same 30 examples, read from letter logits, is 93.75% accurate but
   certifies 30% on average and 0 in 2 of 3 draws: the probabilities do not separate right from
   wrong. At 4.3 s a message.
-- Both need 400 validation rows. With 200, certified coverage ranges from 0 to 0.95 between draws;
+- UltraBERT-Embed-150M + LR and System One need 400 validation rows. With 200, certified coverage ranges from 0 to 0.95 between draws;
   with 400, from 0.72 to 0.93.
 - With 0 labels, `gemma4:e4b` is 91% accurate and nothing can be certified.
 
@@ -100,6 +110,10 @@ The 30- to 400-row cells are the mean, then the min–max, over 3 training draws
   `definitions` question or the same options with the `fewshot` examples after each definition,
   with the key from `TYPESAFE_API_KEY`, and caches every response in `results/jev/<set>.jsonl`, so a
   re-run of `score.py --jev` sends nothing and reproduces its report.
+- `d3.py` — `classify_d3` asks a Decision 3.0 model run locally with transformers on MPS, such as
+  `vllm-sr/d3-flash`, the same `jev_question`, and caches every response in
+  `results/d3/<set>.jsonl`, so a re-run of `score.py --d3` loads no model and reproduces its report.
+  It runs in `.venv-d3`, made from `requirements-d3.txt`, for the model's transformers 5.17.0.
 - `finetune.py` — trains a LoRA adapter for `mlx-community/gemma-4-e4b-it-4bit` on a jsonl file
   (`--train`) and saves it to `--out`. Each row is a chat: the `definitions` prompt and the message
   as the user turn, the class name as the assistant turn.
@@ -107,7 +121,9 @@ The 30- to 400-row cells are the mean, then the min–max, over 3 training draws
   mlx-lm model with the `definitions` prompt (`--mlx MODEL`, and `--adapter DIR` for a LoRA adapter,
   or `--reply logits` for letter logits, `--mlx` only, no adapter, with `--prompt
   definitions|fewshot`, default `definitions`), Laya (`--laya --prompt names|definitions`) or
-  TypeSafe System One (`--jev`, `--prompt definitions|fewshot`, default `definitions`) on Banking77
+  TypeSafe System One (`--jev`, `--prompt definitions|fewshot`, default `definitions`) or a
+  Decision 3.0 model (`--d3 MODEL_ID`, same prompts, report `d3-flash-<prompt>` for
+  `vllm-sr/d3-flash`) on Banking77
   restricted to the class set: accuracy, macro F1, median seconds per message, per-class recall and
   a confusion matrix, printed and written to `results/<set>/<split>/<name>.txt`. An `--mlx` report
   also counts the invalid replies. `--split test` (the default) is the Banking77 test split.
@@ -115,9 +131,10 @@ The 30- to 400-row cells are the mean, then the min–max, over 3 training draws
   train split; the `fewshot` examples are train messages outside validation. `--write-train` exports
   train + validation as jsonl, and with `--no-dev` leaves out the 200 validation rows, giving train.
   `--split rest --train-file JSONL` is the rows of `data/<set>/banking77_train_nodev.jsonl` not in
-  `JSONL`, for a `--model` trained on a subset of it, or for `--jev` and `--mlx --reply logits`,
-  less the `fewshot` examples with `--prompt fewshot`. `--dump FILE` also writes each message's
-  probability over the class set, for `--model`, `--laya`, `--jev` and `--mlx --reply logits`.
+  `JSONL`, for a `--model` trained on a subset of it, or for `--jev`, `--d3` and `--mlx --reply
+  logits`, less the `fewshot` examples with `--prompt fewshot`. `--dump FILE` also writes each
+  message's probability over the class set, for `--model`, `--laya`, `--jev`, `--d3` and `--mlx
+  --reply logits`.
 - `confidence.py` — from a classifier's validation (`--dev`) and test `--dump` files: AUROC of the
   top probability against correctness, ECE before and after isotonic calibration fitted on
   validation, and test coverage and error at thresholds chosen on validation for α 0.02, 0.05 and
