@@ -8,7 +8,8 @@ default, or `fewshot`), or the Laya decision model
 zero-shot with one of llm.py's `LAYA_PROMPTS` (`--laya`, `--prompt`), or TypeSafe's System One API
 asked jev.py's question (`--jev`, `--prompt`, default `definitions`). `--split test` is the
 Banking77 test split; `--split dev` is `dev_and_shots`' sample of the train split, which is what
-prompts are chosen on. `--dump` also writes each message's probability over the class set, for
+prompts are chosen on; `--split rest` is the rows of data/<set>/banking77_train_nodev.jsonl that
+are not in `--train-file`, for a `--model` trained on a subset of that file. `--dump` also writes each message's probability over the class set, for
 confidence.py; it refuses `--llm` and `--mlx` without `--reply logits`, which give a class and no
 probabilities. A `--jev` report also gives the input tokens per message and their price.
 
@@ -77,6 +78,22 @@ def dev_and_shots(names):
         dev += rows[:DEV_PER_CLASS]
         shots[name] = [texts[j] for j in rows[DEV_PER_CLASS : DEV_PER_CLASS + SHOTS_PER_CLASS]]
     return [texts[j] for j in dev], [labels[j] for j in dev], shots, [ids[j] for j in dev]
+
+
+def rest(set_name, train_file, names):
+    """rest returns the texts and label indices of the rows of data/<set>/banking77_train_nodev.jsonl
+    that are not in `train_file`, so a model trained on a subset of that file has its routing
+    threshold set on rows it did not see. Rows match on text and label; exits if a `train_file` row
+    is not in the file."""
+    def read(path):
+        with open(path) as f:
+            return [(r["text"], r["label"]) for r in map(json.loads, f)]
+    every = read(os.path.join("data", set_name, "banking77_train_nodev.jsonl"))
+    train = set(read(train_file))
+    if missing := train - set(every):
+        sys.exit(f"{train_file}: {len(missing)} rows not in banking77_train_nodev.jsonl")
+    kept = [(text, label) for text, label in every if (text, label) not in train]
+    return [text for text, _ in kept], [names.index(label) for _, label in kept]
 
 
 def predict(model_dir, texts, names):
@@ -196,7 +213,8 @@ def report(classifier, split, gold, preds, seconds, names, invalid=None, probs=N
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--set", choices=list(CLASS_SETS), default="distinct")
-    ap.add_argument("--split", choices=["dev", "test"], default="test")
+    ap.add_argument("--split", choices=["dev", "test", "rest"], default="test")
+    ap.add_argument("--train-file", metavar="JSONL", help="with --split rest: the file --model was trained on")
     ap.add_argument("--model", help="directory written by train.py")
     ap.add_argument("--llm", metavar="MODEL", help="Ollama model to score in place of --model")
     ap.add_argument("--laya", action="store_true", help="score the Laya decision model zero-shot")
@@ -254,10 +272,16 @@ def main():
         ap.error("--reply logits needs --mlx and takes no --adapter")
     if args.dump and (args.llm or (args.mlx and args.reply != "logits")):
         ap.error("--dump needs probabilities: --model, --laya, --jev or --mlx --reply logits")
+    if (args.split == "rest") != bool(args.train_file):
+        ap.error("--split rest and --train-file go together")
+    if args.split == "rest" and not args.model:
+        ap.error("--split rest scores a --model only")
 
     shots = None
     if args.split == "dev":
         texts, gold, shots, ids = dev_and_shots(names)
+    elif args.split == "rest":
+        texts, gold = rest(args.set, args.train_file, names)
     else:
         texts, gold, ids = banking77("test", names)
         if args.prompt == "fewshot":

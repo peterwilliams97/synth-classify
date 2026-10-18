@@ -22,6 +22,11 @@ Computed:
 Output: the report, printed and written to
 results/<set>/confidence/<model-name>.txt.
 
+With --dev-size N, tau and the calibration are fitted on N rows of the dev
+file drawn by `draw`, N / (number of classes) per class, so the threshold's
+dependence on dev size can be measured; a class with fewer rows gives them
+all. --dev-seed seeds the draw.
+
 Nothing is fitted on test. The dev rows are drawn from the Banking77
 train split, so a model trained on data/<set>/banking77_train.jsonl must
 not be run here.
@@ -30,6 +35,7 @@ not be run here.
 import argparse
 import json
 import os
+import random
 import sys
 
 import numpy as np
@@ -58,6 +64,19 @@ def read_dump(path, names):
     correct = np.array([r["pred"] == r["label"] for r in rows], dtype=float)
     label = np.array([names.index(r["label"]) for r in rows])
     return score, correct, label
+
+
+def draw(label, size, seed, classes):
+    """draw returns the indices of `size` // `classes` rows of each class in `label`, each class's
+    rows shuffled in class order by one random.Random(`seed`); a class with fewer rows gives all of
+    them."""
+    rng = random.Random(seed)
+    picked = []
+    for i in range(classes):
+        rows = [j for j in range(len(label)) if label[j] == i]
+        rng.shuffle(rows)
+        picked += rows[: size // classes]
+    return np.array(sorted(picked))
 
 
 def ece(conf, correct, raw):
@@ -105,11 +124,20 @@ def main():
     ap.add_argument("--model-name", required=True, help="report name, results/<set>/confidence/")
     ap.add_argument("--dev", required=True, help="score.py --split dev --dump file")
     ap.add_argument("--test", required=True, help="score.py --split test --dump file")
+    ap.add_argument("--dev-size", type=int, metavar="N", help="fit on N rows of --dev, stratified")
+    ap.add_argument("--dev-seed", type=int, default=0, metavar="S", help="seed of the --dev-size draw")
     args = ap.parse_args()
     names = list(CLASS_SETS[args.set])
     width = max(len(name) for name in names)
+    if args.dev_size is not None and (args.dev_size <= 0 or args.dev_size % len(names)):
+        ap.error(f"--dev-size must be a positive multiple of {len(names)}, the classes in the set")
 
-    dev_s, dev_c, _ = read_dump(args.dev, names)
+    dev_s, dev_c, dev_y = read_dump(args.dev, names)
+    dev_desc = f"{len(dev_s)} rows"
+    if args.dev_size is not None:
+        keep = draw(dev_y, args.dev_size, args.dev_seed, len(names))
+        dev_desc = f"{len(keep)} of {len(dev_s)} rows, drawn with seed {args.dev_seed}"
+        dev_s, dev_c = dev_s[keep], dev_c[keep]
     test_s, test_c, test_y = read_dump(args.test, names)
     if test_c.all() or not test_c.any():
         sys.exit(f"{args.test}: every prediction is {'right' if test_c.all() else 'wrong'}")
@@ -120,7 +148,7 @@ def main():
 
     lines = [
         f"model     {args.model_name}",
-        f"dev       {args.dev} ({len(dev_s)} rows, accuracy {dev_c.mean():.4f})",
+        f"dev       {args.dev} ({dev_desc}, accuracy {dev_c.mean():.4f})",
         f"test      {args.test} ({len(test_s)} rows, accuracy {test_c.mean():.4f})",
         "score     top probability of each message",
         "discrimination on test, nothing fitted",

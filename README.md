@@ -269,6 +269,27 @@ and another 0.9325, and under the bound one draw at each of 200 and 400 keeps no
 threshold misses the 5% target on test for one draw at 100 (0.0541) and one at 400 (0.0509), both
 seed 0.
 
+How much the threshold depends on the number of dev labels is measured on the three 400-row models
+(seeds 0, 1 and 2). Each model's dev is replaced by its rest: the 684 rows of the real train set
+minus dev that it was not trained on. From the rest, N rows are drawn, N / 10 per class, with dev
+seeds 0, 1 and 2, and the α 0.05 thresholds are chosen on them; 3 models × 3 draws is 9 runs per N.
+The rest holds 38 `getting_virtual_card` and 37 `get_disposable_virtual_card` rows, so N = 400 draws
+395. Each cell is the mean over the 9 runs, then the min–max, all on the 400 test messages. Error
+under the bound is over the runs that keep any test message, counted in brackets.
+
+| Dev rows  | Test coverage at α 0.05 | Test error at α 0.05   | Test coverage under the Clopper-Pearson bound | Test error under the Clopper-Pearson bound |
+|-----------|-------------------------|------------------------|-----------------------------------------------|--------------------------------------------|
+| 100       | 0.8906 (0.7200–1.0000)  | 0.0396 (0.0174–0.0750) | 0.3342 (0.0000–0.9750)                        | 0.0261 (0.0113–0.0641), 4 runs             |
+| 200       | 0.9486 (0.8100–0.9975)  | 0.0542 (0.0309–0.0641) | 0.7142 (0.0000–0.9450)                        | 0.0246 (0.0137–0.0450), 8 runs             |
+| 400 (395) | 0.9500 (0.8675–1.0000)  | 0.0518 (0.0375–0.0662) | 0.8500 (0.7200–0.9300)                        | 0.0300 (0.0168–0.0490), 9 runs             |
+
+The plain threshold does not hold 5% on test at any N: test error is over 0.05 in 2 of the 9 runs
+at 100, 6 at 200 and 4 at 400, and its mean is over 0.05 at 200 and 400. More dev rows raise the
+coverage under the bound and narrow its range. At 100 dev rows the bound keeps nothing in 5 of 9
+runs, at 200 in 1, at 400 in none. Under the bound, test error stays under 0.05 in every run that
+keeps a message but one, 0.0641 at N = 100. Each run's report is
+`results/confusable/confidence/ultrabert-embed-real-nodev-400[-s<seed>]-dev<N>-ds<dev seed>.txt`.
+
 The diagnosed notes did not help every classifier equally. From the synthetic set to the diagnosed
 set, UltraBERT-Embed-150M + logistic regression went from 61 errors to 35. ModernBERT-base went
 from 63 to 53. TF-IDF + logistic regression went from 84 to 83.
@@ -731,13 +752,16 @@ adapter carries the whole prompt.
   `--split test` (the default) is the Banking77 test split. `--split dev` is 20 messages per class
   sampled with a fixed seed from the Banking77 train split; the `fewshot` examples are train
   messages outside dev. `--write-train` exports the restricted train split as jsonl, and with `--no-dev` leaves
-  out the 200 dev rows. `--dump FILE`
+  out the 200 dev rows. `--split rest --train-file JSONL` is the rows of
+  `data/<set>/banking77_train_nodev.jsonl` not in `JSONL`, for a `--model` trained on a subset of
+  it. `--dump FILE`
   also writes each message's probability over the class set, for `--model`, `--laya`, `--jev` and
   `--mlx --reply logits`.
 - `confidence.py` — from a classifier's dev and test `--dump` files: AUROC of the top probability
   against correctness, ECE before and after isotonic calibration fitted on dev, and test coverage
   and error at thresholds chosen on dev for α 0.02, 0.05 and 0.10, with and without a
-  Clopper-Pearson bound, written to `results/<set>/confidence/<name>.txt`.
+  Clopper-Pearson bound, written to `results/<set>/confidence/<name>.txt`. `--dev-size N
+  --dev-seed S` fits on N rows of the dev file, N / 10 per class, drawn with seed S.
 
 Banking77 is loaded from [`mteb/banking77`](https://huggingface.co/datasets/mteb/banking77), a
 parquet copy. The original `PolyAI/banking77` is a dataset script, which `datasets` 5.1.0 refuses
@@ -827,6 +851,16 @@ python score.py --set confusable             --jev --prompt fewshot --dump $D/je
 for d in $D/*-dev.jsonl; do
   n=$(basename $d -dev.jsonl)
   python confidence.py --set confusable --model-name $n --dev $d --test $D/$n-test.jsonl
+done
+# Dev size: the 400-row models' thresholds chosen on N rows of the rows they were not trained on.
+for s in "" -s1 -s2; do
+  m=ultrabert-embed-real-nodev-400$s
+  python score.py --set confusable --split rest --train-file data/confusable/banking77_train_nodev_400${s/-/_}.jsonl \
+    --model models/confusable/$m --dump $D/$m-rest.jsonl
+  for n in 100 200 400; do for d in 0 1 2; do
+    python confidence.py --set confusable --model-name $m-dev$n-ds$d --dev $D/$m-rest.jsonl \
+      --test $D/$m-test.jsonl --dev-size $n --dev-seed $d
+  done; done
 done
 ```
 

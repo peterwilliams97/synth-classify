@@ -149,6 +149,9 @@ in `refs/main`, which is the layout `HF_HUB_OFFLINE=1` loads from.
   trained on `data/<set>/synthetic*.jsonl` saw none of them. The same holds for `confidence.py`,
   which fits its isotonic calibration and its routing thresholds on the dev dump: for a
   real-trained model they would be fitted on rows it was trained on, so it is not run on one.
+  `--split rest --train-file F` is the exception that keeps this: the rows of
+  `banking77_train_nodev.jsonl` not in `F`, valid for a model trained on `F` alone, and
+  `confidence.py --dev-size` draws its dev from that dump for the dev-size table under question 3.
 - **Seconds per message are one message per call**, in `predict` (`score.py`) as in `classify`
   (`llm.py`), so the two are comparable. Time them with nothing else on the GPU: Ollama and MPS
   share it.
