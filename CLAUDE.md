@@ -17,9 +17,10 @@ decision model zero-shot (`score.py --laya`), TypeSafe's System One API (`jev.py
 `score.py --jev`), and logistic regression on frozen
 `dmis-lab/UltraBERT-Embed-150M` embeddings (`train.py --embed`). `confidence.py` asks whether a
 classifier's top probability can route messages, from `score.py --dump` files of dev and test,
-for question 1 under the README's Results. Eight scripts, and a `README.md` that
-states the aim as questions, answers each in a subsection of Results, and keeps the three full
-tables (test, dev, training minutes) under All results. All Python
+for the README's coverage tables. Eight scripts, a `README.md` that states the aim as three
+questions and answers them in three tables, and `docs/details.md`, which keeps the full method,
+the answers to questions 2 and 3 and the three full tables (test, dev, training minutes) under All
+results. All Python
 — the repository layout, file header and `test.sh` rules in `~/CLAUDE.md` do not apply here; its
 Python / ML environment section does.
 
@@ -72,7 +73,7 @@ differs on every run — a re-run that changes only `seconds` has reproduced the
 drops the parent directory: two model directories with one basename write the same report file.
 
 There is no test suite, linter or `test.sh`. The check on a change is the end-to-end run, compared
-against the test table under All results in `README.md`, and for `llm.py` or `dev_and_shots` the
+against the test table under All results in `docs/details.md`, and for `llm.py` or `dev_and_shots` the
 dev table as well.
 A change to `user_turn`, `MLX_PROMPT` or `classify_mlx` in `llm.py` means retraining the four
 adapters (about 50 minutes) before the mlx-lm rows can be compared.
@@ -152,7 +153,7 @@ in `refs/main`, which is the layout `HF_HUB_OFFLINE=1` loads from.
   `--split rest --train-file F` is the exception that keeps this: the rows of
   `banking77_train_nodev.jsonl` not in `F`, valid for a model trained on `F` alone and for
   `--jev`, which with `--prompt fewshot` also leaves out the `fewshot` examples, and
-  `confidence.py --dev-size` draws its dev from that dump for the dev-size table under question 3.
+  `confidence.py --dev-size` draws its dev from that dump for the dev-size table under question 3 in `docs/details.md`.
 - **Seconds per message are one message per call**, in `predict` (`score.py`) as in `classify`
   (`llm.py`), so the two are comparable. Time them with nothing else on the GPU: Ollama and MPS
   share it.
@@ -201,7 +202,7 @@ restricted to `confusable`, 1284 and 400.
 `synthetic-<method>.jsonl` and `.prompt.txt` from `generate.py --method`, and
 `data/confusable/banking77_train_nodev.jsonl`, the training set of `ultrabert-embed-real-nodev`,
 with its label-curve subsets `banking77_train_nodev_<n>.jsonl` and `_<n>_s<seed>.jsonl` (the
-Run section of `README.md`);
+Run section of `docs/details.md`);
 the synthetic files are the `gemma4:e4b`
 output the README test table's synthetic rows were computed from, and
 `results/<set>/<split>/*.txt` are the `score.py` reports behind each row of the dev and test
@@ -216,11 +217,12 @@ Ollama 0.32.5, mlx 0.32.3 and mlx-lm 0.32.0, with `mlx-community/gemma-4-e4b-it-
 The `modernbert-*` and `tfidf-*` ones name `xtmp/models/…` as the model: they are timing re-runs,
 and the models under `models/<set>/` that the test reports came from were not replaced.
 
-**The README repeats numbers.** It is laid out as Aim, Method, Results (one subsection per aim
-question, then an LLM-changes table, a costs table and a list of what did not help), Discussion,
-Conclusion, Class sets, Details of the method, All results, Files, Run. Results and Discussion
+**The README and `docs/details.md` repeat numbers.** `README.md` is the three questions, a Method
+paragraph, a coverage table, an accuracy table and a coverage-by-validation-rows table,
+Conclusion and Files. `docs/details.md` is Details of the method, All results, Class sets,
+questions 2 and 3, an LLM-changes table, Costs, What did not help, Discussion and Run. Both
 repeat numbers from `results/<set>/test/*.txt`, `results/confusable/confidence/*.txt` and
 `results/<set>/train/*.txt`: error counts, errors inside a pair, largest confusion cells, seconds as
 multiples of `modernbert-real`'s, coverage and error at tau. A changed report means updating its
-All results row and every place above that cites it, in the same commit. Two cells say "see report"
+All results row and every place in either file that cites it, in the same commit. Two cells say "see report"
 where the README does not carry the number.
