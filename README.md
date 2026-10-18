@@ -15,17 +15,18 @@ TypeSafe System One, an API billed per message.
 The short answers, on the 400 Banking77 test messages of the `confusable` class set:
 
 1. UltraBERT-Embed-150M + logistic regression trained on 1084 real messages, the real train set
-   minus the 200 dev messages that set its threshold, handles 99% of messages with no human check
-   at 4.0% error. TypeSafe System One, an API, with 30 real messages as examples in its question
-   (`fewshot`), handles 88% at 3.1% error. Trained on no real messages, the best is
-   UltraBERT-Embed-150M + logistic regression trained on the diagnosed set: 40% at under 5% error.
+   minus the 200 dev messages that set its threshold, handles 86% of messages with no human check
+   at 2.6% error, with the threshold set under a Clopper-Pearson bound at 5% error. No other
+   classifier handles any message under that bound: not TypeSafe System One, an API, with either
+   prompt, and nothing trained on no real messages.
 2. UltraBERT-Embed-150M + logistic regression trained on 1284 real messages: 96%. TypeSafe System
    One with 30 real messages as examples: 94.5%. `gemma4:e4b` with the category definitions and
    no labels: 91%.
 3. 0 labels gets 91% accuracy and no safe automation; 30, as examples in System One's question,
-   gets 94.5%, and with the 200 dev labels that set the threshold the 88% above; 200 gets the 40%
-   above with no real messages to train on; 1084 to train on and 200 to set the threshold get 95%
-   and the 99% above; all 1284 to train on get 96% and no coverage figure.
+   gets 94.5%, and with the 200 dev labels that set the threshold still no message handled; 200
+   gets 91% with no real messages to train on, and no message handled; 1084 to train on and 200
+   to set the threshold get 95% and the 86% above; all 1284 to train on get 96% and no coverage
+   figure.
 
 ## Aim
 
@@ -96,12 +97,14 @@ generator, and the routing threshold.
 - **TypeSafe System One**: `typesafe/jev-1.13`, an API reached through OpenRouter that picks one
   option from a list and gives a probability for each. It is asked Laya's question with the
   `definitions` prompt, one per message, or with the `fewshot` prompt: the same options, each
-  definition followed by the 30 examples the Ollama models see, 3 per category. It is not trained, and it does not run on the laptop.
+  definition followed by the 30 examples the Ollama models see, 3 per category. It is not trained, and it does not run on the laptop. Under the
+  Clopper-Pearson bound at α 0.05 it keeps 0 test messages with either prompt.
 
 **Routing.** Routing keeps a classifier's label when the classifier's top probability is at least
 a threshold. A message below the threshold goes to a person. The threshold is the lowest dev
-probability at which the error among dev messages above it is at most the target. Coverage and
-error are then measured on test. Only a classifier that gives a probability for each category can
+probability at which the one-sided 90% Clopper-Pearson upper bound on the error among dev messages
+above it is at most the target, 5%. Coverage and error are then measured on test. The tables also
+give a plain threshold, set on the dev error itself. Only a classifier that gives a probability for each category can
 be routed.
 
 **Uncertainty.** Every row is one run with seed 0. The binomial standard error of an accuracy p
@@ -116,41 +119,34 @@ Every table in this section is on `confusable`.
 
 ### 1. How much of the work can it do without a person checking?
 
-**UltraBERT-Embed-150M + logistic regression trained on the real train set minus dev labels 396 of
-the 400 test messages on its own, and 16 of those 396 are wrong.** TypeSafe System One with the
-`fewshot` prompt labels 354, of which 11 are wrong. Of the classifiers trained on no real messages,
-UltraBERT-Embed-150M + logistic regression trained on the diagnosed set labels the most: 161, of
-which 6 are wrong.
+**Under the Clopper-Pearson bound at α 0.05, UltraBERT-Embed-150M + logistic regression trained on
+the real train set minus dev labels 344 of the 400 test messages on its own, and 9 of those 344 are
+wrong.** No other classifier in the table labels any. TypeSafe System One labels 0 with either
+prompt.
 
 In the table, α is the error target. AUROC is the chance that a randomly chosen right answer gets a
 higher top probability than a randomly chosen wrong one. ECE is the mean gap between the top
 probability and the observed accuracy, over 10 bins of 40 messages. Isotonic calibration is a
-monotone mapping of the top probability onto accuracy, fitted on dev.
+monotone mapping of the top probability onto accuracy, fitted on dev. The bound is the one-sided
+90% Clopper-Pearson upper bound on the dev error: the highest error rate that the dev count does not
+rule out at 90% confidence. The plain threshold uses the dev error itself.
 
-| Classifier                       | Training set or prompt | AUROC  | ECE after isotonic calibration | Test coverage at α 0.05 | Test error at α 0.05 |
-|----------------------------------|------------------------|--------|--------------------------------|-------------------------|----------------------|
-| TF-IDF + logistic regression     | diagnosed              | 0.7855 | 0.0319                         | 0.2375                  | 0.0526               |
-| ModernBERT-base                  | diagnosed              | 0.8394 | 0.0564                         | 0.1575                  | 0.0159               |
-| UltraBERT-Embed-150M + LR        | synthetic              | 0.8405 | 0.0495                         | 0.1825                  | 0.0274               |
-| UltraBERT-Embed-150M + LR        | diagnosed              | 0.7794 | 0.0333                         | 0.4025                  | 0.0373               |
-| UltraBERT-Embed-150M + LR        | real minus dev         | 0.8641 | 0.0240                         | 0.9900                  | 0.0404               |
-| Gemma 4 E4B (MLX), letter logits | `definitions`          | 0.7770 | 0.0608                         | 0.0375                  | 0.0000               |
-| Gemma 4 E4B (MLX), letter logits | `fewshot`              | 0.7941 | 0.0463                         | 0.2625                  | 0.0381               |
-| Laya                             | `names`                | 0.6753 | 0.0705                         | 0.0000                  | —                    |
-| TypeSafe System One              | `definitions`          | 0.7867 | 0.0534                         | 0.0000                  | —                    |
-| TypeSafe System One              | `fewshot`              | 0.8214 | 0.0452                         | 0.8850                  | 0.0311               |
+| Classifier                       | Training set or prompt | AUROC  | ECE after isotonic calibration | Test coverage at α 0.05 | Test error at α 0.05 | Test coverage under the bound at α 0.05 | Test error under the bound at α 0.05 |
+|----------------------------------|------------------------|--------|--------------------------------|-------------------------|----------------------|-----------------------------------------|--------------------------------------|
+| TF-IDF + logistic regression     | diagnosed              | 0.7855 | 0.0319                         | 0.2375                  | 0.0526               | 0.0000                                  | —                                    |
+| ModernBERT-base                  | diagnosed              | 0.8394 | 0.0564                         | 0.1575                  | 0.0159               | 0.0000                                  | —                                    |
+| UltraBERT-Embed-150M + LR        | synthetic              | 0.8405 | 0.0495                         | 0.1825                  | 0.0274               | 0.0000                                  | —                                    |
+| UltraBERT-Embed-150M + LR        | diagnosed              | 0.7794 | 0.0333                         | 0.4025                  | 0.0373               | 0.0000                                  | —                                    |
+| UltraBERT-Embed-150M + LR        | real minus dev         | 0.8641 | 0.0240                         | 0.9900                  | 0.0404               | 0.8600                                  | 0.0262                               |
+| Gemma 4 E4B (MLX), letter logits | `definitions`          | 0.7770 | 0.0608                         | 0.0375                  | 0.0000               | 0.0000                                  | —                                    |
+| Gemma 4 E4B (MLX), letter logits | `fewshot`              | 0.7941 | 0.0463                         | 0.2625                  | 0.0381               | 0.0000                                  | —                                    |
+| Laya                             | `names`                | 0.6753 | 0.0705                         | 0.0000                  | —                    | 0.0000                                  | —                                    |
+| TypeSafe System One              | `definitions`          | 0.7867 | 0.0534                         | 0.0000                  | —                    | 0.0000                                  | —                                    |
+| TypeSafe System One              | `fewshot`              | 0.8214 | 0.0452                         | 0.8850                  | 0.0311               | 0.0000                                  | —                                    |
 
-TF-IDF + logistic regression's 0.2375 misses the target: 5 of the 95 messages it keeps are wrong.
-
-A stricter threshold replaces the dev error with its one-sided 90% Clopper-Pearson upper bound. The
-bound is the highest error rate that the dev count does not rule out at 90% confidence. Under that
-bound at a 5% target, of the classifiers in the table only UltraBERT-Embed-150M + logistic
-regression trained on the real train set minus dev keeps any test message: 344 of 400, 0.8600, of which 9 are wrong, 0.0262. Under that
-bound at a 10% target it keeps all 400, of which 19 are wrong, 0.0475. Under that bound at a 10%
-target,
-UltraBERT-Embed-150M + logistic regression trained on the diagnosed set keeps 287 of the 400 test
-messages, 0.7175. 11 of those 287 are wrong, 0.0383. TypeSafe System One with the `fewshot` prompt
-keeps 380, 0.9500, and 16 of those 380 are wrong, 0.0421.
+The plain threshold is not quoted outside the tables, because it does not hold its target: in the
+27 dev-size runs under question 3 its test error is over 5% in 12, against 1 of the 21 runs in
+which the bound keeps any message.
 
 Three kinds of classifier are not in the table. The Ollama models return a category name and no
 probability, so they cannot be routed. A classifier trained on the whole real train set cannot be
@@ -189,7 +185,8 @@ errors: 17 of 400.**
 Every classifier above 0.92 used real labelled examples. The Gemma 4 E4B (MLX) + LoRA adapter
 trained on the real train set also used them, and stayed at 0.8575. The `fewshot` prompts of
 `gemma4:e4b` and `qwen3.6:27b-q4_K_M` come within 3 errors of ModernBERT-base trained on the real
-train set, and TypeSafe System One with the `fewshot` prompt makes 3 fewer. Every other LLM
+train set, and TypeSafe System One with the `fewshot` prompt makes 3 fewer; under the bound of
+question 1 it keeps 0 messages with either prompt. Every other LLM
 classifier makes at least 10 more errors than ModernBERT-base trained on the real train set.
 
 On `distinct`, the choice of classifier matters little. Every classifier in the test table under
@@ -238,8 +235,8 @@ Gemma 4 E4B (MLX) + LoRA adapter trained on the synthetic set are all prediction
 | 1284, to train on                                 | 0.9575   | UltraBERT-Embed-150M + LR |
 
 The 200 hand labels are the dev set. They do two jobs. They count the losses that steer the
-diagnosed set. They also set the routing threshold of question 1. So 200 hand labels buy both the
-0.9125 and the 40% coverage.
+diagnosed set. They also set the routing threshold of question 1. So 200 hand labels buy the
+0.9125, and under the bound no message labelled without a person.
 
 With 0 hand labels no classifier can be routed, because the threshold is set on labelled dev
 messages.
@@ -263,11 +260,10 @@ Clopper-Pearson bound of question 1.
 | 800 (795)     | 1     | 0.9475                 | 0.9400                  | 0.0293               | 0.8775 |
 | 1084          | 1     | 0.9525                 | 0.9900                  | 0.0404               | 0.8600 |
 
-Mean accuracy rises with the training rows, from 0.8692 at 50 to 0.9317 at 400. Coverage does not:
-it varies more between draws of one size than between sizes. At 400 one draw keeps 0.4775 of test
-and another 0.9325, and under the bound one draw at each of 200 and 400 keeps nothing. The plain
-threshold misses the 5% target on test for one draw at 100 (0.0541) and one at 400 (0.0509), both
-seed 0.
+Mean accuracy rises with the training rows, from 0.8692 at 50 to 0.9317 at 400. Coverage under the
+bound does not rise with every step, 0.5150 at 200 and 0.4508 at 400, and it varies more between
+draws of one size than between sizes: at 200 one draw keeps nothing and another 0.7975, at 400
+one keeps nothing and another 0.6800.
 
 How much the threshold depends on the number of dev labels is measured on the three 400-row models
 (seeds 0, 1 and 2). Each model's dev is replaced by its rest: the 684 rows of the real train set
@@ -283,9 +279,8 @@ under the bound is over the runs that keep any test message, counted in brackets
 | 200       | 0.9486 (0.8100–0.9975)  | 0.0542 (0.0309–0.0641) | 0.7142 (0.0000–0.9450)                        | 0.0246 (0.0137–0.0450), 8 runs             |
 | 400 (395) | 0.9500 (0.8675–1.0000)  | 0.0518 (0.0375–0.0662) | 0.8500 (0.7200–0.9300)                        | 0.0300 (0.0168–0.0490), 9 runs             |
 
-The plain threshold does not hold 5% on test at any N: test error is over 0.05 in 2 of the 9 runs
-at 100, 6 at 200 and 4 at 400, and its mean is over 0.05 at 200 and 400. More dev rows raise the
-coverage under the bound and narrow its range. At 100 dev rows the bound keeps nothing in 5 of 9
+More dev rows raise the coverage under the bound, from 0.3342 at 100 to 0.8500 at 395, and narrow
+its range. At 100 dev rows the bound keeps nothing in 5 of 9
 runs, at 200 in 1, at 400 in none. Under the bound, test error stays under 0.05 in every run that
 keeps a message but one, 0.0641 at N = 100. Each run's report is
 `results/confusable/confidence/ultrabert-embed-real-nodev-400[-s<seed>]-dev<N>-ds<dev seed>.txt`.
@@ -355,7 +350,8 @@ times ModernBERT-base's seconds per message. On `distinct`, a LoRA adapter takes
 training minutes. No file under `results/` records how long `generate.py` took to write a training
 set.
 
-TypeSafe System One's seconds include the round trip to OpenRouter. It is the one classifier
+TypeSafe System One's seconds include the round trip to OpenRouter; under the bound of question 1
+it keeps 0 messages with either prompt, so a person checks each one it labels. It is the one classifier
 billed per message: a mean of 787 input tokens per message at $0.042 per million input tokens is
 $33 per million messages, or $0.013 for the 400 (`results/confusable/test/jev-definitions.txt`).
 With the `fewshot` prompt it is a mean of 1294 input tokens, $54 per million messages, or $0.022
@@ -384,38 +380,33 @@ for the 400 (`results/confusable/test/jev-fewshot.txt`).
 Accuracy and coverage rank the classifiers differently. UltraBERT-Embed-150M + logistic regression
 trained on the diagnosed set and `gemma4:e4b` with the `definitions` prompt both make 35 errors of
 400. Of the two, only UltraBERT-Embed-150M + logistic regression gives a probability that a
-threshold can use. So of the two, only UltraBERT-Embed-150M + logistic regression can take work
-away from a person.
+threshold can use. Under the bound, its threshold set on 200 dev messages keeps no test message, so
+neither takes work away from a person here.
 
 UltraBERT-Embed-150M + logistic regression trained on the diagnosed set does not rank its answers
 best. Its AUROC of 0.7794 is below the 0.8405 of the same classifier trained on the synthetic set.
-Its higher coverage goes with a lower error rate. On dev it is right on 0.8850 of messages, against
-0.8150 for the synthetic-trained one. A classifier with fewer errors overall can keep more messages
-before its error passes 5%.
+It makes fewer errors: on dev it is right on 0.8850 of messages, against 0.8150 for the
+synthetic-trained one. A classifier with fewer errors overall can keep more messages before its
+error passes 5%, even when it ranks its answers worse.
 
-The thresholds sit very close to 1. For UltraBERT-Embed-150M + logistic regression the 5%
-thresholds are 0.999821 (diagnosed) and 0.999993 (synthetic). For ModernBERT-base trained on the
-diagnosed set it is 0.999994. For the letter logits it is 1.000000 (`definitions`) and 0.999974
-(`fewshot`). TF-IDF + logistic regression's
-threshold, 0.904269, is not close to 1, and nor is the 0.652009 of UltraBERT-Embed-150M + logistic
-regression trained on the real train set minus dev. A threshold of 0.9 does not separate the
-`definitions` letter-logits answers: the 378 above it are 0.8783 accurate.
+Under the bound the one 5% threshold in question 1's table, that of UltraBERT-Embed-150M + logistic
+regression trained on the real train set minus dev, is 0.992611. A threshold of 0.9 does not
+separate the `definitions` letter-logits answers: the 378 above it are 0.8783 accurate.
 
 Routing needs a labelled dev set as well as a classifier. With 0 hand labels nothing sets the
 threshold, so a person checks every message. The 96% classifier, UltraBERT-Embed-150M + logistic
 regression trained on the whole real train set, has no coverage figure here. Trained on the real
-train set minus the 200 dev rows, the same classifier scores 0.9525 and keeps 0.9900 of test
-messages at 0.0404 error.
+train set minus the 200 dev rows, the same classifier scores 0.9525 and under the bound keeps
+0.8600 of test messages at 0.0262 error.
 
 200 dev messages are too few to certify 5% error for most classifiers. At a 5% target the
 Clopper-Pearson bound admits no message for any classifier in question 1's table but
 UltraBERT-Embed-150M + logistic regression trained on the real train set minus dev; of the label
-curve under question 3, it admits the 800 model and some draws at 100, 200 and 400. The plain 5%
-thresholds rest on dev error alone. On test they held for every classifier in question 1's table
-except TF-IDF + logistic regression, and missed for one draw each of the label curve's 100 and 400. TypeSafe System One with the
-`definitions` prompt has no 5% threshold: 111 of the 200 dev messages score exactly 1.00 and 7 of
-those are wrong, so no 5% cut-off exists; its probabilities arrive in steps of 0.01. With the
-`fewshot` prompt 118 score 1.00 and 5 of those are wrong, and the 5% threshold is 0.93.
+curve under question 3, it admits the 800 model and some draws at 100, 200 and 400. TypeSafe System
+One keeps 0 messages under the bound with either prompt. Its probabilities arrive in steps of 0.01,
+and its highest step holds wrong answers: with the `definitions` prompt 111 of the 200 dev messages
+score exactly 1.00 and 7 of those are wrong, with the `fewshot` prompt 118 and 5. The bound on
+those 1.00 answers alone is over 5%, so no threshold qualifies.
 
 The pairs are the whole difficulty. On `distinct` every classifier but two scores at least 0.9799.
 On `confusable` most errors of every classifier but one are inside a pair.
@@ -436,15 +427,15 @@ and 22 errors against ModernBERT-base's 25 are such a gap.
 - With 0 hand labels, `gemma4:e4b` with the `definitions` prompt labels 91% of `confusable` test
   messages correctly. A person still checks every message.
 - With 200 hand labels, UltraBERT-Embed-150M + logistic regression trained on the diagnosed set
-  labels 40% of those messages on its own. Under 5% of the 40% are wrong. It takes about 0.01 s to
-  classify one message.
-- With 30 hand labels as examples in its question and the 200 dev labels to set the threshold,
-  TypeSafe System One labels 88% of those messages on its own. Under 5% of the 88% are wrong. It is
+  labels 91% of those messages correctly, in about 0.01 s a message. Under the Clopper-Pearson bound
+  at 5% error its threshold keeps none, so a person still checks every message.
+- With 30 hand labels as examples in its question, TypeSafe System One labels 94.5% correctly. With
+  the 200 dev labels to set the threshold, it keeps none under the bound, with either prompt. It is
   an API billed per message, about $54 per million messages.
 - With 1284 hand labels, 1084 to train on and the 200 dev labels to set the threshold,
-  UltraBERT-Embed-150M + logistic regression labels 99% of those messages on its own. Under 5% of
-  the 99% are wrong. Trained on all 1284 it reaches 96% accuracy, and its coverage cannot be
-  measured here.
+  UltraBERT-Embed-150M + logistic regression labels 86% of those messages on its own under the
+  bound, and 2.6% of the 86% are wrong. Trained on all 1284 it reaches 96% accuracy, and its
+  coverage cannot be measured here.
 - On 10 unrelated categories, the method matters little. Every classifier but two scores at least
   0.9799.
 
