@@ -1,6 +1,7 @@
 #!/bin/bash
 # run-jev.sh scores TypeSafe System One (jev.py) on confusable dev and test through OpenRouter,
-# dumping its probabilities, then runs confidence.py on the two dumps. Responses are cached in
+# with the `definitions` and `fewshot` prompts, dumping its probabilities, then runs confidence.py
+# on each prompt's two dumps. Responses are cached in
 # results/jev/confusable.jsonl, so a re-run after a failure resends only the missing messages.
 
 set -euo pipefail
@@ -12,7 +13,9 @@ export HF_HOME=$PWD/data/hf
 export HF_HUB_OFFLINE=1
 
 D=results/confusable/confidence/dumps
-.venv/bin/python score.py --set confusable --split dev --jev --dump "$D/jev-definitions-dev.jsonl"
-.venv/bin/python score.py --set confusable --jev --dump "$D/jev-definitions-test.jsonl"
-.venv/bin/python confidence.py --set confusable --model-name jev-definitions \
-    --dev "$D/jev-definitions-dev.jsonl" --test "$D/jev-definitions-test.jsonl"
+for p in definitions fewshot; do
+    .venv/bin/python score.py --set confusable --split dev --jev --prompt $p --dump "$D/jev-$p-dev.jsonl"
+    .venv/bin/python score.py --set confusable --jev --prompt $p --dump "$D/jev-$p-test.jsonl"
+    .venv/bin/python confidence.py --set confusable --model-name jev-$p \
+        --dev "$D/jev-$p-dev.jsonl" --test "$D/jev-$p-test.jsonl"
+done

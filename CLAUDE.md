@@ -59,7 +59,7 @@ gives the model without the instruction prefix. The same `train.py` lines with
 `<name>` is the model directory name, or for `--llm` the Ollama model with `:` replaced by `-`, then
 `-<prompt>`, or for `--mlx` the adapter directory name, and without `--adapter` the last component
 of the mlx-lm model then `-definitions`, and `-definitions-logits` with `--reply logits`, which takes no
-`--adapter`, or for `--laya` `laya-<prompt>`, or for `--jev` `jev-definitions`. `train.py` and
+`--adapter`, or for `--laya` `laya-<prompt>`, or for `--jev` `jev-<prompt>`. `train.py` and
 `finetune.py` write the minutes a run took, or the seconds if under a minute, to `results/$S/train/<name>.txt`, `<name>` being the `--out`
 directory name. A ModernBERT fine-tune is 1.6 to 2.0 minutes on MPS, a LoRA adapter 8 to 18; the
 TF-IDF model is under a second, an `--embed` model about 6 seconds. An LLM run is one
@@ -134,9 +134,11 @@ in `refs/main`, which is the layout `HF_HUB_OFFLINE=1` loads from.
   that wrote no report file.
 - **A `--jev` report is computed from results/jev/<set>.jsonl.** `classify_jev` (`jev.py`) caches
   each System One response there under the message id `banking77` in `score.py` assigns,
-  `<split>:<row index>`, with the seconds the request took; a cached row is reused while
-  `TYPESAFE_MODEL` and the question are unchanged, so a re-run sends nothing and reproduces the
-  report, `seconds` included. The question is `laya_question` with `definitions`, Laya's.
+  `<split>:<row index>`, and the `--prompt`, with the seconds the request took; a cached row is
+  reused while `TYPESAFE_MODEL` and the question are unchanged, so a re-run sends nothing and
+  reproduces the report, `seconds` included. A row with no `prompt` field is a `definitions` row.
+  The question is `jev_question` (`jev.py`): `laya_question` with `definitions`, Laya's, or for
+  `fewshot` the same options with each definition followed by the `dev_and_shots` examples.
   `DOLLARS_PER_MILLION_TOKENS` (`jev.py`) prices billed input tokens on the report's `dollars` line.
 - **dev is drawn from the train split, so `--split dev --model` is valid only for a model trained
   on a synthetic file.** A model trained on `data/<set>/banking77_train.jsonl` saw the dev rows;

@@ -5,7 +5,7 @@ of llm.py's `PROMPTS` (`--llm`, `--prompt`), or an mlx-lm model with llm.py's `M
 optionally a LoRA adapter trained by finetune.py (`--mlx`, `--adapter`; with `--reply logits`, no
 adapter and the class read off the letter logits of one forward pass), or the Laya decision model
 zero-shot with one of llm.py's `LAYA_PROMPTS` (`--laya`, `--prompt`), or TypeSafe's System One API
-asked jev.py's question (`--jev`). `--split test` is the
+asked jev.py's question (`--jev`, `--prompt`, default `definitions`). `--split test` is the
 Banking77 test split; `--split dev` is `dev_and_shots`' sample of the train split, which is what
 prompts are chosen on. `--dump` also writes each message's probability over the class set, for
 confidence.py; it refuses `--llm` and `--mlx` without `--reply logits`, which give a class and no
@@ -27,7 +27,7 @@ from datasets import load_dataset
 from sklearn.metrics import accuracy_score, confusion_matrix, f1_score, recall_score
 
 from classes import CLASS_SETS
-from jev import DOLLARS_PER_MILLION_TOKENS, JEV_PROMPT, classify_jev
+from jev import DOLLARS_PER_MILLION_TOKENS, JEV_PROMPTS, classify_jev
 from llm import (
     LAYA_MODEL,
     LAYA_PROMPTS,
@@ -199,7 +199,7 @@ def main():
     ap.add_argument("--llm", metavar="MODEL", help="Ollama model to score in place of --model")
     ap.add_argument("--laya", action="store_true", help="score the Laya decision model zero-shot")
     ap.add_argument("--jev", action="store_true", help="score TypeSafe System One, jev.py")
-    ap.add_argument("--prompt", choices=list(PROMPTS), help="required with --llm and --laya")
+    ap.add_argument("--prompt", choices=list(PROMPTS), help="required with --llm and --laya; --jev defaults to definitions")
     ap.add_argument("--mlx", metavar="MODEL", help=f"mlx-lm model to score, {MLX_PROMPT} prompt")
     ap.add_argument("--adapter", metavar="DIR", help="LoRA adapter from finetune.py, with --mlx")
     ap.add_argument(
@@ -228,8 +228,12 @@ def main():
         if args.write_train and not (args.model or args.llm or args.mlx or args.laya or args.jev):
             return
         ap.error("give exactly one of --model, --llm, --mlx, --laya and --jev, or --write-train alone")
-    if bool(args.llm or args.laya) != bool(args.prompt):
-        ap.error("--prompt goes with --llm or --laya, and they need it")
+    if args.jev and not args.prompt:
+        args.prompt = "definitions"
+    if bool(args.llm or args.laya or args.jev) != bool(args.prompt):
+        ap.error("--prompt goes with --llm, --laya or --jev, and --llm and --laya need it")
+    if args.jev and args.prompt not in JEV_PROMPTS:
+        ap.error(f"--jev takes --prompt {' or '.join(JEV_PROMPTS)}")
     if args.laya and args.prompt not in LAYA_PROMPTS:
         ap.error(f"--laya takes --prompt {' or '.join(LAYA_PROMPTS)}")
     if args.adapter and not args.mlx:
@@ -251,10 +255,10 @@ def main():
     # `probs` is the top one of each, which only the Laya and `--reply logits` reports print.
     invalid = probs = vectors = tokens = None
     if args.jev:
-        answers = classify_jev(texts, ids, args.set)
+        answers = classify_jev(texts, ids, args.set, args.prompt, shots)
         answered = sorted({m for *_, m in answers})
-        classifier = f"TypeSafe System One {' '.join(answered)} prompt {JEV_PROMPT}"
-        stem = f"jev-{JEV_PROMPT}"
+        classifier = f"TypeSafe System One {' '.join(answered)} prompt {args.prompt}"
+        stem = f"jev-{args.prompt}"
         preds = [names.index(label) for label, *_ in answers]
         vectors = [v for _, v, *_ in answers]
         probs = [v[p] for v, p in zip(vectors, preds)]

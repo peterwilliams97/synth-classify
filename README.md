@@ -87,7 +87,8 @@ generator, and the routing threshold.
   question per message with the category names as the options. It is not trained.
 - **TypeSafe System One**: `typesafe/jev-1.13`, an API reached through OpenRouter that picks one
   option from a list and gives a probability for each. It is asked Laya's question with the
-  `definitions` prompt, one per message. It is not trained, and it does not run on the laptop.
+  `definitions` prompt, one per message, or with the `fewshot` prompt: the same options, each
+  definition followed by the 30 examples the Ollama models see, 3 per category. It is not trained, and it does not run on the laptop.
 
 **Routing.** Routing keeps a classifier's label when the classifier's top probability is at least
 a threshold. A message below the threshold goes to a person. The threshold is the lowest dev
@@ -107,8 +108,9 @@ Every table in this section is on `confusable`.
 
 ### 1. How much of the work can it do without a person checking?
 
-**UltraBERT-Embed-150M + logistic regression trained on the diagnosed set labels 161 of the 400
-test messages on its own, and 6 of those 161 are wrong.**
+**TypeSafe System One with the `fewshot` prompt labels 354 of the 400 test messages on its own,
+and 11 of those 354 are wrong.** Of the classifiers that run on the laptop, UltraBERT-Embed-150M +
+logistic regression trained on the diagnosed set labels the most: 161, of which 6 are wrong.
 
 In the table, α is the error target. AUROC is the chance that a randomly chosen right answer gets a
 higher top probability than a randomly chosen wrong one. ECE is the mean gap between the top
@@ -124,6 +126,7 @@ monotone mapping of the top probability onto accuracy, fitted on dev.
 | Gemma 4 E4B (MLX), letter logits | `definitions`          | 0.7770 | 0.0608                         | 0.0375                  | 0.0000               |
 | Laya                             | `names`                | 0.6753 | 0.0705                         | 0.0000                  | —                    |
 | TypeSafe System One              | `definitions`          | 0.7867 | 0.0534                         | 0.0000                  | —                    |
+| TypeSafe System One              | `fewshot`              | 0.8214 | 0.0452                         | 0.8850                  | 0.0311               |
 
 TF-IDF + logistic regression's 0.2375 misses the target: 5 of the 95 messages it keeps are wrong.
 
@@ -131,7 +134,8 @@ A stricter threshold replaces the dev error with its one-sided 90% Clopper-Pears
 bound is the highest error rate that the dev count does not rule out at 90% confidence. Under that
 bound at a 5% target, no classifier keeps any test message. Under that bound at a 10% target,
 UltraBERT-Embed-150M + logistic regression trained on the diagnosed set keeps 287 of the 400 test
-messages, 0.7175. 11 of those 287 are wrong, 0.0383.
+messages, 0.7175. 11 of those 287 are wrong, 0.0383. TypeSafe System One with the `fewshot` prompt
+keeps 380, 0.9500, and 16 of those 380 are wrong, 0.0421.
 
 Three kinds of classifier are not in the table. The Ollama models return a category name and no
 probability, so they cannot be routed. A classifier trained on the real train set cannot be routed
@@ -162,11 +166,13 @@ errors: 17 of 400.**
 | Gemma 4 E4B (MLX) + LoRA adapter | synthetic              | 0                           | 0.8500   | 60            |
 | Gemma 4 E4B (MLX) + LoRA adapter | real                   | 1284                        | 0.8575   | 57            |
 | TypeSafe System One              | `definitions`          | 0                           | 0.9050   | 38            |
+| TypeSafe System One              | `fewshot`              | 30                          | 0.9450   | 22            |
 
 Every classifier above 0.92 used real labelled examples. The Gemma 4 E4B (MLX) + LoRA adapter
-trained on the real train set also used them, and stayed at 0.8575. The two `fewshot` prompts come
-within 3 errors of ModernBERT-base trained on the real train set. Every other LLM classifier makes
-at least 10 more errors than ModernBERT-base trained on the real train set.
+trained on the real train set also used them, and stayed at 0.8575. The `fewshot` prompts of
+`gemma4:e4b` and `qwen3.6:27b-q4_K_M` come within 3 errors of ModernBERT-base trained on the real
+train set, and TypeSafe System One with the `fewshot` prompt makes 3 fewer. Every other LLM
+classifier makes at least 10 more errors than ModernBERT-base trained on the real train set.
 
 On `distinct`, the choice of classifier matters little. Every classifier in the test table under
 [All results](#all-results) scores 0.9799 to 0.9975 there. The two exceptions are TF-IDF + logistic
@@ -194,6 +200,7 @@ categories are the two categories of one pair.
 | Gemma 4 E4B (MLX) + LoRA adapter | synthetic              | 0                           | 60     | 34            | `card_arrival` → `card_delivery_estimate`     | 18              |
 | Gemma 4 E4B (MLX) + LoRA adapter | real                   | 1284                        | 57     | 56            | `declined_transfer` → `failed_transfer`       | 24              |
 | TypeSafe System One              | `definitions`          | 0                           | 38     | 35            | `card_delivery_estimate` → `card_arrival` and `why_verify_identity` → `verify_my_identity` | 8 each |
+| TypeSafe System One              | `fewshot`              | 30                          | 22     | 22            | `card_arrival` → `card_delivery_estimate` and `declined_transfer` → `failed_transfer` | 5 each |
 
 Gemma 4 E4B (MLX) with no adapter is the one classifier with most of its errors outside a pair.
 Those 34 errors outside a pair are its invalid replies. The 26 errors outside a pair of the
@@ -208,7 +215,7 @@ Gemma 4 E4B (MLX) + LoRA adapter trained on the synthetic set are all prediction
 | Hand labels                                       | Accuracy | Method |
 |---------------------------------------------------|----------|--------|
 | 0                                                 | 0.9125   | `gemma4:e4b` with the class definitions in the prompt, reply restricted to a class name |
-| 30, as examples in the prompt                     | 0.9300 / 0.9325   | `gemma4:e4b` or `qwen3.6:27b-q4_K_M` with the `fewshot` prompt |
+| 30, as examples in the prompt                     | 0.9300 / 0.9325 / 0.9450 | `gemma4:e4b`, `qwen3.6:27b-q4_K_M` or TypeSafe System One with the `fewshot` prompt |
 | 200, as confusion counts that steer the generator | 0.9125, at about 1/60 of the LLM's time per message | UltraBERT-Embed-150M + LR trained on the diagnosed set |
 | 1284, to train on                                 | 0.9575   | UltraBERT-Embed-150M + LR |
 
@@ -241,6 +248,7 @@ The notes are one draft each. They were written once and not revised after any s
 | Reply restricted to a class name: mlx-lm with no adapter → Ollama `gemma4:e4b`, `definitions` | 0.8500 | 0.9125 | +25 | test, 400 |
 | 3 real examples per class, `gemma4:e4b`: `definitions` → `fewshot`       | 0.9125 | 0.9300 | +7       | test, 400 |
 | 3 real examples per class, `qwen3.6:27b-q4_K_M`: `names` → `fewshot`     | 0.8775 | 0.9325 | +22      | test, 400 |
+| 3 real examples per class, TypeSafe System One: `definitions` → `fewshot` | 0.9050 | 0.9450 | +16     | test, 400 |
 | Prompt chosen on dev, `gemma4:e4b`: `names` → `definitions`              | 0.8500 | 0.8750 | +5       | dev, 200  |
 | Prompt chosen on dev, `qwen3.6:27b-q4_K_M`: `definitions` → `names`      | 0.8500 | 0.8650 | +3       | dev, 200  |
 | `qwen3.6:27b-q4_K_M` in place of `gemma4:e4b`, `fewshot`                 | 0.9300 | 0.9325 | +1       | test, 400 |
@@ -274,6 +282,7 @@ adapters take the invalid replies from 34 to 0. Theirs is the only LoRA configur
 | Gemma 4 E4B (MLX) + LoRA adapter | synthetic              | 13.6             | 0.235               | 32           |
 | Gemma 4 E4B (MLX) + LoRA adapter | real                   | 17.9             | 0.235               | 32           |
 | TypeSafe System One              | `definitions`          | none             | 0.53                | 72           |
+| TypeSafe System One              | `fewshot`              | none             | 0.53                | 71           |
 
 Seconds per message is the median time to classify one test message. "× ModernBERT" divides a
 row's seconds per message by 0.00735 s, ModernBERT-base trained on the real train set
@@ -285,6 +294,8 @@ set.
 TypeSafe System One's seconds include the round trip to OpenRouter. It is the one classifier
 billed per message: a mean of 787 input tokens per message at $0.042 per million input tokens is
 $33 per million messages, or $0.013 for the 400 (`results/confusable/test/jev-definitions.txt`).
+With the `fewshot` prompt it is a mean of 1294 input tokens, $54 per million messages, or $0.022
+for the 400 (`results/confusable/test/jev-fewshot.txt`).
 
 ### What did not help
 
@@ -331,9 +342,10 @@ messages outside its training data.
 
 200 dev messages are too few to certify 5% error. At a 5% target the Clopper-Pearson bound admits
 no message for any classifier. The plain 5% thresholds rest on dev error alone. On test they held
-for every classifier except TF-IDF + logistic regression. TypeSafe System One has no 5% threshold:
-111 of the 200 dev messages score exactly 1.00 and 7 of those are wrong, so no 5% cut-off exists;
-its probabilities arrive in steps of 0.01.
+for every classifier except TF-IDF + logistic regression. TypeSafe System One with the
+`definitions` prompt has no 5% threshold: 111 of the 200 dev messages score exactly 1.00 and 7 of
+those are wrong, so no 5% cut-off exists; its probabilities arrive in steps of 0.01. With the
+`fewshot` prompt 118 score 1.00 and 5 of those are wrong, and the 5% threshold is 0.93.
 
 The pairs are the whole difficulty. On `distinct` every classifier but two scores at least 0.9799.
 On `confusable` most errors of every classifier but one are inside a pair.
@@ -346,8 +358,8 @@ look better than they would on new categories. A scan of its classification data
 texts verbatim. One is a test message here. The scan is described under
 [Details of the method](#details-of-the-method).
 
-A gap of 1 to 3 messages of 400 is smaller than one standard error. The `fewshot` prompts' 27 and
-28 errors against ModernBERT-base's 25 are such a gap.
+A gap of 1 to 3 messages of 400 is smaller than one standard error. The `fewshot` prompts' 27, 28
+and 22 errors against ModernBERT-base's 25 are such a gap.
 
 ## Conclusion
 
@@ -356,6 +368,9 @@ A gap of 1 to 3 messages of 400 is smaller than one standard error. The `fewshot
 - With 200 hand labels, UltraBERT-Embed-150M + logistic regression trained on the diagnosed set
   labels 40% of those messages on its own. Under 5% of the 40% are wrong. It takes about 0.01 s to
   classify one message.
+- With 30 hand labels as examples in its question and the 200 dev labels to set the threshold,
+  TypeSafe System One labels 88% of those messages on its own. Under 5% of the 88% are wrong. It is
+  an API billed per message, about $54 per million messages.
 - With 1284 hand labels, UltraBERT-Embed-150M + logistic regression reaches 96% accuracy. Its
   coverage was not measured.
 - On 10 unrelated categories, the method matters little. Every classifier but two scores at least
@@ -523,6 +538,7 @@ instruction before it, to measure what that instruction adds to the UltraBERT-Em
 | `distinct`   | Laya                     | `names` prompt           | 0.9123   | 0.9139   | 0.0225  |
 | `confusable` | Laya                     | `names` prompt           | 0.7075   | 0.6750   | 0.0241  |
 | `confusable` | TypeSafe System One      | `definitions` prompt     | 0.9050   | 0.9053   | 0.53    |
+| `confusable` | TypeSafe System One      | `fewshot` prompt         | 0.9450   | 0.9449   | 0.53    |
 
 On `confusable` Laya scores below TF-IDF + logistic regression trained on the synthetic set, 0.7075
 against 0.7900, so it has no rows in the Results tables but the routing table. Of its answers
@@ -544,8 +560,10 @@ UltraBERT-Embed-150M + LR, so they have no rows in the sections above All result
 
 ### Prompts on dev
 
-Accuracy of each Ollama model and of Laya with each prompt on the 200 dev messages; full reports
-are `results/<class set>/dev/<model>-<prompt>.txt`. Laya takes no `fewshot` prompt.
+Accuracy of each Ollama model, of Laya and of TypeSafe System One with each prompt on the 200 dev
+messages; full reports are `results/<class set>/dev/<model>-<prompt>.txt`. Laya takes no `fewshot`
+prompt and System One no `names` prompt. System One's two prompts tie on dev, and both were run on
+test.
 
 | Class set    | Model                | `names` | `definitions` | `fewshot` |
 |--------------|----------------------|---------|---------------|-----------|
@@ -555,6 +573,7 @@ are `results/<class set>/dev/<model>-<prompt>.txt`. Laya takes no `fewshot` prom
 | `confusable` | `qwen3.6:27b-q4_K_M` | 0.8650  | 0.8500        | 0.8950    |
 | `distinct`   | Laya                 | 0.8650  | 0.7600        | —         |
 | `confusable` | Laya                 | 0.6700  | 0.2950        | —         |
+| `confusable` | TypeSafe System One  | —       | 0.9000        | 0.9000    |
 
 ### Training minutes
 
@@ -613,7 +632,8 @@ adapter carries the whole prompt.
   that reply, so one that is not a class name is returned as invalid. `laya_question` builds the
   one `choice` question Laya is asked from the `names` or `definitions` prompt, and `classify_laya`
   asks it of each message and returns the highest-probability option.
-- `jev.py` — `classify_jev` asks TypeSafe System One Laya's `definitions` question for each message,
+- `jev.py` — `classify_jev` asks TypeSafe System One the `jev_question` for each message, Laya's
+  `definitions` question or the same options with the `fewshot` examples after each definition,
   with the key from `TYPESAFE_API_KEY`, and caches every response in `results/jev/<set>.jsonl`, so a
   re-run of `score.py --jev` sends nothing and reproduces its report.
 - `finetune.py` — trains a LoRA adapter for `mlx-community/gemma-4-e4b-it-4bit` on a jsonl file
@@ -622,7 +642,7 @@ adapter carries the whole prompt.
 - `score.py` — scores a saved model (`--model`), an Ollama model (`--llm MODEL --prompt NAME`), an
   mlx-lm model with the `definitions` prompt (`--mlx MODEL`, and `--adapter DIR` for a LoRA adapter,
   or `--reply logits` for letter logits, `--mlx` only, no adapter), Laya
-  (`--laya --prompt names|definitions`) or TypeSafe System One (`--jev`) on Banking77 restricted to
+  (`--laya --prompt names|definitions`) or TypeSafe System One (`--jev`, `--prompt definitions|fewshot`, default `definitions`) on Banking77 restricted to
   the class set: accuracy, macro F1, median seconds per message, per-class recall and a confusion
   matrix, printed and written to `results/<set>/<split>/<name>.txt`. An `--mlx` report also counts the invalid replies.
   `--split test` (the default) is the Banking77 test split. `--split dev` is 20 messages per class
@@ -693,6 +713,8 @@ python score.py --set confusable --split dev --laya --prompt names --dump $D/lay
 python score.py --set confusable             --laya --prompt names --dump $D/laya-names-test.jsonl
 python score.py --set confusable --split dev --jev --dump $D/jev-definitions-dev.jsonl   # needs TYPESAFE_API_KEY
 python score.py --set confusable             --jev --dump $D/jev-definitions-test.jsonl
+python score.py --set confusable --split dev --jev --prompt fewshot --dump $D/jev-fewshot-dev.jsonl
+python score.py --set confusable             --jev --prompt fewshot --dump $D/jev-fewshot-test.jsonl
 for d in $D/*-dev.jsonl; do
   n=$(basename $d -dev.jsonl)
   python confidence.py --set confusable --model-name $n --dev $d --test $D/$n-test.jsonl
