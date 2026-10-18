@@ -8,4 +8,6 @@ data/*/*
 !data/*/synthetic-*.prompt.txt
 # The real train split minus dev, behind the ultrabert-embed-real-nodev reports.
 !data/*/banking77_train_nodev.jsonl
+# Its stratified subsets, behind the ultrabert-embed-real-nodev-<n> label curve.
+!data/*/banking77_train_nodev_*.jsonl
 models/

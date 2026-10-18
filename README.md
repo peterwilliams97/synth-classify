@@ -144,8 +144,8 @@ TF-IDF + logistic regression's 0.2375 misses the target: 5 of the 95 messages it
 
 A stricter threshold replaces the dev error with its one-sided 90% Clopper-Pearson upper bound. The
 bound is the highest error rate that the dev count does not rule out at 90% confidence. Under that
-bound at a 5% target, only UltraBERT-Embed-150M + logistic regression trained on the real train set
-minus dev keeps any test message: 344 of 400, 0.8600, of which 9 are wrong, 0.0262. Under that
+bound at a 5% target, of the classifiers in the table only UltraBERT-Embed-150M + logistic
+regression trained on the real train set minus dev keeps any test message: 344 of 400, 0.8600, of which 9 are wrong, 0.0262. Under that
 bound at a 10% target it keeps all 400, of which 19 are wrong, 0.0475. Under that bound at a 10%
 target,
 UltraBERT-Embed-150M + logistic regression trained on the diagnosed set keeps 287 of the 400 test
@@ -243,6 +243,25 @@ diagnosed set. They also set the routing threshold of question 1. So 200 hand la
 
 With 0 hand labels no classifier can be routed, because the threshold is set on labelled dev
 messages.
+
+The label curve trains UltraBERT-Embed-150M + logistic regression on stratified subsets of the real
+train set minus dev: 5, 10, 20, 40 and 80 messages per class, drawn with seed 0, each subset inside
+the next. The 200 dev labels set every threshold, on top of the training rows. `getting_virtual_card`
+and `get_disposable_virtual_card` have 78 and 77 rows outside dev, so the 800 subset holds 795.
+Coverage and error are on the 400 test messages at α 0.05; the last column is the coverage under the
+Clopper-Pearson bound of question 1. Each size is one draw.
+
+| Training rows | Accuracy | Test coverage at α 0.05 | Test error at α 0.05 | Test coverage under the Clopper-Pearson bound at α 0.05 |
+|---------------|----------|-------------------------|----------------------|----------------------------------------------------------|
+| 50            | 0.8900   | 0.7250                  | 0.0448               | 0.0000 |
+| 100           | 0.9250   | 0.9250                  | 0.0541               | 0.0000 |
+| 200           | 0.9200   | 0.8625                  | 0.0435               | 0.7975 |
+| 400           | 0.9325   | 0.9325                  | 0.0509               | 0.6800 |
+| 800 (795)     | 0.9475   | 0.9400                  | 0.0293               | 0.8775 |
+| 1084          | 0.9525   | 0.9900                  | 0.0404               | 0.8600 |
+
+At 100 and 400 the plain threshold misses the 5% target on test. With 50 or 100 training rows the
+bound admits no test message.
 
 The diagnosed notes did not help every classifier equally. From the synthetic set to the diagnosed
 set, UltraBERT-Embed-150M + logistic regression went from 61 errors to 35. ModernBERT-base went
@@ -362,9 +381,11 @@ train set minus the 200 dev rows, the same classifier scores 0.9525 and keeps 0.
 messages at 0.0404 error.
 
 200 dev messages are too few to certify 5% error for most classifiers. At a 5% target the
-Clopper-Pearson bound admits no message for any classifier but UltraBERT-Embed-150M + logistic
-regression trained on the real train set minus dev. The plain 5% thresholds rest on dev error alone. On test they held
-for every classifier except TF-IDF + logistic regression. TypeSafe System One with the
+Clopper-Pearson bound admits no message for any classifier in question 1's table but
+UltraBERT-Embed-150M + logistic regression trained on the real train set minus dev; of the label
+curve under question 3, it admits the models trained on 200, 400 and 800. The plain 5% thresholds
+rest on dev error alone. On test they held for every classifier in question 1's table except TF-IDF
++ logistic regression, and missed for the label curve's 100 and 400. TypeSafe System One with the
 `definitions` prompt has no 5% threshold: 111 of the 200 dev messages score exactly 1.00 and 7 of
 those are wrong, so no 5% cut-off exists; its probabilities arrive in steps of 0.01. With the
 `fewshot` prompt 118 score 1.00 and 5 of those are wrong, and the 5% threshold is 0.93.
@@ -550,6 +571,11 @@ instruction before it, to measure what that instruction adds to the UltraBERT-Em
 | `confusable` | UltraBERT-Embed-150M + LR | contrast (`gemma4:e4b`)  | 0.8375 | 0.8353 | 0.0109 |
 | `confusable` | UltraBERT-Embed-150M + LR | real Banking77 train     | 0.9575 | 0.9576 | 0.0109 |
 | `confusable` | UltraBERT-Embed-150M + LR | real Banking77 train minus dev | 0.9525 | 0.9526 | 0.0102 |
+| `confusable` | UltraBERT-Embed-150M + LR | 50 of real train minus dev     | 0.8900 | 0.8893 | 0.0101 |
+| `confusable` | UltraBERT-Embed-150M + LR | 100 of real train minus dev    | 0.9250 | 0.9252 | 0.00995 |
+| `confusable` | UltraBERT-Embed-150M + LR | 200 of real train minus dev    | 0.9200 | 0.9199 | 0.00973 |
+| `confusable` | UltraBERT-Embed-150M + LR | 400 of real train minus dev    | 0.9325 | 0.9325 | 0.0100 |
+| `confusable` | UltraBERT-Embed-150M + LR | 795 of real train minus dev    | 0.9475 | 0.9477 | 0.0100 |
 | `confusable` | UltraBERT-Embed-150M + LR, no prompt | synthetic (`gemma4:e4b`) | 0.8275 | 0.8245 | 0.0100 |
 | `confusable` | UltraBERT-Embed-150M + LR, no prompt | real Banking77 train     | 0.9325 | 0.9326 | 0.0102 |
 | `confusable` | `gemma4:e4b`             | `definitions` prompt     | 0.9125   | 0.9126   | 0.63    |
@@ -634,6 +660,11 @@ minute is in seconds.
 | `confusable` | UltraBERT-Embed-150M + LR | diagnosed (`gemma4:e4b`) | 1000 | 5.50 s  |
 | `confusable` | UltraBERT-Embed-150M + LR | real Banking77 train     | 1284 | 6.52 s  |
 | `confusable` | UltraBERT-Embed-150M + LR | real Banking77 train minus dev | 1084 | 7.50 s  |
+| `confusable` | UltraBERT-Embed-150M + LR | 50 of real train minus dev     | 50   | 5.01 s  |
+| `confusable` | UltraBERT-Embed-150M + LR | 100 of real train minus dev    | 100  | 2.92 s  |
+| `confusable` | UltraBERT-Embed-150M + LR | 200 of real train minus dev    | 200  | 3.15 s  |
+| `confusable` | UltraBERT-Embed-150M + LR | 400 of real train minus dev    | 400  | 3.65 s  |
+| `confusable` | UltraBERT-Embed-150M + LR | 795 of real train minus dev    | 795  | 4.69 s  |
 | `confusable` | UltraBERT-Embed-150M + LR, no prompt | synthetic (`gemma4:e4b`) | 1000 | 4.60 s  |
 | `confusable` | UltraBERT-Embed-150M + LR, no prompt | real Banking77 train     | 1284 | 5.57 s  |
 | `confusable` | Gemma 4 E4B (MLX) + LoRA | synthetic (`gemma4:e4b`) | 1000 | 13.6    |
@@ -736,7 +767,24 @@ python score.py --set $S --mlx $M --adapter models/$S/gemma-4-e4b-lora-real
 D=results/confusable/confidence/dumps   # confusable only
 python score.py --set confusable --write-train data/confusable/banking77_train_nodev.jsonl --no-dev
 python train.py --set confusable --train data/confusable/banking77_train_nodev.jsonl --out models/confusable/ultrabert-embed-real-nodev --embed
-for n in tfidf-diagnosed modernbert-diagnosed ultrabert-embed-synthetic ultrabert-embed-diagnosed ultrabert-embed-real-nodev; do
+# The label curve: per class in CLASS_SETS order, that class's rows shuffled with random.Random(0)
+# and the first k kept, k = 5, 10, 20, 40, 80.
+python -c '
+import json, random
+from classes import CLASS_SETS
+rows = [json.loads(l) for l in open("data/confusable/banking77_train_nodev.jsonl")]
+by = {}
+for name in CLASS_SETS["confusable"]:
+    by[name] = [r for r in rows if r["label"] == name]
+    random.Random(0).shuffle(by[name])
+for k in (5, 10, 20, 40, 80):
+    with open(f"data/confusable/banking77_train_nodev_{10 * k}.jsonl", "w") as f:
+        f.writelines(json.dumps(r) + "\n" for name in by for r in by[name][:k])
+'
+for k in 50 100 200 400 800; do
+  python train.py --set confusable --train data/confusable/banking77_train_nodev_$k.jsonl --out models/confusable/ultrabert-embed-real-nodev-$k --embed
+done
+for n in tfidf-diagnosed modernbert-diagnosed ultrabert-embed-synthetic ultrabert-embed-diagnosed ultrabert-embed-real-nodev ultrabert-embed-real-nodev-{50,100,200,400,800}; do
   python score.py --set confusable --split dev --model models/confusable/$n --dump $D/$n-dev.jsonl
   python score.py --set confusable             --model models/confusable/$n --dump $D/$n-test.jsonl
 done

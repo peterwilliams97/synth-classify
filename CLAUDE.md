@@ -195,7 +195,8 @@ restricted to `confusable`, 1284 and 400.
 
 `data/<set>/synthetic.jsonl` are the only tracked files under `data/` besides `pair`'s and `confusable`'s
 `synthetic-<method>.jsonl` and `.prompt.txt` from `generate.py --method`, and
-`data/confusable/banking77_train_nodev.jsonl`, the training set of `ultrabert-embed-real-nodev`;
+`data/confusable/banking77_train_nodev.jsonl`, the training set of `ultrabert-embed-real-nodev`,
+with its label-curve subsets `banking77_train_nodev_<n>.jsonl` (the Run section of `README.md`);
 the synthetic files are the `gemma4:e4b`
 output the README test table's synthetic rows were computed from, and
 `results/<set>/<split>/*.txt` are the `score.py` reports behind each row of the dev and test
