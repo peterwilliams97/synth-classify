@@ -61,21 +61,14 @@ The 30- to 400-row cells are the mean, then the min–max, over 3 training draws
 
 ## Conclusion
 
-- With 0 hand labels, `gemma4:e4b` with the `definitions` prompt labels 91% of `confusable` test
-  messages correctly. A person still checks every message.
-- With 200 hand labels, UltraBERT-Embed-150M + logistic regression trained on the diagnosed set
-  labels 91% of those messages correctly, in about 0.01 s a message. Under the Clopper-Pearson bound
-  at 5% error its threshold keeps none, so a person still checks every message.
-- With 30 hand labels as examples in its question, TypeSafe System One labels 94.5% correctly. With
-  200 validation labels to set the threshold, its certified coverage under the bound matches
-  UltraBERT-Embed-150M + logistic regression's, trained on 400 to 1084 rows, at the same validation
-  size. It is an API billed per message, $54 per million messages and 0.53 s a message, against
-  free and 0.01 s.
-- With 1284 hand labels, 1084 in train and 200 in validation to set the threshold,
-  UltraBERT-Embed-150M + logistic regression labels 95% of `confusable` test messages correctly. It
-  labels 86% of them on its own under the bound, and 2.6% of the 86% are wrong.
-- On 10 unrelated categories, the method matters little. Every classifier but two scores at least
-  0.9799.
+- With 30 labels as examples in its question and 400 to set the threshold, TypeSafe System One
+  labels 87% of test messages with no human check at 3% error, and is 94.5% accurate. It is an API,
+  $54 per million messages and 0.53 s a message.
+- UltraBERT-Embed-150M + LR needs 200 training rows and 400 validation rows to do the same, 91% at
+  4.5% error; with 30 training rows it certifies 33%. It is free and 0.01 s a message.
+- Both need 400 validation rows. With 200, certified coverage ranges from 0 to 0.95 between draws;
+  with 400, from 0.72 to 0.93.
+- With 0 labels, `gemma4:e4b` is 91% accurate and nothing can be certified.
 
 ## Files
 

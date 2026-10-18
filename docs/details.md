@@ -1,5 +1,150 @@
 # synth-classify: details
 
+## Aim
+
+Banking77 has 77 categories in all. This repo uses two sets of 10 of them, called class sets. The
+code calls a category a class.
+
+- `distinct` is 10 categories on unrelated topics.
+- `confusable` is 5 pairs of categories. The two categories in a pair share a topic.
+
+[Class sets](#class-sets) lists both.
+
+Each of the three questions becomes one measurement.
+
+1. **Coverage at 5% error**, on `confusable` only. Coverage is the share of test messages that a
+   classifier labels on its own. Every other message goes to a person. Error is the share of the
+   labelled-on-its-own messages whose label is wrong.
+2. **Accuracy**: the share of test messages given their true category.
+3. **Hand labels**: the number of Banking77 messages, with their true category, that a method
+   uses. A message written by an LLM is not a hand label.
+
+Accuracy alone does not answer question 1. A classifier at 91% accuracy labels 9% of messages
+wrong. Accuracy does not say which 9%. So without coverage a person checks every message.
+
+## Method
+
+**Train, validation and test.** The test set is the Banking77 test split restricted to one class
+set. It has 399 messages for `distinct` and 400 for `confusable`. Each classifier is scored on it
+once. The validation set is 200 messages per class set, 20 per category, drawn from the Banking77
+train split. The train set is the rest of that split. Every choice made before a test run is made on
+validation. Those choices are the prompt, the notes that steer the
+generator, and the routing threshold.
+
+**Training sets.** Four kinds are used.
+
+- **synthetic**: 1000 messages, 100 per category. `gemma4:e4b`, a Gemma 4 LLM run locally with
+  Ollama, wrote them. It was shown each category's name and one-sentence definition from
+  `CLASS_SETS` in `classes.py`. It never saw a Banking77 message.
+- **diagnosed** (`confusable` only): 1000 messages from the same generator. Each request adds the
+  definition of the other category in the pair. For one category in each pair, the request also
+  adds a note saying what that category's messages must cover. That category is the one that loses
+  more validation messages to its partner. Those losses are counted from UltraBERT-Embed-150M +
+  logistic regression trained on the synthetic set. The generator sees no validation message. The
+  200 validation labels reach it only as counts.
+- **train**: the Banking77 train rows of the class set minus the 200 validation rows, 1084 for
+  `confusable`. A classifier trained on it can have its threshold set on validation.
+- **train + validation**: all the Banking77 train rows of the class set, 1188 for `distinct` and
+  1284 for `confusable`.
+
+The tables under questions 1, 2 and 3 do not use these names. Their Trained on column gives a
+row's training set as its rows and source: synthetic is "1000 LLM-written", diagnosed "1000
+LLM-written, steered by 200 validation counts", train "1084 Banking77 train" and train + validation
+"1284 Banking77 train + validation". An untrained classifier is "not trained". Their Prompt column
+names the prompt a model is given, and is "—" for a classifier given none.
+
+**Classifiers.** Eight kinds are scored.
+
+- **TF-IDF + logistic regression**: logistic regression on word-frequency features. It is the
+  baseline. It is trained on a synthetic, diagnosed or train + validation set.
+- **ModernBERT-base**: a text encoder, `answerdotai/ModernBERT-base`, fine-tuned in full on a
+  synthetic, diagnosed or train + validation set.
+- **UltraBERT-Embed-150M + logistic regression**: logistic regression on embeddings from
+  `dmis-lab/UltraBERT-Embed-150M`. An embedding is a fixed-length vector computed from a message.
+  The embedding model is not trained here. Only the logistic regression is trained, on a synthetic,
+  diagnosed, train or train + validation set. The tables write it "UltraBERT-Embed-150M + LR".
+- **An Ollama model with a prompt from `PROMPTS`** (`llm.py`): `gemma4:e4b` or
+  `qwen3.6:27b-q4_K_M`, not trained. The `names` prompt lists the category names. The
+  `definitions` prompt adds each category's definition. The `fewshot` prompt adds 3 real train
+  messages per category to `definitions`, 30 in all. Ollama restricts the reply to a category name.
+- **Gemma 4 E4B (MLX), no adapter**: `mlx-community/gemma-4-e4b-it-4bit` run with mlx-lm on the
+  `definitions` prompt, not trained. mlx-lm is Apple's LLM runner for its own GPUs. Nothing
+  restricts its reply. A reply that is not a category name is invalid and counts as wrong.
+- **Gemma 4 E4B (MLX) + LoRA adapter**: the same model and prompt with a LoRA adapter. A LoRA
+  adapter is a small set of extra weights trained while the model's own weights stay fixed. Each
+  adapter is trained on a synthetic or a train + validation set.
+- **Laya**: `convaiinnovations/laya`, a model that picks one option from a list. It is asked one
+  question per message with the category names as the options. It is not trained.
+- **TypeSafe System One**: `typesafe/jev-1.13`, an API reached through OpenRouter that picks one
+  option from a list and gives a probability for each. It is asked Laya's question with the
+  `definitions` prompt, one per message, or with the `fewshot` prompt: the same options, each
+  definition followed by the 30 examples the Ollama models see, 3 per category. It is not trained,
+  and it does not run on the laptop. Under the Clopper-Pearson bound at α 0.05, with the `fewshot`
+  prompt, its certified coverage matches UltraBERT-Embed-150M + LR's at the same validation size,
+  with 30 examples against 400 to 1084 training rows, at $54 per million messages and 0.53 s a
+  message against free and 0.01 s.
+
+**Routing.** Routing keeps a classifier's label when the classifier's top probability is at least a
+threshold. A message below the threshold goes to a person. The threshold is the lowest validation
+probability at which the one-sided 90% Clopper-Pearson upper bound on the error among validation
+messages above it is at most the target, 5%. Coverage and error are then measured on test. Only a
+classifier that gives a probability for each category can be routed.
+
+**Uncertainty.** Every row is one run with seed 0. The binomial standard error of an accuracy p
+on n messages is √(p(1−p)/n). On the 400 `confusable` test messages it is 0.012 to 0.020, which is
+5 to 8 messages. On the 399 `distinct` test messages it is 0.003 to 0.012, which is 1 to 5 messages.
+
+Every number in this file is in a file under `results/`.
+
+## 1. How much of the work can it do without a person checking?
+
+**Under the Clopper-Pearson bound at α 0.05 with 400 validation rows, TypeSafe System One with the
+`fewshot` prompt's 30 examples and UltraBERT-Embed-150M + logistic regression trained on 400
+Banking77 train rows both certify about 85% of the 400 test messages at 3% error: 0.8658 at 0.0297
+and 0.8500 at 0.0300, means over the runs of the validation-size table under question 3.
+UltraBERT-Embed-150M + LR trained on train, 1084 rows, certifies 86% on its one draw of 200
+validation rows, 344 of the 400 with 9 wrong.** No other classifier in the table labels any message
+on that draw. System One costs $54 per million messages and 0.53 s a message against free and
+0.01 s.
+
+AUROC is the chance that a randomly chosen right answer gets a higher top probability than a
+randomly chosen wrong one. ECE is the mean gap between the top probability and the observed
+accuracy, over 10 bins of 40 messages. Isotonic calibration is a monotone mapping of the top
+probability onto accuracy, fitted on validation. The bound is the one-sided 90% Clopper-Pearson
+upper bound on the validation error: the highest error rate that the validation count does not rule
+out at 90% confidence.
+
+| Classifier                       | Trained on                                         | Prompt        | AUROC  | ECE after isotonic calibration | Test coverage under the bound at α 0.05, 200 validation rows, one draw | Test error under the bound at α 0.05, 200 validation rows, one draw | Test coverage under the bound at α 0.05, 400 validation rows | Test error under the bound at α 0.05, 400 validation rows | Test coverage under the bound at α 0.10 | Test error under the bound at α 0.10 |
+|----------------------------------|----------------------------------------------------|---------------|--------|--------------------------------|------------------------------------------------------------------------|---------------------------------------------------------------------|--------------------------------------------------------------|-----------------------------------------------------------|-----------------------------------------|--------------------------------------|
+| TF-IDF + logistic regression     | 1000 LLM-written, steered by 200 validation counts | —             | 0.7855 | 0.0319                         | 0.0000                                                                 | —                                                                   | not measured                                                 | not measured                                              | 0.0000                                  | —                                    |
+| ModernBERT-base                  | 1000 LLM-written, steered by 200 validation counts | —             | 0.8394 | 0.0564                         | 0.0000                                                                 | —                                                                   | not measured                                                 | not measured                                              | 0.0000                                  | —                                    |
+| UltraBERT-Embed-150M + LR        | 1000 LLM-written                                   | —             | 0.8405 | 0.0495                         | 0.0000                                                                 | —                                                                   | not measured                                                 | not measured                                              | 0.1550                                  | 0.0323                               |
+| UltraBERT-Embed-150M + LR        | 1000 LLM-written, steered by 200 validation counts | —             | 0.7794 | 0.0333                         | 0.0000                                                                 | —                                                                   | not measured                                                 | not measured                                              | 0.7175                                  | 0.0383                               |
+| UltraBERT-Embed-150M + LR        | 1084 Banking77 train                               | —             | 0.8641 | 0.0240                         | 0.8600                                                                 | 0.0262                                                              | not measured                                                 | not measured                                              | 1.0000                                  | 0.0475                               |
+| UltraBERT-Embed-150M + LR        | 400 Banking77 train                                | —             | —      | —                              | —                                                                      | —                                                                   | 0.8500 (0.7200–0.9300)                                       | 0.0300 (0.0168–0.0490)                                    | —                                       | —                                    |
+| Gemma 4 E4B (MLX), letter logits | not trained                                        | `definitions` | 0.7770 | 0.0608                         | 0.0000                                                                 | —                                                                   | not measured                                                 | not measured                                              | 0.0000                                  | —                                    |
+| Gemma 4 E4B (MLX), letter logits | not trained                                        | `fewshot`     | 0.7941 | 0.0463                         | 0.0000                                                                 | —                                                                   | not measured                                                 | not measured                                              | 0.0000                                  | —                                    |
+| Laya                             | not trained                                        | `names`       | 0.6753 | 0.0705                         | 0.0000                                                                 | —                                                                   | not measured                                                 | not measured                                              | 0.0000                                  | —                                    |
+| TypeSafe System One              | not trained                                        | `definitions` | 0.7867 | 0.0534                         | 0.0000                                                                 | —                                                                   | not measured                                                 | not measured                                              | 0.8050                                  | 0.0404                               |
+| TypeSafe System One              | not trained                                        | `fewshot`     | 0.8214 | 0.0452                         | 0.0000                                                                 | —                                                                   | 0.8658 (0.8400–0.9100)                                       | 0.0297 (0.0265–0.0357)                                    | 0.9500                                  | 0.0421                               |
+
+Under the bound, certifying α needs about 2.3/α accepted validation messages with no error among
+them, so 2% needs 115 of the 200 and no classifier here has an error-free prefix that long; 200
+validation rows cannot certify 2% for any model.
+
+α is the error a buyer accepts among messages labelled without a person; 0.05 is the one this repo
+quotes.
+
+The plain threshold, set on the validation error itself, is not quoted, because it does not hold its
+target: in the 36 validation-size runs under question 3 its test error is over 5% in 12, against 1
+of the 28 runs in which the bound keeps any message (`results/confusable/confidence/`).
+
+Three kinds of classifier are not in the table. The Ollama models return a category name and no
+probability, so they cannot be routed. A classifier trained on train + validation cannot be routed
+here, because validation is part of the data it was trained on; the train row is
+UltraBERT-Embed-150M + logistic regression trained without the 200 validation rows. The LoRA
+adapters return a reply and no probability.
+
 ## Details of the method
 
 **The synthetic set.** `generate.py` asks `gemma4:e4b` for 100 messages per category. It shows the
@@ -78,10 +223,10 @@ text verbatim. These are generic, such as "How do I reset my password?". One of 
 
 **Accuracy and macro F1.** Accuracy is the fraction of messages given their true category. A
 category's F1 is the harmonic mean of its precision and recall. Macro F1 is the unweighted mean of
-the 10 categories' F1. Results reports accuracy, because each category has 39 or 40 test messages.
-An invalid reply counts as wrong in accuracy. An invalid reply counts against no category's
-precision in macro F1. So Gemma 4 E4B (MLX) with no adapter has macro F1 0.8858 and accuracy
-0.8500.
+the 10 categories' F1. Question 2 reports accuracy, because each category has 39 or 40 test
+messages. An invalid reply counts as wrong in accuracy. An invalid reply counts against no
+category's precision in macro F1. So Gemma 4 E4B (MLX) with no adapter has macro F1 0.8858 and
+accuracy 0.8500.
 
 **Seconds and minutes.** Seconds is the median time to classify one test message, one message per
 call. The machine is an M5 Pro with 48 GB. ModernBERT-base and UltraBERT-Embed-150M run on MPS,
@@ -169,8 +314,10 @@ The train + validation rows include the 200 validation rows, so they cannot be r
 | `confusable` | TypeSafe System One      | `fewshot` prompt         | 0.9450   | 0.9449   | 0.53    |
 
 On `confusable` Laya scores below TF-IDF + logistic regression trained on the synthetic set, 0.7075
-against 0.7900, so it has no rows in the Results tables but the routing table. Of its answers
-whose top probability is above 0.9, 338 of 399 on `distinct` are 0.9734 accurate and 273 of 400 on
+against 0.7900, so it has no rows in the tables under [question 2](#2-how-accurate-is-it) and
+[question 3](#3-how-many-hand-labelled-examples-does-it-need) but one in [question
+1](#1-how-much-of-the-work-can-it-do-without-a-person-checking)'s table. Of its answers whose top
+probability is above 0.9, 338 of 399 on `distinct` are 0.9734 accurate and 273 of 400 on
 `confusable` 0.7912.
 
 The `definitions` letter-logits rows read the class from the probability of its letter at the last
@@ -178,10 +325,13 @@ position in one forward pass, thinking off; they score below the Ollama `gemma4:
 prompt chosen on validation on both sets, 0.8675 against 0.9125 (`definitions`) on `confusable` and
 0.9799 against 0.9825 (`names`) on `distinct`, and their top probability is above 0.9 on 378 of 400
 `confusable` answers at 0.8783 accuracy and 397 of 399 `distinct` at 0.9798, so they have no rows in
-the Results tables but the routing table, and a threshold of 0.9 does not separate right from wrong
-answers; the routing table under question 1 of Results gives the AUROC. The `fewshot` letter-logits
-row adds the 30 `fewshot` examples under each lettered category; it scores 0.8600 on `confusable`, 3
-messages below `definitions`, and is in the routing and accuracy tables.
+the tables under [question 2](#2-how-accurate-is-it) and [question
+3](#3-how-many-hand-labelled-examples-does-it-need) but one in [question
+1](#1-how-much-of-the-work-can-it-do-without-a-person-checking)'s table, and a threshold of 0.9 does
+not separate right from wrong answers; [question
+1](#1-how-much-of-the-work-can-it-do-without-a-person-checking)'s table gives the AUROC. The
+`fewshot` letter-logits row adds the 30 `fewshot` examples under each lettered category; it scores
+0.8600 on `confusable`, 3 messages below `definitions`, and is in the routing and accuracy tables.
 
 The contrast rows are `generate.py --method contrast`, which shows both definitions in a pair and
 asks for at least half the messages to avoid the words of the class name; that rule made both
@@ -537,9 +687,10 @@ It makes fewer errors: on validation it is right on 0.8850 of messages, against 
 synthetic-trained one. A classifier with fewer errors overall can keep more messages before its
 error passes 5%, even when it ranks its answers worse.
 
-Under the bound the one 5% threshold in question 1's table, that of UltraBERT-Embed-150M + logistic
-regression trained on train, is 0.992611. A threshold of 0.9 does not
-separate the `definitions` letter-logits answers: the 378 above it are 0.8783 accurate.
+Under the bound the one 5% threshold in [question
+1](#1-how-much-of-the-work-can-it-do-without-a-person-checking)'s table, that of
+UltraBERT-Embed-150M + logistic regression trained on train, is 0.992611. A threshold of 0.9 does
+not separate the `definitions` letter-logits answers: the 378 above it are 0.8783 accurate.
 
 Routing needs a labelled validation set as well as a classifier. With 0 hand labels nothing sets
 the threshold, so a person checks every message. The 96% classifier, UltraBERT-Embed-150M +
@@ -548,15 +699,16 @@ without the 200 validation rows, the same classifier scores 0.9525 and under the
 0.8600 of test messages at 0.0262 error.
 
 200 validation messages are too few to certify 5% error for most classifiers. At a 5% target the
-Clopper-Pearson bound admits no message for any classifier in question 1's table but
-UltraBERT-Embed-150M + logistic regression trained on train; of the label curve under question 3, it
-admits the 800 model and some draws at 100, 200 and 400. TypeSafe System One's probabilities arrive
-in steps of 0.01, and its highest step holds wrong answers: with the `definitions` prompt 111 of the
-200 validation messages score exactly 1.00 and 7 of those are wrong, with the `fewshot` prompt 118
-and 5. The bound on those 1.00 answers alone is over 5%, so on this draw no threshold qualifies. On
-three other draws of 200, with the `fewshot` prompt, its certified coverage matches
-UltraBERT-Embed-150M + logistic regression's at the same validation size, with 30 examples against
-400 to 1084 training rows, at $54 per million messages and 0.53 s a message against free and 0.01 s.
+Clopper-Pearson bound admits no message for any classifier in [question
+1](#1-how-much-of-the-work-can-it-do-without-a-person-checking)'s table but UltraBERT-Embed-150M +
+logistic regression trained on train; of the label curve under question 3, it admits the 800 model
+and some draws at 100, 200 and 400. TypeSafe System One's probabilities arrive in steps of 0.01, and
+its highest step holds wrong answers: with the `definitions` prompt 111 of the 200 validation
+messages score exactly 1.00 and 7 of those are wrong, with the `fewshot` prompt 118 and 5. The bound
+on those 1.00 answers alone is over 5%, so on this draw no threshold qualifies. On three other draws
+of 200, with the `fewshot` prompt, its certified coverage matches UltraBERT-Embed-150M + logistic
+regression's at the same validation size, with 30 examples against 400 to 1084 training rows, at $54
+per million messages and 0.53 s a message against free and 0.01 s.
 
 The pairs are the whole difficulty. On `distinct` every classifier but two scores at least 0.9799.
 On `confusable` most errors of every classifier but one are inside a pair.
