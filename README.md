@@ -24,6 +24,7 @@ a message.
 | Classifier                                                 | Labels to build | Certified coverage     | Error                  | Seconds per message | $ per million messages |
 |------------------------------------------------------------|-----------------|------------------------|------------------------|---------------------|------------------------|
 | TypeSafe System One, `fewshot` (30 examples)               | 30 + 400        | 0.8658 (0.8400–0.9100) | 0.0297 (0.0265–0.0357) | 0.53                | 54                     |
+| Gemma 4 31B (MLX), letter logits, `fewshot` (30 examples) | 30 + 400 | 0.3042 (0.0000–0.9125) | 0.0384, 1 run | 4.3 | free |
 | UltraBERT-Embed-150M + LR, 30 training rows                | 30 + 400        | 0.3278 (0.0000–0.6100) | 0.0267 (0.0071–0.0574) | 0.01                | free                   |
 | UltraBERT-Embed-150M + LR, 100 training rows               | 100 + 400       | 0.7681 (0.4625–0.8975) | 0.0396 (0.0270–0.0543) | 0.01                | free                   |
 | UltraBERT-Embed-150M + LR, 200 training rows               | 200 + 400       | 0.9103 (0.7825–1.0000) | 0.0453 (0.0288–0.0600) | 0.01                | free                   |
@@ -34,14 +35,18 @@ UltraBERT-Embed-150M + LR is logistic regression on frozen `dmis-lab/UltraBERT-E
 embeddings, run on a laptop; TypeSafe System One is an API given the 30 examples in its question.
 Labels to build is training or example labels + validation labels. Each cell is the mean, then the
 min–max, over 9 runs for an UltraBERT-Embed-150M + LR row (3 training draws × 3 validation draws)
-and 3 for System One; at 400 the validation draws hold 395 and 394 rows. Error is over the runs that
-keep any message.
+and 3 for System One and Gemma 4 31B; at 400 the validation draws hold 395 and 394 rows. Error is
+over the runs that keep any message. Gemma 4 31B is `mlx-community/gemma-4-31b-it-4bit`, run with
+mlx-lm on the laptop, the class read from the letter logits of one forward pass; 650 of its 669
+validation messages score above 0.9, right or wrong, so the bound certifies nothing in 2 of its 3
+draws at 200 and 400 validation rows and in all 3 at 100.
 
 **Accuracy on the 400 test messages**
 
 | Classifier                                     | Labels in training or prompt | Accuracy               |
 |------------------------------------------------|------------------------------|------------------------|
 | TypeSafe System One, `fewshot` (30 examples)   | 30                           | 0.9450                 |
+| Gemma 4 31B (MLX), letter logits, `fewshot` (30 examples) | 30 | 0.9375 |
 | UltraBERT-Embed-150M + LR, 30 training rows    | 30                           | 0.8550 (0.8400–0.8850) |
 | UltraBERT-Embed-150M + LR, 100 training rows   | 100                          | 0.9192 (0.9075–0.9250) |
 | UltraBERT-Embed-150M + LR, 200 training rows   | 200                          | 0.9275 (0.9200–0.9400) |
@@ -66,6 +71,9 @@ The 30- to 400-row cells are the mean, then the min–max, over 3 training draws
   $54 per million messages and 0.53 s a message.
 - UltraBERT-Embed-150M + LR needs 200 training rows and 400 validation rows to do the same, 91% at
   4.5% error; with 30 training rows it certifies 33%. It is free and 0.01 s a message.
+- A local 31B LLM with the same 30 examples, read from letter logits, is 93.75% accurate but
+  certifies 30% on average and 0 in 2 of 3 draws: the probabilities do not separate right from
+  wrong. At 4.3 s a message.
 - Both need 400 validation rows. With 200, certified coverage ranges from 0 to 0.95 between draws;
   with 400, from 0.72 to 0.93.
 - With 0 labels, `gemma4:e4b` is 91% accurate and nothing can be certified.
@@ -107,8 +115,8 @@ The 30- to 400-row cells are the mean, then the min–max, over 3 training draws
   train split; the `fewshot` examples are train messages outside validation. `--write-train` exports
   train + validation as jsonl, and with `--no-dev` leaves out the 200 validation rows, giving train.
   `--split rest --train-file JSONL` is the rows of `data/<set>/banking77_train_nodev.jsonl` not in
-  `JSONL`, for a `--model` trained on a subset of it, or for `--jev`, less the `fewshot` examples
-  with `--prompt fewshot`. `--dump FILE` also writes each message's
+  `JSONL`, for a `--model` trained on a subset of it, or for `--jev` and `--mlx --reply logits`,
+  less the `fewshot` examples with `--prompt fewshot`. `--dump FILE` also writes each message's
   probability over the class set, for `--model`, `--laya`, `--jev` and `--mlx --reply logits`.
 - `confidence.py` — from a classifier's validation (`--dev`) and test `--dump` files: AUROC of the
   top probability against correctness, ECE before and after isotonic calibration fitted on

@@ -308,6 +308,7 @@ The train + validation rows include the 200 validation rows, so they cannot be r
 | `confusable` | Gemma 4 E4B (MLX) + LoRA | train + validation | 0.8575 | 0.8513 | 0.235   |
 | `confusable` | Gemma 4 E4B (MLX), letter logits | `definitions` prompt | 0.8675 | 0.8648 | 0.338 |
 | `confusable` | Gemma 4 E4B (MLX), letter logits | `fewshot` prompt     | 0.8600 | 0.8582 | 0.471 |
+| `confusable` | Gemma 4 31B (MLX), letter logits | `fewshot` prompt     | 0.9375 | 0.9379 | 4.28  |
 | `distinct`   | Laya                     | `names` prompt           | 0.9123   | 0.9139   | 0.0225  |
 | `confusable` | Laya                     | `names` prompt           | 0.7075   | 0.6750   | 0.0241  |
 | `confusable` | TypeSafe System One      | `definitions` prompt     | 0.9050   | 0.9053   | 0.53    |
@@ -451,6 +452,7 @@ of any classifier that did not see the validation rows.**
 | Gemma 4 E4B (MLX) + LoRA adapter | 1000 LLM-written                                   | `definitions` | 0                           | 0.8500   | 60            |
 | Gemma 4 E4B (MLX) + LoRA adapter | 1284 Banking77 train + validation                  | `definitions` | 1284                        | 0.8575   | 57            |
 | Gemma 4 E4B (MLX), letter logits | not trained                                        | `fewshot`     | 30                          | 0.8600   | 56            |
+| Gemma 4 31B (MLX), letter logits | not trained                                        | `fewshot`     | 30                          | 0.9375   | 25            |
 | TypeSafe System One              | not trained                                        | `definitions` | 0                           | 0.9050   | 38            |
 | TypeSafe System One              | not trained                                        | `fewshot`     | 30                          | 0.9450   | 22            |
 
@@ -556,6 +558,10 @@ under the bound is over the runs that keep any test message, counted in brackets
 | 100             | 0.2825 (0.0000–0.8475)                        | 0.0265, 1 run                              |
 | 200             | 0.8025 (0.6325–0.9350)                        | 0.0263 (0.0119–0.0401), 3 runs             |
 | 400 (394)       | 0.8658 (0.8400–0.9100)                        | 0.0297 (0.0265–0.0357), 3 runs             |
+| **Gemma 4 31B (MLX), letter logits, `fewshot`, 3 runs per N** | | |
+| 100             | 0.0000 (0.0000–0.0000)                        | —, 0 runs                                  |
+| 200             | 0.3100 (0.0000–0.9300)                        | 0.0403, 1 run                              |
+| 400 (394)       | 0.3042 (0.0000–0.9125)                        | 0.0384, 1 run                              |
 | **UltraBERT-Embed-150M + LR at 400 validation rows, by training rows, 9 runs each** | | |
 | 30 training     | 0.3278 (0.0000–0.6100)                        | 0.0267 (0.0071–0.0574), 8 runs             |
 | 50 training     | 0.3347 (0.0000–0.7050)                        | 0.0296 (0.0122–0.0426), 7 runs             |
@@ -580,6 +586,12 @@ where on the 200 validation messages of question 1 it keeps none
 (`results/confusable/confidence/jev-fewshot-dev<N>-ds<validation seed>.txt`). With 200 validation
 rows the bound's coverage ranges from 0 to 0.95 for both classifiers, with 400 it ranges from 0.72
 to 0.93.
+
+Gemma 4 31B (MLX) with letter logits and the `fewshot` prompt is drawn from the same 669
+rows. 650 of them score above 0.9, at 0.9246 accuracy
+(`results/confusable/rest/gemma-4-31b-it-4bit-fewshot-logits.txt`), so the bound keeps nothing
+in all 3 runs at 100 validation rows and in 2 of 3 at 200 and 400
+(`results/confusable/confidence/gemma-4-31b-it-4bit-fewshot-logits-dev<N>-ds<validation seed>.txt`).
 
 The diagnosed notes did not help every classifier equally. From the synthetic set to the diagnosed
 set, UltraBERT-Embed-150M + logistic regression went from 61 errors to 35. ModernBERT-base went
@@ -636,6 +648,7 @@ LoRA adapters take the invalid replies from 34 to 0. Theirs is the only LoRA con
 | Gemma 4 E4B (MLX), no adapter    | not trained                                        | `definitions` | none             | 0.258               | 35           |
 | Gemma 4 E4B (MLX) + LoRA adapter | 1000 LLM-written                                   | `definitions` | 13.6             | 0.235               | 32           |
 | Gemma 4 E4B (MLX) + LoRA adapter | 1284 Banking77 train + validation                  | `definitions` | 17.9             | 0.235               | 32           |
+| Gemma 4 31B (MLX), letter logits | not trained                                        | `fewshot`     | none             | 4.28                | 582          |
 | TypeSafe System One              | not trained                                        | `definitions` | none             | 0.53                | 72           |
 | TypeSafe System One              | not trained                                        | `fewshot`     | none             | 0.53                | 71           |
 
@@ -840,6 +853,16 @@ python score.py --set confusable --split rest --train-file data/confusable/banki
 for n in 100 200 400; do for d in 0 1 2; do
   python confidence.py --set confusable --model-name jev-fewshot-dev$n-ds$d --dev $D/jev-fewshot-rest.jsonl \
     --test $D/jev-fewshot-test.jsonl --dev-size $n --dev-seed $d
+done; done
+M31=mlx-community/gemma-4-31b-it-4bit
+python score.py --set confusable --mlx $M31 --reply logits --prompt fewshot \
+  --dump $D/gemma-4-31b-it-4bit-fewshot-logits-test.jsonl
+python score.py --set confusable --split rest --train-file data/confusable/banking77_train_nodev_400.jsonl \
+  --mlx $M31 --reply logits --prompt fewshot --dump $D/gemma-4-31b-it-4bit-fewshot-logits-rest.jsonl
+for n in 100 200 400; do for d in 0 1 2; do
+  python confidence.py --set confusable --model-name gemma-4-31b-it-4bit-fewshot-logits-dev$n-ds$d \
+    --dev $D/gemma-4-31b-it-4bit-fewshot-logits-rest.jsonl \
+    --test $D/gemma-4-31b-it-4bit-fewshot-logits-test.jsonl --dev-size $n --dev-seed $d
 done; done
 ```
 
