@@ -1,0 +1,3 @@
+model     models/confusable/ultrabert-embed-fold0
+train     data/confusable/banking77_fold0_train.jsonl (963 rows)
+seconds   7.09 (base model load to save)

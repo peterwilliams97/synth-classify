@@ -1,0 +1,28 @@
+model     models/confusable/ultrabert-embed-fold3
+banking77_fold3_val rows 321 (mteb/banking77, 10 classes)
+accuracy  0.9377
+macro F1  0.9398
+seconds   0.0103 (median per message, one message per call)
+recall
+  card_arrival                            0.9474
+  card_delivery_estimate                  0.9286
+  declined_transfer                       0.8788
+  failed_transfer                         0.9412
+  card_payment_wrong_exchange_rate        0.9286
+  wrong_exchange_rate_for_cash_withdrawal 0.9512
+  getting_virtual_card                    1.0000
+  get_disposable_virtual_card             0.9583
+  verify_my_identity                      0.9231
+  why_verify_identity                     0.9355
+confusion (row: true class, column: predicted class, numbered as the rows are)
+                                               0   1   2   3   4   5   6   7   8   9
+   0 card_arrival                             36   2   0   0   0   0   0   0   0   0
+   1 card_delivery_estimate                    2  26   0   0   0   0   0   0   0   0
+   2 declined_transfer                         0   0  29   4   0   0   0   0   0   0
+   3 failed_transfer                           0   0   2  32   0   0   0   0   0   0
+   4 card_payment_wrong_exchange_rate          0   0   0   0  39   3   0   0   0   0
+   5 wrong_exchange_rate_for_cash_withdrawal   0   0   0   0   2  39   0   0   0   0
+   6 getting_virtual_card                      0   0   0   0   0   0  24   0   0   0
+   7 get_disposable_virtual_card               0   0   0   0   0   0   0  23   0   1
+   8 verify_my_identity                        0   0   0   0   0   0   0   0  24   2
+   9 why_verify_identity                       0   0   0   0   0   0   0   0   2  29

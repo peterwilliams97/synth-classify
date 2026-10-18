@@ -1,0 +1,31 @@
+model     TypeSafe System One typesafe/jev-1.13-20260917 prompt fewshot
+banking77_fold3_val rows 313 (mteb/banking77, 10 classes)
+accuracy  0.9042
+macro F1  0.9078
+seconds   0.543 (median per message, one message per call)
+tokens    1296.3 (mean billed input tokens per message)
+dollars   54.44 per million messages (0.017041 for these 313, at $0.042 per million input tokens)
+p > 0.9   accuracy 0.9485 on 272 of 313 messages (top probability above it)
+recall
+  card_arrival                            0.7895
+  card_delivery_estimate                  0.9259
+  declined_transfer                       0.8438
+  failed_transfer                         0.9394
+  card_payment_wrong_exchange_rate        0.9268
+  wrong_exchange_rate_for_cash_withdrawal 0.9250
+  getting_virtual_card                    0.8750
+  get_disposable_virtual_card             1.0000
+  verify_my_identity                      0.9600
+  why_verify_identity                     0.9000
+confusion (row: true class, column: predicted class, numbered as the rows are)
+                                               0   1   2   3   4   5   6   7   8   9
+   0 card_arrival                             30   8   0   0   0   0   0   0   0   0
+   1 card_delivery_estimate                    2  25   0   0   0   0   0   0   0   0
+   2 declined_transfer                         0   0  27   5   0   0   0   0   0   0
+   3 failed_transfer                           0   0   2  31   0   0   0   0   0   0
+   4 card_payment_wrong_exchange_rate          0   0   0   0  38   3   0   0   0   0
+   5 wrong_exchange_rate_for_cash_withdrawal   0   0   0   0   3  37   0   0   0   0
+   6 getting_virtual_card                      3   0   0   0   0   0  21   0   0   0
+   7 get_disposable_virtual_card               0   0   0   0   0   0   0  23   0   0
+   8 verify_my_identity                        0   0   0   0   0   0   0   0  24   1
+   9 why_verify_identity                       0   0   0   0   0   0   0   0   3  27
