@@ -12,3 +12,5 @@ pillow
 datasets
 scikit-learn
 scipy
+# finetune_d3.py's LoRA. It trains d3-flash's readout with its own loop, so TRL is not needed.
+peft

@@ -8,7 +8,7 @@ default, or `fewshot`), or the Laya decision model
 zero-shot with one of llm.py's `LAYA_PROMPTS` (`--laya`, `--prompt`), or TypeSafe's System One API
 asked jev.py's question (`--jev`, `--prompt`, default `definitions`), or a Decision 3.0 model such
 as `vllm-sr/d3-flash` run locally and asked the same question (`--d3`, `--prompt`, default
-`definitions`; d3.py, in `.venv-d3`). `--split test` is the
+`definitions`; d3.py, in `.venv-d3`), or a directory finetune_d3.py wrote. `--split test` is the
 Banking77 test split; `--split dev` is `dev_and_shots`' sample of the train split, which is what
 prompts are chosen on; `--split rest` is the rows of data/<set>/banking77_train_nodev.jsonl that
 are not in `--train-file`, for a `--model` trained on a subset of that file, or for `--jev`, `--d3` or

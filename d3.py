@@ -9,8 +9,13 @@ version in requirements.txt, so it runs in its own venv, `.venv-d3`, made from r
 
 Every response is cached in results/d3/<set>.jsonl under the message's id, the prompt and the model
 id, so a re-run of score.py reproduces its report, `seconds` line included, without loading the
-model."""
+model.
 
+A model id may also be a local directory written by finetune_d3.py. It loads with the d3 runtime's
+MODEL_MANIFEST.json check skipped, since the manifest copied in lists the base model's hashes, and
+its cached rows are keyed to the directory's finetune.json, which every training run rewrites."""
+
+import hashlib
 import json
 import os
 import sys
@@ -49,7 +54,7 @@ def classify_d3(texts, ids, class_set, prompt, examples, model_id):
     in bfloat16, only if some message is not cached."""
     names = list(CLASS_SETS[class_set])
     question = jev_question(CLASS_SETS[class_set], prompt, examples)
-    revision = REVISIONS.get(model_id)
+    revision = revision_of(model_id)
     path = cache_path(class_set)
     cache = read_cache(path)
     os.makedirs(os.path.dirname(path), exist_ok=True)
@@ -85,8 +90,18 @@ def classify_d3(texts, ids, class_set, prompt, examples, model_id):
     return out
 
 
+def revision_of(model_id):
+    """revision_of is what a cached row's `revision` must equal: the `REVISIONS` entry of a Hub id,
+    None for an unlisted one, and for a local directory the SHA-256 of its finetune.json."""
+    if os.path.isdir(model_id):
+        with open(os.path.join(model_id, "finetune.json"), "rb") as f:
+            return "finetune.json sha256 " + hashlib.sha256(f.read()).hexdigest()
+    return REVISIONS.get(model_id)
+
+
 def load(model_id, revision):
-    """load returns the model on MPS in bfloat16, and exits rather than fall back to the CPU."""
+    """load returns the model on MPS in bfloat16, and exits rather than fall back to the CPU. A local
+    directory loads with the manifest check skipped."""
     import torch
     from huggingface_hub import try_to_load_from_cache
     from transformers import AutoModel
@@ -94,6 +109,10 @@ def load(model_id, revision):
     if not torch.backends.mps.is_available():
         sys.exit("d3.py: MPS is not available; it does not fall back to the CPU")
     print("device: mps", file=sys.stderr)
+    if os.path.isdir(model_id):
+        return AutoModel.from_pretrained(
+            model_id, trust_remote_code=True, device="mps", dtype=torch.bfloat16, verify="none"
+        )
     # The model's runtime calls snapshot_download for a Hub id, which lists the repository even
     # under HF_HUB_OFFLINE; a cached snapshot is passed as its directory, which it reads as is.
     cached = try_to_load_from_cache(model_id, "config.json", revision=revision)

@@ -15,10 +15,10 @@ prompted with the class list (`llm.py`) are scored beside the trained ones, and 
 of Gemma 4 E4B with and without a LoRA adapter (`finetune.py`), the `convaiinnovations/laya`
 decision model zero-shot (`score.py --laya`), TypeSafe's System One API (`jev.py`,
 `score.py --jev`), vLLM Semantic Router's `vllm-sr/d3-flash` decision model run locally (`d3.py`,
-`score.py --d3`), and logistic regression on frozen
+`score.py --d3`) and with a LoRA fine-tune of its readout (`finetune_d3.py`), and logistic regression on frozen
 `dmis-lab/UltraBERT-Embed-150M` embeddings (`train.py --embed`). `confidence.py` asks whether a
 classifier's top probability can route messages, from `score.py --dump` files of dev and test,
-for the README's coverage tables. Nine scripts, a `README.md` that states the aim as three
+for the README's coverage tables. Ten scripts, a `README.md` that states the aim as three
 questions and answers them in three tables, and `docs/details.md`, which keeps the full method,
 the answers to questions 2 and 3 and the three full tables (test, dev, training minutes) under All
 results. All Python
@@ -44,6 +44,7 @@ S=distinct   # or confusable; every script takes --set, default distinct
 .venv/bin/python score.py --set $S --split dev --laya --prompt names   # ~10 s; not in the sandbox
 .venv/bin/python score.py --set $S --split dev --jev --dump results/$S/confidence/dumps/jev-definitions-dev.jsonl   # needs TYPESAFE_API_KEY
 .venv-d3/bin/python score.py --set $S --d3 vllm-sr/d3-flash --prompt fewshot --dump results/$S/confidence/dumps/d3-flash-fewshot-test.jsonl   # MPS; not in the sandbox
+.venv-d3/bin/python finetune_d3.py --train data/confusable/banking77_train_nodev_400.jsonl --out models/confusable/d3-flash-lora-400   # MPS; run-d3-lora.sh runs all four sizes
 D=results/$S/confidence/dumps
 .venv/bin/python score.py --set $S --split dev --model models/$S/tfidf-diagnosed --dump $D/tfidf-diagnosed-dev.jsonl
 .venv/bin/python score.py --set $S --model models/$S/tfidf-diagnosed --dump $D/tfidf-diagnosed-test.jsonl
@@ -152,6 +153,12 @@ in `refs/main`, which is the layout `HF_HUB_OFFLINE=1` loads from.
   code needs transformers 5.17.0, so `--d3` runs in `.venv-d3`, made from `requirements-d3.txt`;
   `requirements.txt` stays as it is. It runs on MPS in bfloat16 and exits if MPS is unavailable,
   so it does not run in the sandbox.
+- **A finetune_d3.py model is d3-flash with merged LoRA weights, scored by `--d3 DIR`.** d3-flash has
+  no language-model head, so the loss is the readout's cross-entropy on the correct code through
+  the runtime's `PromptEncoder`, not TRL's completion loss. The directory carries the base
+  snapshot's MODEL_MANIFEST.json, whose hashes no longer match, so `load` (`d3.py`) skips the
+  manifest check for a local directory, and `revision_of` keys its cached rows to the directory's
+  finetune.json, so retraining into the same directory is not served from the cache.
 - **dev is drawn from the train split, so `--split dev --model` is valid only for a model trained
   on a synthetic file or on `data/<set>/banking77_train_nodev.jsonl`**, which `score.py
   --write-train --no-dev` writes without the dev rows. A model trained on
