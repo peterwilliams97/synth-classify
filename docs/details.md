@@ -560,38 +560,38 @@ one keeps nothing and another 0.6800.
 How much the threshold depends on the number of validation labels is measured on the three 400-row
 models (seeds 0, 1 and 2). Each model's validation set is replaced by its rest: the 684 rows of
 train that it was not trained on. From the rest, N rows are drawn, N / 10 per class, with validation
-seeds 0, 1 and 2, and the α 0.05 thresholds are chosen on them; 3 models × 3 draws is 9 runs per N.
+seeds 0, 1 and 2, and the α 0.05 and α 0.02 thresholds are chosen on them; 3 models × 3 draws is 9 runs per N.
 The rest holds 38 `getting_virtual_card` and 37 `get_disposable_virtual_card` rows, so N = 400 draws
 395. Each cell is the mean over the 9 runs, then the min–max, all on the 400 test messages. Error
 under the bound is over the runs that keep any test message, counted in brackets.
 
-| Validation rows | Test coverage under the Clopper-Pearson bound | Test error under the Clopper-Pearson bound |
-|-----------------|-----------------------------------------------|--------------------------------------------|
-| **d3-flash, `fewshot`, 3 runs per N** | | |
-| 100             | 0.6842 (0.6400–0.7650)                        | 0.0095 (0.0077–0.0131), 3 runs             |
-| 200             | 0.8775 (0.7650–0.9525)                        | 0.0257 (0.0131–0.0367), 3 runs             |
-| 321 (4-fold, 313–315) | 0.8531 (0.7625–0.9225)                  | 0.0214 (0.0131–0.0298), 4 runs             |
-| 400 (394)       | 0.9225 (0.8875–0.9600)                        | 0.0287 (0.0225–0.0365), 3 runs             |
-| **UltraBERT-Embed-150M + LR, 400-row models, 9 runs per N** | | |
-| 100             | 0.3342 (0.0000–0.9750)                        | 0.0261 (0.0113–0.0641), 4 runs             |
-| 200             | 0.7142 (0.0000–0.9450)                        | 0.0246 (0.0137–0.0450), 8 runs             |
-| 321 (4-fold, 963-row models) | 0.8838 (0.6875–0.9550)           | 0.0290 (0.0109–0.0367), 4 runs             |
-| 400 (395)       | 0.8500 (0.7200–0.9300)                        | 0.0300 (0.0168–0.0490), 9 runs             |
-| **TypeSafe System One, `fewshot`, 3 runs per N** | | |
-| 100             | 0.2825 (0.0000–0.8475)                        | 0.0265, 1 run                              |
-| 200             | 0.8025 (0.6325–0.9350)                        | 0.0263 (0.0119–0.0401), 3 runs             |
-| 321 (4-fold, 313–315) | 0.6219 (0.0000–0.8475)                  | 0.0251 (0.0219–0.0268), 3 runs             |
-| 400 (394)       | 0.8658 (0.8400–0.9100)                        | 0.0297 (0.0265–0.0357), 3 runs             |
-| **Gemma 4 31B (MLX), letter logits, `fewshot`, 3 runs per N** | | |
-| 100             | 0.0000 (0.0000–0.0000)                        | —, 0 runs                                  |
-| 200             | 0.3100 (0.0000–0.9300)                        | 0.0403, 1 run                              |
-| 321 (4-fold, 313–315) | 0.1994 (0.0000–0.7975)                  | 0.0313, 1 run                              |
-| 400 (394)       | 0.3042 (0.0000–0.9125)                        | 0.0384, 1 run                              |
-| **UltraBERT-Embed-150M + LR at 400 validation rows, by training rows, 9 runs each** | | |
-| 30 training     | 0.3278 (0.0000–0.6100)                        | 0.0267 (0.0071–0.0574), 8 runs             |
-| 50 training     | 0.3347 (0.0000–0.7050)                        | 0.0296 (0.0122–0.0426), 7 runs             |
-| 100 training    | 0.7681 (0.4625–0.8975)                        | 0.0396 (0.0270–0.0543), 9 runs             |
-| 200 training    | 0.9103 (0.7825–1.0000)                        | 0.0453 (0.0288–0.0600), 9 runs             |
+| Validation rows | Test coverage under the Clopper-Pearson bound at α 0.05 | Test error under the Clopper-Pearson bound at α 0.05 | Test coverage under the bound at α 0.02 | Test error under the bound at α 0.02 |
+|-----------------|---------------------------------------------------------|------------------------------------------------------|-----------------------------------------|--------------------------------------|
+| **d3-flash, `fewshot`, 3 runs per N** | | | | |
+| 100             | 0.6842 (0.6400–0.7650)                        | 0.0095 (0.0077–0.0131), 3 runs             | 0.0000 (0.0000–0.0000)                  | —, 0 runs                            |
+| 200             | 0.8775 (0.7650–0.9525)                        | 0.0257 (0.0131–0.0367), 3 runs             | 0.3983 (0.0000–0.6475)                  | 0.0084 (0.0077–0.0091), 2 runs       |
+| 321 (4-fold, 313–315) | 0.8531 (0.7625–0.9225)                  | 0.0214 (0.0131–0.0298), 4 runs             | 0.5031 (0.0000–0.7300)                  | 0.0098 (0.0078–0.0137), 3 runs       |
+| 400 (394)       | 0.9225 (0.8875–0.9600)                        | 0.0287 (0.0225–0.0365), 3 runs             | 0.6717 (0.6425–0.7300)                  | 0.0098 (0.0078–0.0137), 3 runs       |
+| **UltraBERT-Embed-150M + LR, 400-row models, 9 runs per N** | | | | |
+| 100             | 0.3342 (0.0000–0.9750)                        | 0.0261 (0.0113–0.0641), 4 runs             | 0.0000 (0.0000–0.0000)                  | —, 0 runs                            |
+| 200             | 0.7142 (0.0000–0.9450)                        | 0.0246 (0.0137–0.0450), 8 runs             | 0.0000 (0.0000–0.0000)                  | —, 0 runs                            |
+| 321 (4-fold, 963-row models) | 0.8838 (0.6875–0.9550)           | 0.0290 (0.0109–0.0367), 4 runs             | 0.4644 (0.0000–0.7775)                  | 0.0101 (0.0060–0.0129), 3 runs       |
+| 400 (395)       | 0.8500 (0.7200–0.9300)                        | 0.0300 (0.0168–0.0490), 9 runs             | 0.0000 (0.0000–0.0000)                  | —, 0 runs                            |
+| **TypeSafe System One, `fewshot`, 3 runs per N** | | | | |
+| 100             | 0.2825 (0.0000–0.8475)                        | 0.0265, 1 run                              | 0.0000 (0.0000–0.0000)                  | —, 0 runs                            |
+| 200             | 0.8025 (0.6325–0.9350)                        | 0.0263 (0.0119–0.0401), 3 runs             | 0.0000 (0.0000–0.0000)                  | —, 0 runs                            |
+| 321 (4-fold, 313–315) | 0.6219 (0.0000–0.8475)                  | 0.0251 (0.0219–0.0268), 3 runs             | 0.0000 (0.0000–0.0000)                  | —, 0 runs                            |
+| 400 (394)       | 0.8658 (0.8400–0.9100)                        | 0.0297 (0.0265–0.0357), 3 runs             | 0.2108 (0.0000–0.6325)                  | 0.0119, 1 run                        |
+| **Gemma 4 31B (MLX), letter logits, `fewshot`, 3 runs per N** | | | | |
+| 100             | 0.0000 (0.0000–0.0000)                        | —, 0 runs                                  | 0.0000 (0.0000–0.0000)                  | —, 0 runs                            |
+| 200             | 0.3100 (0.0000–0.9300)                        | 0.0403, 1 run                              | 0.0000 (0.0000–0.0000)                  | —, 0 runs                            |
+| 321 (4-fold, 313–315) | 0.1994 (0.0000–0.7975)                  | 0.0313, 1 run                              | 0.0000 (0.0000–0.0000)                  | —, 0 runs                            |
+| 400 (394)       | 0.3042 (0.0000–0.9125)                        | 0.0384, 1 run                              | 0.0000 (0.0000–0.0000)                  | —, 0 runs                            |
+| **UltraBERT-Embed-150M + LR at 400 validation rows, by training rows, 9 runs each** | | | | |
+| 30 training     | 0.3278 (0.0000–0.6100)                        | 0.0267 (0.0071–0.0574), 8 runs             | 0.0381 (0.0000–0.3425)                  | 0.0219, 1 run                        |
+| 50 training     | 0.3347 (0.0000–0.7050)                        | 0.0296 (0.0122–0.0426), 7 runs             | 0.0000 (0.0000–0.0000)                  | —, 0 runs                            |
+| 100 training    | 0.7681 (0.4625–0.8975)                        | 0.0396 (0.0270–0.0543), 9 runs             | 0.1392 (0.0000–0.5175)                  | 0.0158 (0.0068–0.0338), 3 runs       |
+| 200 training    | 0.9103 (0.7825–1.0000)                        | 0.0453 (0.0288–0.0600), 9 runs             | 0.0894 (0.0000–0.8050)                  | 0.0248, 1 run                        |
 
 With 400 validation rows, the 30- and 50-row models keep a third of the test messages under the
 bound, the 100-row models 0.7681 and the 200-row models 0.9103, against System One's 0.8658 at 394,

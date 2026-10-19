@@ -24,22 +24,23 @@ tables below.
 
 A classifier labels a message with no human check when its score is at least a threshold: the
 lowest validation probability at which the one-sided 90% Clopper-Pearson upper bound on the
-validation error above it is at most α, 0.05. The plain threshold, set on the validation error
-itself, is not used because it does not hold its target: its test error is over 5% in 12 of 36
-runs, against 1 of the 28 in which the bound keeps a message.
+validation error above it is at most α, 0.05 or 0.02. At 5% the bound needs 45 error-free
+validation messages at the top, or 77 with one error among them; at 2%, 114 or 194. The plain
+threshold, set on the validation error itself, is not used because it does not hold its target: its
+test error is over 5% in 12 of 36 runs, against 1 of the 28 in which the bound keeps a message.
 
-**Fraction of messages labelled with no human check, certified under 5% error, 400 validation rows**
+**Fraction of messages labelled with no human check, certified under 5% and under 2% error, 400 validation rows**
 
-| Classifier                                                 | Labels to build | Certified coverage     | Error                  | Seconds per message | $ per million messages |
-|------------------------------------------------------------|-----------------|------------------------|------------------------|---------------------|------------------------|
-| d3-flash, `fewshot` (30 examples)                          | 30 + 400        | 0.9225 (0.8875–0.9600) | 0.0287 (0.0225–0.0365) | 2.2                 | free                   |
-| TypeSafe System One, `fewshot` (30 examples)               | 30 + 400        | 0.8658 (0.8400–0.9100) | 0.0297 (0.0265–0.0357) | 0.53                | 54                     |
-| Gemma 4 31B (MLX), letter logits, `fewshot` (30 examples) | 30 + 400 | 0.3042 (0.0000–0.9125) | 0.0384, 1 run | 4.3 | free |
-| UltraBERT-Embed-150M + LR, 30 training rows                | 30 + 400        | 0.3278 (0.0000–0.6100) | 0.0267 (0.0071–0.0574) | 0.01                | free                   |
-| UltraBERT-Embed-150M + LR, 100 training rows               | 100 + 400       | 0.7681 (0.4625–0.8975) | 0.0396 (0.0270–0.0543) | 0.01                | free                   |
-| UltraBERT-Embed-150M + LR, 200 training rows               | 200 + 400       | 0.9103 (0.7825–1.0000) | 0.0453 (0.0288–0.0600) | 0.01                | free                   |
-| UltraBERT-Embed-150M + LR, 400 training rows               | 400 + 400       | 0.8500 (0.7200–0.9300) | 0.0300 (0.0168–0.0490) | 0.01                | free                   |
-| UltraBERT-Embed-150M + LR, 963 training rows (4-fold, 321 validation rows) | 963 + 321 | 0.8838 (0.6875–0.9550) | 0.0290 (0.0109–0.0367) | 0.01 | free |
+| Classifier                                                 | Labels to build | Coverage at 5%         | Error at 5%            | Coverage at 2%         | Error at 2%                     | Seconds per message | $ per million messages |
+|------------------------------------------------------------|-----------------|------------------------|------------------------|------------------------|---------------------------------|---------------------|------------------------|
+| d3-flash, `fewshot` (30 examples)                          | 30 + 400        | 0.9225 (0.8875–0.9600) | 0.0287 (0.0225–0.0365) | 0.6717 (0.6425–0.7300) | 0.0098 (0.0078–0.0137)          | 2.2                 | free                   |
+| TypeSafe System One, `fewshot` (30 examples)               | 30 + 400        | 0.8658 (0.8400–0.9100) | 0.0297 (0.0265–0.0357) | 0.2108 (0.0000–0.6325) | 0.0119, 1 run                   | 0.53                | 54                     |
+| Gemma 4 31B (MLX), letter logits, `fewshot` (30 examples)  | 30 + 400        | 0.3042 (0.0000–0.9125) | 0.0384, 1 run          | 0.0000 (0.0000–0.0000) | —, 0 runs                       | 4.3                 | free                   |
+| UltraBERT-Embed-150M + LR, 30 training rows                | 30 + 400        | 0.3278 (0.0000–0.6100) | 0.0267 (0.0071–0.0574) | 0.0381 (0.0000–0.3425) | 0.0219, 1 run                   | 0.01                | free                   |
+| UltraBERT-Embed-150M + LR, 100 training rows               | 100 + 400       | 0.7681 (0.4625–0.8975) | 0.0396 (0.0270–0.0543) | 0.1392 (0.0000–0.5175) | 0.0158 (0.0068–0.0338), 3 runs  | 0.01                | free                   |
+| UltraBERT-Embed-150M + LR, 200 training rows               | 200 + 400       | 0.9103 (0.7825–1.0000) | 0.0453 (0.0288–0.0600) | 0.0894 (0.0000–0.8050) | 0.0248, 1 run                   | 0.01                | free                   |
+| UltraBERT-Embed-150M + LR, 400 training rows               | 400 + 400       | 0.8500 (0.7200–0.9300) | 0.0300 (0.0168–0.0490) | 0.0000 (0.0000–0.0000) | —, 0 runs                       | 0.01                | free                   |
+| UltraBERT-Embed-150M + LR, 963 training rows (4-fold, 321 validation rows) | 963 + 321 | 0.8838 (0.6875–0.9550) | 0.0290 (0.0109–0.0367) | 0.4644 (0.0000–0.7775) | 0.0101 (0.0060–0.0129), 3 runs | 0.01 | free |
 
 UltraBERT-Embed-150M + LR is logistic regression on frozen `dmis-lab/UltraBERT-Embed-150M`
 embeddings, run on a laptop; TypeSafe System One is an API given the 30 examples in its question.
@@ -80,11 +81,17 @@ The 30- to 400-row cells are the mean, then the min–max, over 3 training draws
 | 200             | 0.8775 (0.7650–0.9525)      | 0.7142 (0.0000–0.9450)                               | 0.8025 (0.6325–0.9350)                 | 0.3100 (0.0000–0.9300)                              |
 | 321 (4-fold)    | 0.8531 (0.7625–0.9225)      | 0.8838 (0.6875–0.9550)                               | 0.6219 (0.0000–0.8475)                 | 0.1994 (0.0000–0.7975)                              |
 | 400             | 0.9225 (0.8875–0.9600)      | 0.8500 (0.7200–0.9300)                               | 0.8658 (0.8400–0.9100)                 | 0.3042 (0.0000–0.9125)                              |
+| **α 0.02**      |                             |                                                      |                                        |                                                     |
+| 100             | 0.0000 (0.0000–0.0000)      | 0.0000 (0.0000–0.0000)                               | 0.0000 (0.0000–0.0000)                 | 0.0000 (0.0000–0.0000)                              |
+| 200             | 0.3983 (0.0000–0.6475)      | 0.0000 (0.0000–0.0000)                               | 0.0000 (0.0000–0.0000)                 | 0.0000 (0.0000–0.0000)                              |
+| 321 (4-fold)    | 0.5031 (0.0000–0.7300)      | 0.4644 (0.0000–0.7775)                               | 0.0000 (0.0000–0.0000)                 | 0.0000 (0.0000–0.0000)                              |
+| 400             | 0.6717 (0.6425–0.7300)      | 0.0000 (0.0000–0.0000)                               | 0.2108 (0.0000–0.6325)                 | 0.0000 (0.0000–0.0000)                              |
 
 The 321 row is 4-fold cross-validation over the 1284 train + validation rows, seed 0: each fold
 trains on 963 and sets its threshold on the other 321 (313–315 for the three fewshot classifiers,
 less their examples). The other rows set thresholds on draws from the rows the 400-row model was
-not trained on.
+not trained on. The rows above the α 0.02 row are certified under 5% error, the rows below it under
+2%.
 
 ## Conclusion
 
@@ -102,6 +109,9 @@ not trained on.
 - UltraBERT-Embed-150M + LR and System One need 400 validation rows. With 200, certified coverage ranges from 0 to 0.95 between draws;
   with 400, from 0.72 to 0.93. In 4-fold cross-validation at 321 rows System One certifies nothing
   on one fold of four; d3-flash certifies 76 to 92% on every fold.
+- Under 2% error with 400 validation rows, d3-flash certifies 67%, System One 21%, Gemma 4 31B
+  nothing, and UltraBERT-Embed-150M + LR 4%, 14%, 9% and nothing with 30, 100, 200 and 400
+  training rows, and 46% with 963 in 4-fold cross-validation.
 - With 0 labels, `gemma4:e4b` is 91% accurate and nothing can be certified.
 
 ## Files
