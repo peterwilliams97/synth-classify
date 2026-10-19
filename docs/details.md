@@ -290,6 +290,10 @@ The train + validation rows include the 200 validation rows, so they cannot be r
 | `confusable` | UltraBERT-Embed-150M + LR | contrast (`gemma4:e4b`)  | 0.8375 | 0.8353 | 0.0109 |
 | `confusable` | UltraBERT-Embed-150M + LR | train + validation | 0.9575 | 0.9576 | 0.0109 |
 | `confusable` | UltraBERT-Embed-150M + LR | train | 0.9525 | 0.9526 | 0.0102 |
+| `confusable` | UltraBERT-Embed-150M + LR | fold 0 train (963) | 0.9500 | 0.9500 | 0.0102 |
+| `confusable` | UltraBERT-Embed-150M + LR | fold 1 train (963) | 0.9475 | 0.9475 | 0.0103 |
+| `confusable` | UltraBERT-Embed-150M + LR | fold 2 train (963) | 0.9475 | 0.9476 | 0.0251 |
+| `confusable` | UltraBERT-Embed-150M + LR | fold 3 train (963) | 0.9550 | 0.9551 | 0.00983 |
 | `confusable` | UltraBERT-Embed-150M + LR | 50 of train, seed 0 | 0.8900 | 0.8893 | 0.0101 |
 | `confusable` | UltraBERT-Embed-150M + LR | 100 of train, seed 0 | 0.9250 | 0.9252 | 0.00995 |
 | `confusable` | UltraBERT-Embed-150M + LR | 200 of train, seed 0 | 0.9200 | 0.9199 | 0.00973 |
@@ -395,6 +399,10 @@ cannot be routed.
 | `confusable` | UltraBERT-Embed-150M + LR | diagnosed (`gemma4:e4b`) | 1000 | 5.50 s  |
 | `confusable` | UltraBERT-Embed-150M + LR | train + validation | 1284 | 6.52 s  |
 | `confusable` | UltraBERT-Embed-150M + LR | train | 1084 | 7.50 s  |
+| `confusable` | UltraBERT-Embed-150M + LR | fold 0 train | 963  | 7.09 s  |
+| `confusable` | UltraBERT-Embed-150M + LR | fold 1 train | 963  | 5.37 s  |
+| `confusable` | UltraBERT-Embed-150M + LR | fold 2 train | 963  | 5.65 s  |
+| `confusable` | UltraBERT-Embed-150M + LR | fold 3 train | 963  | 5.67 s  |
 | `confusable` | UltraBERT-Embed-150M + LR | 50 of train, seed 0 | 50   | 5.01 s  |
 | `confusable` | UltraBERT-Embed-150M + LR | 100 of train, seed 0 | 100  | 2.92 s  |
 | `confusable` | UltraBERT-Embed-150M + LR | 200 of train, seed 0 | 200  | 3.15 s  |
@@ -562,18 +570,22 @@ under the bound is over the runs that keep any test message, counted in brackets
 | **d3-flash, `fewshot`, 3 runs per N** | | |
 | 100             | 0.6842 (0.6400–0.7650)                        | 0.0095 (0.0077–0.0131), 3 runs             |
 | 200             | 0.8775 (0.7650–0.9525)                        | 0.0257 (0.0131–0.0367), 3 runs             |
+| 321 (4-fold, 313–315) | 0.8531 (0.7625–0.9225)                  | 0.0214 (0.0131–0.0298), 4 runs             |
 | 400 (394)       | 0.9225 (0.8875–0.9600)                        | 0.0287 (0.0225–0.0365), 3 runs             |
 | **UltraBERT-Embed-150M + LR, 400-row models, 9 runs per N** | | |
 | 100             | 0.3342 (0.0000–0.9750)                        | 0.0261 (0.0113–0.0641), 4 runs             |
 | 200             | 0.7142 (0.0000–0.9450)                        | 0.0246 (0.0137–0.0450), 8 runs             |
+| 321 (4-fold, 963-row models) | 0.8838 (0.6875–0.9550)           | 0.0290 (0.0109–0.0367), 4 runs             |
 | 400 (395)       | 0.8500 (0.7200–0.9300)                        | 0.0300 (0.0168–0.0490), 9 runs             |
 | **TypeSafe System One, `fewshot`, 3 runs per N** | | |
 | 100             | 0.2825 (0.0000–0.8475)                        | 0.0265, 1 run                              |
 | 200             | 0.8025 (0.6325–0.9350)                        | 0.0263 (0.0119–0.0401), 3 runs             |
+| 321 (4-fold, 313–315) | 0.6219 (0.0000–0.8475)                  | 0.0251 (0.0219–0.0268), 3 runs             |
 | 400 (394)       | 0.8658 (0.8400–0.9100)                        | 0.0297 (0.0265–0.0357), 3 runs             |
 | **Gemma 4 31B (MLX), letter logits, `fewshot`, 3 runs per N** | | |
 | 100             | 0.0000 (0.0000–0.0000)                        | —, 0 runs                                  |
 | 200             | 0.3100 (0.0000–0.9300)                        | 0.0403, 1 run                              |
+| 321 (4-fold, 313–315) | 0.1994 (0.0000–0.7975)                  | 0.0313, 1 run                              |
 | 400 (394)       | 0.3042 (0.0000–0.9125)                        | 0.0384, 1 run                              |
 | **UltraBERT-Embed-150M + LR at 400 validation rows, by training rows, 9 runs each** | | |
 | 30 training     | 0.3278 (0.0000–0.6100)                        | 0.0267 (0.0071–0.0574), 8 runs             |
@@ -599,6 +611,15 @@ where on the 200 validation messages of question 1 it keeps none
 (`results/confusable/confidence/jev-fewshot-dev<N>-ds<validation seed>.txt`). With 200 validation
 rows the bound's coverage ranges from 0 to 0.95 for both classifiers, with 400 it ranges from 0.72
 to 0.93.
+
+The 321 rows are 4-fold cross-validation over the 1284 train + validation rows, dealt with seed 0
+by `score.py --write-folds 4` into `data/confusable/banking77_fold<i>_{train,val}.jsonl`. Each
+UltraBERT-Embed-150M + LR fold model is trained on its fold's 963 train rows and sets its threshold
+on the other 321; d3-flash, System One and Gemma 4 31B set theirs on the same 321 less the
+`fewshot` examples among them, 315 in fold 0 and 313 in folds 1 to 3, against their one test dump.
+Under the bound System One keeps nothing in fold 0 and Gemma 4 31B keeps test messages in fold 1
+alone, 0.7975; d3-flash keeps 0.7625 to 0.9225 in every fold
+(`results/confusable/confidence/<classifier>-fold<i>.txt`).
 
 d3-flash with the `fewshot` prompt is drawn from the same 669 rows, on which it is 0.9372 accurate
 (`results/confusable/rest/d3-flash-fewshot.txt`), and under the bound it keeps test messages in all
@@ -896,6 +917,13 @@ for n in 100 200 400; do for d in 0 1 2; do
   python confidence.py --set confusable --model-name d3-flash-fewshot-dev$n-ds$d \
     --dev $D/d3-flash-fewshot-rest.jsonl --test $D/d3-flash-fewshot-test.jsonl --dev-size $n --dev-seed $d
 done; done
+
+# 4-fold cross-validation over train + validation, seed 0: data/confusable/banking77_fold<i>_train.jsonl
+# (963 rows) and _val.jsonl (321). run-folds.sh trains and routes each fold; it needs Metal, so it
+# runs outside the Claude Code sandbox, and `run-folds.sh jev` routes System One.
+python score.py --set confusable --write-folds 4 --fold-seed 0
+./run-folds.sh
+./run-folds.sh jev   # needs TYPESAFE_API_KEY
 ```
 
 `train.py` and `finetune.py` also write the minutes a run took, or the seconds if under a minute,

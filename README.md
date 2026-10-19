@@ -12,7 +12,8 @@ The data is [Banking77](https://huggingface.co/datasets/mteb/banking77), custome
 bank, restricted to the `confusable` class set: 10 categories in 5 pairs, the two in a pair sharing
 a topic, such as `verify_my_identity` / `why_verify_identity`. Test is its 400 Banking77 test
 messages, train 1084 Banking77 train messages and validation 200 more; below, validation is 400 rows
-drawn from the train rows a classifier was not trained on.
+drawn from the train rows a classifier was not trained on. One table also uses 4-fold
+cross-validation over the 1284 train + validation rows.
 
 Every classifier here gives each message a probability for each of the 10 categories, summing to 1.
 Its label is the category with the highest probability, and that highest probability is the
@@ -38,7 +39,7 @@ runs, against 1 of the 28 in which the bound keeps a message.
 | UltraBERT-Embed-150M + LR, 100 training rows               | 100 + 400       | 0.7681 (0.4625–0.8975) | 0.0396 (0.0270–0.0543) | 0.01                | free                   |
 | UltraBERT-Embed-150M + LR, 200 training rows               | 200 + 400       | 0.9103 (0.7825–1.0000) | 0.0453 (0.0288–0.0600) | 0.01                | free                   |
 | UltraBERT-Embed-150M + LR, 400 training rows               | 400 + 400       | 0.8500 (0.7200–0.9300) | 0.0300 (0.0168–0.0490) | 0.01                | free                   |
-| UltraBERT-Embed-150M + LR, 1084 (200 validation rows, one draw) | 1084 + 200 | 0.8600                 | 0.0262                 | 0.01                | free                   |
+| UltraBERT-Embed-150M + LR, 963 training rows (4-fold, 321 validation rows) | 963 + 321 | 0.8838 (0.6875–0.9550) | 0.0290 (0.0109–0.0367) | 0.01 | free |
 
 UltraBERT-Embed-150M + LR is logistic regression on frozen `dmis-lab/UltraBERT-Embed-150M`
 embeddings, run on a laptop; TypeSafe System One is an API given the 30 examples in its question.
@@ -77,7 +78,13 @@ The 30- to 400-row cells are the mean, then the min–max, over 3 training draws
 |-----------------|-----------------------------|------------------------------------------------------|----------------------------------------|-----------------------------------------------------|
 | 100             | 0.6842 (0.6400–0.7650)      | 0.3342 (0.0000–0.9750)                               | 0.2825 (0.0000–0.8475)                 | 0.0000 (0.0000–0.0000)                              |
 | 200             | 0.8775 (0.7650–0.9525)      | 0.7142 (0.0000–0.9450)                               | 0.8025 (0.6325–0.9350)                 | 0.3100 (0.0000–0.9300)                              |
+| 321 (4-fold)    | 0.8531 (0.7625–0.9225)      | 0.8838 (0.6875–0.9550)                               | 0.6219 (0.0000–0.8475)                 | 0.1994 (0.0000–0.7975)                              |
 | 400             | 0.9225 (0.8875–0.9600)      | 0.8500 (0.7200–0.9300)                               | 0.8658 (0.8400–0.9100)                 | 0.3042 (0.0000–0.9125)                              |
+
+The 321 row is 4-fold cross-validation over the 1284 train + validation rows, seed 0: each fold
+trains on 963 and sets its threshold on the other 321 (313–315 for the three fewshot classifiers,
+less their examples). The other rows set thresholds on draws from the rows the 400-row model was
+not trained on.
 
 ## Conclusion
 
@@ -93,7 +100,8 @@ The 30- to 400-row cells are the mean, then the min–max, over 3 training draws
   certifies 30% on average and 0 in 2 of 3 draws: the probabilities do not separate right from
   wrong. At 4.3 s a message.
 - UltraBERT-Embed-150M + LR and System One need 400 validation rows. With 200, certified coverage ranges from 0 to 0.95 between draws;
-  with 400, from 0.72 to 0.93.
+  with 400, from 0.72 to 0.93. In 4-fold cross-validation at 321 rows System One certifies nothing
+  on one fold of four; d3-flash certifies 76 to 92% on every fold.
 - With 0 labels, `gemma4:e4b` is 91% accurate and nothing can be certified.
 
 ## Files
@@ -138,6 +146,10 @@ The 30- to 400-row cells are the mean, then the min–max, over 3 training draws
   `--split dev` is validation, 20 messages per class sampled with a fixed seed from the Banking77
   train split; the `fewshot` examples are train messages outside validation. `--write-train` exports
   train + validation as jsonl, and with `--no-dev` leaves out the 200 validation rows, giving train.
+  `--write-folds K --fold-seed S` deals train + validation into K folds and writes
+  `data/<set>/banking77_fold<i>_train.jsonl` and `_val.jsonl` for each; `--split file --val-file
+  JSONL` scores the rows of `JSONL` under the same rules as `--split rest`, with the report in
+  `results/<set>/<val file name>/`.
   `--split rest --train-file JSONL` is the rows of `data/<set>/banking77_train_nodev.jsonl` not in
   `JSONL`, for a `--model` trained on a subset of it, or for `--jev`, `--d3` and `--mlx --reply
   logits`, less the `fewshot` examples with `--prompt fewshot`. `--dump FILE` also writes each
