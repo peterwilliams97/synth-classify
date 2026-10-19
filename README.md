@@ -52,16 +52,16 @@ transformers on MPS; its 2.2 s a message runs on transformers' reference kernels
 need a CUDA or ROCm GPU, and the model card gives 19 ms on a server GPU. d3-flash + LoRA is
 d3-flash fine-tuned with LoRA (`finetune_d3.py`) on 30 or 100 train rows, one draw each, the loss
 being the cross-entropy of the model's own readout over the 10 options, and asked the same `fewshot`
-question; its 30 examples include 3 of the 30 training rows and 6 of the 100, so it uses 57 and 124
-labels.
-Labels to build is training or example labels + validation labels. Each cell is the mean, then the
-min–max, over 9 runs for an UltraBERT-Embed-150M + LR row (3 training draws × 3 validation draws)
-and 3 for d3-flash, d3-flash + LoRA, System One and Gemma 4 31B; at 400 the validation draws hold
-395 rows for UltraBERT-Embed-150M + LR, 400 for d3-flash + LoRA and 394 for the other three. Error
-is over the runs that keep any message. Gemma 4 31B is `mlx-community/gemma-4-31b-it-4bit`, run with
-mlx-lm on the laptop, the class read from the letter logits of one forward pass; 650 of its 669
-validation messages score above 0.9, right or wrong, so the bound certifies nothing in 2 of its 3
-draws at 200 and 400 validation rows and in all 3 at 100.
+question.
+Labels to build is training or example labels + validation labels; for d3-flash + LoRA, 57 and 124
+are the 30 prompt examples plus the training rows, less the 3 and 6 that are both. Each cell is the
+mean, then the min–max, over 9 runs for an UltraBERT-Embed-150M + LR row (3 training draws × 3
+validation draws) and 3 for d3-flash, d3-flash + LoRA, System One and Gemma 4 31B; at 400 the
+validation draws hold 395 rows for UltraBERT-Embed-150M + LR, 400 for d3-flash + LoRA and 394 for
+the other three. Error is over the runs that keep any message. Gemma 4 31B is
+`mlx-community/gemma-4-31b-it-4bit`, run with mlx-lm on the laptop, the class read from the letter
+logits of one forward pass; 650 of its 669 validation messages score above 0.9, right or wrong, so
+the bound certifies nothing in 2 of its 3 draws at 200 and 400 validation rows and in all 3 at 100.
 
 **Accuracy on the 400 test messages**
 
