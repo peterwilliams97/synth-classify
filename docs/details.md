@@ -53,7 +53,7 @@ LLM-written, steered by 200 validation counts", train "1084 Banking77 train" and
 "1284 Banking77 train + validation". An untrained classifier is "not trained". Their Prompt column
 names the prompt a model is given, and is "—" for a classifier given none.
 
-**Classifiers.** Nine kinds are scored.
+**Classifiers.** Ten kinds are scored.
 
 - **TF-IDF + logistic regression**: logistic regression on word-frequency features. It is the
   baseline. It is trained on a synthetic, diagnosed or train + validation set.
@@ -89,6 +89,16 @@ names the prompt a model is given, and is "—" for a classifier given none.
   on MPS in bfloat16 (`d3.py`). It is not trained. Its 2.21 s a message runs on transformers'
   reference kernels, as the fast ones need a CUDA or ROCm GPU; the model card gives 19 ms on a
   server GPU.
+- **d3-flash + LoRA**: d3-flash fine-tuned by `finetune_d3.py` on 30 or 100 train rows
+  (`data/confusable/banking77_train_nodev_30.jsonl` and `_100.jsonl`, seed 0), then asked the same
+  `fewshot` question. LoRA rank 16, alpha 32, dropout 0.05 on the language model's attention
+  q/k/v/o, Gated DeltaNet `in_proj_qkv`/`z`/`a`/`b` and `out_proj`, and MLP gate/up/down
+  projections; the `conv1d` kernels, the vision tower and the readout stay frozen. d3-flash has no
+  language-model head, so the loss is the cross-entropy, on the correct option, of the model's
+  readout logits over the 10 options at the last prompt position. AdamW at 2e-4, weight decay 0,
+  cosine schedule with 5% warmup, gradient norm clipped at 1.0, effective batch 16, 3 epochs, each
+  row's option order shuffled anew per epoch. The 30 `fewshot` examples include 3 of the 30 training
+  rows and 6 of the 100, so the two models use 57 and 124 labels.
 
 **Routing.** Routing keeps a classifier's label when the classifier's top probability is at least a
 threshold. A message below the threshold goes to a person. The threshold is the lowest validation
@@ -238,8 +248,8 @@ accuracy 0.8500.
 call. The machine is an M5 Pro with 48 GB. ModernBERT-base and UltraBERT-Embed-150M run on MPS,
 PyTorch's Apple GPU backend. TF-IDF and the logistic regressions run on CPU. The Ollama and mlx-lm
 models run fully on the GPU. The median hides the 34 cut-off mlx-lm replies, which take several
-seconds each. Training minutes are the wall time of one `train.py` or `finetune.py` run, from
-`results/<set>/train/<name>.txt`.
+seconds each. Training minutes are the wall time of one `train.py`, `finetune.py` or
+`finetune_d3.py` run, from `results/<set>/train/<name>.txt`.
 
 **Routing.** `confidence.py` reads a classifier's `score.py --dump` files of validation and test. A
 message's score is its top probability over the class set. AUROC is of that score against
@@ -324,6 +334,8 @@ The train + validation rows include the 200 validation rows, so they cannot be r
 | `confusable` | TypeSafe System One      | `definitions` prompt     | 0.9050   | 0.9053   | 0.53    |
 | `confusable` | TypeSafe System One      | `fewshot` prompt         | 0.9450   | 0.9449   | 0.53    |
 | `confusable` | d3-flash                 | `fewshot` prompt         | 0.9500   | 0.9499   | 2.21    |
+| `confusable` | d3-flash + LoRA          | 30 of train, seed 0, `fewshot` prompt | 0.9350 | 0.9341 | 2.21 |
+| `confusable` | d3-flash + LoRA          | 100 of train, seed 0, `fewshot` prompt | 0.9275 | 0.9270 | 2.22 |
 
 On `confusable` Laya scores below TF-IDF + logistic regression trained on the synthetic set, 0.7075
 against 0.7900, so it has no rows in the tables under [question 2](#2-how-accurate-is-it) and
@@ -369,13 +381,13 @@ both were run on test.
 
 ### Training minutes
 
-Wall time of one `train.py` or `finetune.py` run on the same M5 Pro, from loading the base model to
-saving, with nothing else on the GPU; files are `results/<class set>/train/<model>.txt`. A file
-whose `model` line is under `xtmp/` is a re-run of the training command into a scratch directory,
-and the model scored in the test table was not replaced; one under `models/` is the run whose model
-was scored. The UltraBERT-Embed-150M times are mostly embedding the training set. A time under a
-minute is in seconds. The train + validation rows include the 200 validation rows, so their models
-cannot be routed.
+Wall time of one `train.py`, `finetune.py` or `finetune_d3.py` run on the same M5 Pro, from loading
+the base model to saving, with nothing else on the GPU; files are
+`results/<class set>/train/<model>.txt`. A file whose `model` line is under `xtmp/` is a re-run of the training
+command into a scratch directory, and the model scored in the test table was not replaced; one under
+`models/` is the run whose model was scored. The UltraBERT-Embed-150M times are mostly embedding the
+training set. A time under a minute is in seconds. The train + validation rows include the 200
+validation rows, so their models cannot be routed.
 
 | Class set    | Model                    | Training set             | Rows | Minutes |
 |--------------|--------------------------|--------------------------|------|---------|
@@ -420,10 +432,12 @@ cannot be routed.
 | `confusable` | UltraBERT-Embed-150M + LR, no prompt | train + validation | 1284 | 5.57 s  |
 | `confusable` | Gemma 4 E4B (MLX) + LoRA | synthetic (`gemma4:e4b`) | 1000 | 13.6    |
 | `confusable` | Gemma 4 E4B (MLX) + LoRA | train + validation | 1284 | 17.9    |
+| `confusable` | d3-flash + LoRA          | 30 of train, seed 0 | 30  | 15.5    |
+| `confusable` | d3-flash + LoRA          | 100 of train, seed 0 | 100 | 48.1    |
 
-ModernBERT runs 5 passes over the rows and the adapters 2. The `confusable` prompt is about twice
-the length of the `distinct` one (2060 characters against 1012), and every training example for an
-adapter carries the whole prompt.
+ModernBERT runs 5 passes over the rows, the adapters 2 and d3-flash + LoRA 3. The `confusable`
+prompt is about twice the length of the `distinct` one (2060 characters against 1012), and every
+training example for an adapter carries the whole prompt.
 
 ## Class sets
 
@@ -471,6 +485,8 @@ of any classifier that did not see the validation rows.**
 | TypeSafe System One              | not trained                                        | `definitions` | 0                           | 0.9050   | 38            |
 | TypeSafe System One              | not trained                                        | `fewshot`     | 30                          | 0.9450   | 22            |
 | d3-flash                         | not trained                                        | `fewshot`     | 30                          | 0.9500   | 20            |
+| d3-flash + LoRA                  | 30 Banking77 train                                 | `fewshot`     | 57                          | 0.9350   | 26            |
+| d3-flash + LoRA                  | 100 Banking77 train                                | `fewshot`     | 124                         | 0.9275   | 29            |
 
 Every classifier above 0.92 used real labelled examples. The Gemma 4 E4B (MLX) + LoRA adapter
 trained on train + validation also used them, and stayed at 0.8575. The `fewshot` prompts of
@@ -509,6 +525,8 @@ categories are the two categories of one pair.
 | TypeSafe System One              | not trained                                        | `definitions` | 0                           | 38     | 35            | `card_delivery_estimate` → `card_arrival` and `why_verify_identity` → `verify_my_identity` | 8 each |
 | TypeSafe System One              | not trained                                        | `fewshot`     | 30                          | 22     | 22            | `card_arrival` → `card_delivery_estimate` and `declined_transfer` → `failed_transfer` | 5 each |
 | d3-flash                         | not trained                                        | `fewshot`     | 30                          | 20     | 19            | `card_arrival` → `card_delivery_estimate`     | 5               |
+| d3-flash + LoRA                  | 30 Banking77 train                                 | `fewshot`     | 57                          | 26     | 26            | `card_delivery_estimate` → `card_arrival`     | 13              |
+| d3-flash + LoRA                  | 100 Banking77 train                                | `fewshot`     | 124                         | 29     | 29            | `card_delivery_estimate` → `card_arrival`     | 9               |
 
 Gemma 4 E4B (MLX) with no adapter is the one classifier with most of its errors outside a pair.
 Those 34 errors outside a pair are its invalid replies. The 26 errors outside a pair of the
@@ -572,6 +590,10 @@ under the bound is over the runs that keep any test message, counted in brackets
 | 200             | 0.8775 (0.7650–0.9525)                        | 0.0257 (0.0131–0.0367), 3 runs             | 0.3983 (0.0000–0.6475)                  | 0.0084 (0.0077–0.0091), 2 runs       |
 | 321 (4-fold, 313–315) | 0.8531 (0.7625–0.9225)                  | 0.0214 (0.0131–0.0298), 4 runs             | 0.5031 (0.0000–0.7300)                  | 0.0098 (0.0078–0.0137), 3 runs       |
 | 400 (394)       | 0.9225 (0.8875–0.9600)                        | 0.0287 (0.0225–0.0365), 3 runs             | 0.6717 (0.6425–0.7300)                  | 0.0098 (0.0078–0.0137), 3 runs       |
+| **d3-flash + LoRA, readout loss, 30 training rows, `fewshot`, 3 runs** | | | | |
+| 400             | 0.8667 (0.8125–0.9400)                        | 0.0226 (0.0154–0.0346), 3 runs             | 0.4833 (0.3125–0.6200)                  | 0.0027 (0.0000–0.0081), 3 runs       |
+| **d3-flash + LoRA, readout loss, 100 training rows, `fewshot`, 3 runs** | | | | |
+| 400             | 0.8208 (0.7850–0.8450)                        | 0.0303 (0.0255–0.0355), 3 runs             | 0.0000 (0.0000–0.0000)                  | —, 0 runs                            |
 | **UltraBERT-Embed-150M + LR, 400-row models, 9 runs per N** | | | | |
 | 100             | 0.3342 (0.0000–0.9750)                        | 0.0261 (0.0113–0.0641), 4 runs             | 0.0000 (0.0000–0.0000)                  | —, 0 runs                            |
 | 200             | 0.7142 (0.0000–0.9450)                        | 0.0246 (0.0137–0.0450), 8 runs             | 0.0000 (0.0000–0.0000)                  | —, 0 runs                            |
@@ -625,6 +647,13 @@ d3-flash with the `fewshot` prompt is drawn from the same 669 rows, on which it 
 (`results/confusable/rest/d3-flash-fewshot.txt`), and under the bound it keeps test messages in all
 9 runs, 0.6842 of them at 100 validation rows and 0.9225 at 394, at a test error of at most 0.0367
 (`results/confusable/confidence/d3-flash-fewshot-dev<N>-ds<validation seed>.txt`).
+
+d3-flash + LoRA is drawn from the rows of train its training file left out, less the `fewshot`
+examples: 1027 rows for the 30-row model, on which it is 0.9153 accurate, and 960 for the 100-row
+model, 0.9062 (`results/confusable/rest/d3-flash-lora-<training rows>-fewshot.txt`). Every 400-row
+draw holds 400. Against d3-flash's 0.9225 and 0.6717, the 30-row model keeps 0.8667 under the bound
+at α 0.05 and 0.4833 at α 0.02, and the 100-row model 0.8208 and nothing in any of its 3 runs
+(`results/confusable/confidence/d3-flash-lora-<training rows>-fewshot-dev400-ds<validation seed>.txt`).
 
 Gemma 4 31B (MLX) with letter logits and the `fewshot` prompt is drawn from the same 669
 rows. 650 of them score above 0.9, at 0.9246 accuracy
@@ -691,6 +720,8 @@ LoRA adapters take the invalid replies from 34 to 0. Theirs is the only LoRA con
 | TypeSafe System One              | not trained                                        | `definitions` | none             | 0.53                | 72           |
 | TypeSafe System One              | not trained                                        | `fewshot`     | none             | 0.53                | 71           |
 | d3-flash                         | not trained                                        | `fewshot`     | none             | 2.21                | 301          |
+| d3-flash + LoRA                  | 30 Banking77 train                                 | `fewshot`     | 15.5             | 2.21                | 301          |
+| d3-flash + LoRA                  | 100 Banking77 train                                | `fewshot`     | 48.1             | 2.22                | 302          |
 
 Seconds per message is the median time to classify one test message. "× ModernBERT" divides a
 row's seconds per message by 0.00735 s, ModernBERT-base trained on train + validation
@@ -719,6 +750,11 @@ million messages, or $0.013 for the 400 (`results/confusable/test/jev-definition
   logistic regression went from 61 to 65.
 - **One LoRA configuration.** It removed the invalid replies. It left accuracy within 3 messages of
   400.
+- **Fine-tuning d3-flash with LoRA on its readout loss.** With 30 training rows it is 0.9350 on
+  test and with 100 0.9275, against 0.9500 with none; at 400 validation rows its certified coverage
+  falls from 0.9225 to 0.8667 to 0.8208 at α 0.05, and from 0.6717 to 0.4833 to 0 at α 0.02. It is
+  one recipe, fixed in `finetune_d3.py` and not tuned, with no held-out split for early stopping:
+  it trains its 3 epochs whatever the loss on rows it has not seen.
 - **Laya, zero-shot.** It scored 0.7075 on `confusable` test. That is below TF-IDF + logistic
   regression trained on the synthetic set, at 0.7900.
 - **Reading the category from letter logits.** Letter logits are the scores the LLM gives to each
@@ -917,6 +953,11 @@ for n in 100 200 400; do for d in 0 1 2; do
   python confidence.py --set confusable --model-name d3-flash-fewshot-dev$n-ds$d \
     --dev $D/d3-flash-fewshot-rest.jsonl --test $D/d3-flash-fewshot-test.jsonl --dev-size $n --dev-seed $d
 done; done
+# d3-flash + LoRA (finetune_d3.py): run-d3-lora.sh runs a 1-epoch sanity check on the 30-row file,
+# then for k = 30, 100, 200 and 400 trains on banking77_train_nodev_<k>.jsonl, dumps test and its
+# rest, and routes it at 400 validation rows with validation seeds 0, 1 and 2; the tables carry 30
+# and 100. It needs Metal, so it runs outside the Claude Code sandbox.
+./run-d3-lora.sh
 
 # 4-fold cross-validation over train + validation, seed 0: data/confusable/banking77_fold<i>_train.jsonl
 # (963 rows) and _val.jsonl (321). run-folds.sh trains and routes each fold; it needs Metal, so it
@@ -926,5 +967,5 @@ python score.py --set confusable --write-folds 4 --fold-seed 0
 ./run-folds.sh jev   # needs TYPESAFE_API_KEY
 ```
 
-`train.py` and `finetune.py` also write the minutes a run took, or the seconds if under a minute,
-to `results/<set>/train/<name>.txt`.
+`train.py`, `finetune.py` and `finetune_d3.py` also write the minutes a run took, or the seconds if
+under a minute, to `results/<set>/train/<name>.txt`.

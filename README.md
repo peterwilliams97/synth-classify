@@ -34,6 +34,8 @@ test error is over 5% in 12 of 36 runs, against 1 of the 28 in which the bound k
 | Classifier                                                 | Labels to build | Coverage at 5%         | Error at 5%            | Coverage at 2%         | Error at 2%                     | Seconds per message | $ per million messages |
 |------------------------------------------------------------|-----------------|------------------------|------------------------|------------------------|---------------------------------|---------------------|------------------------|
 | d3-flash, `fewshot` (30 examples)                          | 30 + 400        | 0.9225 (0.8875–0.9600) | 0.0287 (0.0225–0.0365) | 0.6717 (0.6425–0.7300) | 0.0098 (0.0078–0.0137)          | 2.2                 | free                   |
+| d3-flash + LoRA, readout loss, 30 training rows            | 57 + 400        | 0.8667 (0.8125–0.9400) | 0.0226 (0.0154–0.0346) | 0.4833 (0.3125–0.6200) | 0.0027 (0.0000–0.0081), 3 runs  | 2.2                 | free                   |
+| d3-flash + LoRA, readout loss, 100 training rows           | 124 + 400       | 0.8208 (0.7850–0.8450) | 0.0303 (0.0255–0.0355) | 0.0000 (0.0000–0.0000) | —, 0 runs                       | 2.2                 | free                   |
 | TypeSafe System One, `fewshot` (30 examples)               | 30 + 400        | 0.8658 (0.8400–0.9100) | 0.0297 (0.0265–0.0357) | 0.2108 (0.0000–0.6325) | 0.0119, 1 run                   | 0.53                | 54                     |
 | Gemma 4 31B (MLX), letter logits, `fewshot` (30 examples)  | 30 + 400        | 0.3042 (0.0000–0.9125) | 0.0384, 1 run          | 0.0000 (0.0000–0.0000) | —, 0 runs                       | 4.3                 | free                   |
 | UltraBERT-Embed-150M + LR, 30 training rows                | 30 + 400        | 0.3278 (0.0000–0.6100) | 0.0267 (0.0071–0.0574) | 0.0381 (0.0000–0.3425) | 0.0219, 1 run                   | 0.01                | free                   |
@@ -47,12 +49,16 @@ embeddings, run on a laptop; TypeSafe System One is an API given the 30 examples
 d3-flash is `vllm-sr/d3-flash`, an 8B open-weight decision model (Apache-2.0) built on Qwen3.5-9B
 by vLLM Semantic Router, asked the same question as System One and run on the laptop with
 transformers on MPS; its 2.2 s a message runs on transformers' reference kernels, as the fast ones
-need a CUDA or ROCm GPU, and the model card gives 19 ms on a server GPU.
+need a CUDA or ROCm GPU, and the model card gives 19 ms on a server GPU. d3-flash + LoRA is
+d3-flash fine-tuned with LoRA (`finetune_d3.py`) on 30 or 100 train rows, one draw each, the loss
+being the cross-entropy of the model's own readout over the 10 options, and asked the same `fewshot`
+question; its 30 examples include 3 of the 30 training rows and 6 of the 100, so it uses 57 and 124
+labels.
 Labels to build is training or example labels + validation labels. Each cell is the mean, then the
 min–max, over 9 runs for an UltraBERT-Embed-150M + LR row (3 training draws × 3 validation draws)
-and 3 for d3-flash, System One and Gemma 4 31B; at 400 the validation draws hold 395 rows for
-UltraBERT-Embed-150M + LR and 394 for the other three. Error is
-over the runs that keep any message. Gemma 4 31B is `mlx-community/gemma-4-31b-it-4bit`, run with
+and 3 for d3-flash, d3-flash + LoRA, System One and Gemma 4 31B; at 400 the validation draws hold
+395 rows for UltraBERT-Embed-150M + LR, 400 for d3-flash + LoRA and 394 for the other three. Error
+is over the runs that keep any message. Gemma 4 31B is `mlx-community/gemma-4-31b-it-4bit`, run with
 mlx-lm on the laptop, the class read from the letter logits of one forward pass; 650 of its 669
 validation messages score above 0.9, right or wrong, so the bound certifies nothing in 2 of its 3
 draws at 200 and 400 validation rows and in all 3 at 100.
@@ -62,6 +68,8 @@ draws at 200 and 400 validation rows and in all 3 at 100.
 | Classifier                                     | Labels in training or prompt | Accuracy               |
 |------------------------------------------------|------------------------------|------------------------|
 | d3-flash, `fewshot` (30 examples)              | 30                           | 0.9500                 |
+| d3-flash + LoRA, readout loss, 30 training rows | 57                          | 0.9350                 |
+| d3-flash + LoRA, readout loss, 100 training rows | 124                        | 0.9275                 |
 | TypeSafe System One, `fewshot` (30 examples)   | 30                           | 0.9450                 |
 | Gemma 4 31B (MLX), letter logits, `fewshot` (30 examples) | 30 | 0.9375 |
 | UltraBERT-Embed-150M + LR, 30 training rows    | 30                           | 0.8550 (0.8400–0.8850) |
@@ -71,7 +79,8 @@ draws at 200 and 400 validation rows and in all 3 at 100.
 | UltraBERT-Embed-150M + LR, 1084 training rows  | 1084                         | 0.9525                 |
 | `gemma4:e4b`, `definitions`                    | 0                            | 0.9125                 |
 
-The 30- to 400-row cells are the mean, then the min–max, over 3 training draws.
+The UltraBERT-Embed-150M + LR 30- to 400-row cells are the mean, then the min–max, over 3 training
+draws; each d3-flash + LoRA row is one training draw.
 
 **Certified coverage against validation rows**
 
@@ -112,6 +121,9 @@ not trained on. The rows above the α 0.02 row are certified under 5% error, the
 - Under 2% error with 400 validation rows, d3-flash certifies 67%, System One 21%, Gemma 4 31B
   nothing, and UltraBERT-Embed-150M + LR 4%, 14%, 9% and nothing with 30, 100, 200 and 400
   training rows, and 46% with 963 in 4-fold cross-validation.
+- Fine-tuning d3-flash with LoRA on its own readout loss lowers both accuracy and certified
+  coverage, and more so with more training rows: 92% to 87% to 82% at 5% with 0, 30 and 100 rows;
+  at 2%, 67% to 48% to 0. Labels that accumulate should train the encoder, not the decision model.
 - With 0 labels, `gemma4:e4b` is 91% accurate and nothing can be certified.
 
 ## Files
@@ -140,6 +152,10 @@ not trained on. The rows above the α 0.02 row are certified under 5% error, the
   `vllm-sr/d3-flash`, the same `jev_question`, and caches every response in
   `results/d3/<set>.jsonl`, so a re-run of `score.py --d3` loads no model and reproduces its report.
   It runs in `.venv-d3`, made from `requirements-d3.txt`, for the model's transformers 5.17.0.
+- `finetune_d3.py` — fine-tunes `vllm-sr/d3-flash` with LoRA on a jsonl file (`--train`), the loss
+  being the cross-entropy of its readout on the correct option of the `fewshot` question, and saves
+  the merged model to `--out` for `score.py --d3 DIR`. `run-d3-lora.sh` trains, scores and routes it
+  on the confusable train subsets. It runs in `.venv-d3`, on MPS only.
 - `finetune.py` — trains a LoRA adapter for `mlx-community/gemma-4-e4b-it-4bit` on a jsonl file
   (`--train`) and saves it to `--out`. Each row is a chat: the `definitions` prompt and the message
   as the user turn, the class name as the assistant turn.
