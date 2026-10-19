@@ -23,9 +23,12 @@ It is the only file that reads Banking77, loaded from the `mteb/banking77` parqu
 original `PolyAI/banking77` is a dataset script, which `datasets` no longer runs). `--write-train`
 exports the restricted train split as jsonl so train.py can fit the real-data comparison model;
 with `--no-dev` it leaves out the dev rows, so a model trained on it can be scored on dev.
-`--write-folds K` deals the same rows into K folds and writes each fold's train and val files."""
+`--write-folds K` deals the same rows into K folds and writes each fold's train and val files.
+`--write-label-sheet CSV` writes the test messages for a human to label, in random.Random(0) order
+and without their labels, which go to data/<set>/test_key.csv for human.py."""
 
 import argparse
+import csv
 import json
 import os
 import random
@@ -138,6 +141,33 @@ def deal_folds(labels, names, k, seed):
     return fold
 
 
+def write_label_sheet(path, set_name, names):
+    """write_label_sheet writes the `set_name` test messages to the CSV at `path` in a
+    random.Random(0) shuffle, as rows id, text and an empty label, after a block of rows giving each
+    class name and its `CLASS_SETS` definition, the text the `definitions` prompt gives a
+    classifier. The id is the `banking77` one. The true labels go to data/<set>/test_key.csv, which
+    `.gitignore` covers, so the sheet can be handed out alone. human.py finds the messages by the
+    id, text, label header row."""
+    texts, labels, ids = banking77("test", names)
+    order = list(range(len(texts)))
+    random.Random(0).shuffle(order)
+    os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
+    with open(path, "w", newline="") as f:
+        w = csv.writer(f)
+        w.writerow(["category", "definition"])
+        w.writerows([name, CLASS_SETS[set_name][name]] for name in names)
+        w.writerow([])
+        w.writerow(["id", "text", "label"])
+        w.writerows([ids[i], texts[i], ""] for i in order)
+    key = os.path.join("data", set_name, "test_key.csv")
+    os.makedirs(os.path.dirname(key), exist_ok=True)
+    with open(key, "w", newline="") as f:
+        w = csv.writer(f)
+        w.writerow(["id", "label"])
+        w.writerows([ids[i], names[labels[i]]] for i in order)
+    print(f"wrote {len(order)} messages to {path} and their labels to {key}", file=sys.stderr)
+
+
 def predict(model_dir, texts, names):
     """predict returns, for each of `texts`, a label index, the probabilities over `names` in
     `names` order, and the seconds taken. Each text is classified in a call of its own, so the
@@ -213,7 +243,7 @@ def report(classifier, split, gold, preds, seconds, names, invalid=None, probs=N
     for the former. `probs` is the probability a Laya or `--reply logits` answer gave its choice,
     one per message, and adds the accuracy on the messages where it is above `HIGH_CONFIDENCE`.
     `tokens` is a `--jev` request's billed input tokens, one per message, and adds their mean and
-    price."""
+    price. `seconds` is None for a labeller, whose time per message is not measured."""
     ids = range(len(names))
     width = max(len(name) for name in names)
     recalls = recall_score(gold, preds, labels=ids, average=None)
@@ -222,8 +252,9 @@ def report(classifier, split, gold, preds, seconds, names, invalid=None, probs=N
         f"{split + ' rows':<9} {len(gold)} ({DATASET}, {len(names)} classes)",
         f"accuracy  {accuracy_score(gold, preds):.4f}",
         f"macro F1  {f1_score(gold, preds, labels=ids, average='macro'):.4f}",
-        f"seconds   {statistics.median(seconds):.3g} (median per message, one message per call)",
     ]
+    if seconds is not None:
+        lines.append(f"seconds   {statistics.median(seconds):.3g} (median per message, one message per call)")
     if tokens is not None:
         mean = statistics.mean(tokens)
         lines.append(f"tokens    {mean:.1f} (mean billed input tokens per message)")
@@ -281,8 +312,19 @@ def main():
         metavar="JSONL",
         help="write {text, label, pred, prob} per message; prob is over the class set in order",
     )
+    ap.add_argument(
+        "--write-label-sheet",
+        metavar="CSV",
+        help="write the test messages, shuffled and unlabelled, for a human labeller; key to data/<set>/test_key.csv",
+    )
     args = ap.parse_args()
     names = list(CLASS_SETS[args.set])
+
+    if args.write_label_sheet:
+        if args.model or args.llm or args.mlx or args.laya or args.jev or args.d3 or args.write_train or args.write_folds:
+            ap.error("--write-label-sheet goes alone")
+        write_label_sheet(args.write_label_sheet, args.set, names)
+        return
 
     if args.no_dev and not args.write_train:
         ap.error("--no-dev needs --write-train")

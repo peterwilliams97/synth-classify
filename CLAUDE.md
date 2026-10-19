@@ -18,7 +18,9 @@ decision model zero-shot (`score.py --laya`), TypeSafe's System One API (`jev.py
 `score.py --d3`) and with a LoRA fine-tune of its readout (`finetune_d3.py`), and logistic regression on frozen
 `dmis-lab/UltraBERT-Embed-150M` embeddings (`train.py --embed`). `confidence.py` asks whether a
 classifier's top probability can route messages, from `score.py --dump` files of dev and test,
-for the README's coverage tables. Ten scripts, a `README.md` that states the aim as three
+for the README's coverage tables. `human.py` scores human labellers on the `confusable` test
+split from sheets `score.py --write-label-sheet` writes. Eleven scripts, a `README.md` that
+states the aim as three
 questions and answers them in three tables, and `docs/details.md`, which keeps the full method,
 the answers to questions 2 and 3 and the three full tables (test, dev, training minutes) under All
 results. All Python
@@ -49,6 +51,8 @@ D=results/$S/confidence/dumps
 .venv/bin/python score.py --set $S --split dev --model models/$S/tfidf-diagnosed --dump $D/tfidf-diagnosed-dev.jsonl
 .venv/bin/python score.py --set $S --model models/$S/tfidf-diagnosed --dump $D/tfidf-diagnosed-test.jsonl
 .venv/bin/python confidence.py --set $S --model-name tfidf-diagnosed --dev $D/tfidf-diagnosed-dev.jsonl --test $D/tfidf-diagnosed-test.jsonl
+.venv/bin/python score.py --set confusable --write-label-sheet sheets/A.csv   # key to data/confusable/test_key.csv
+.venv/bin/python human.py --sheets sheets/A.csv sheets/B.csv sheets/C.csv   # filled sheets
 ```
 
 `confidence.py` writes `results/$S/confidence/<name>.txt`; the dumps under

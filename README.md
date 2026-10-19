@@ -181,12 +181,20 @@ not trained on. The rows above the α 0.02 row are certified under 5% error, the
   logits`, less the `fewshot` examples with `--prompt fewshot`. `--dump FILE` also writes each
   message's probability over the class set, for `--model`, `--laya`, `--jev`, `--d3` and `--mlx
   --reply logits`.
+  `--write-label-sheet CSV` writes the test messages for a human labeller, shuffled with seed 0,
+  as rows `id`, `text` and an empty `label` after the class names and their definitions, and the
+  answer key to `data/<set>/test_key.csv`, which is not tracked.
 - `confidence.py` — from a classifier's validation (`--dev`) and test `--dump` files: AUROC of the
   score against correctness, ECE before and after isotonic calibration fitted on
   validation, and test coverage and error at thresholds chosen on validation for α 0.02, 0.05 and
   0.10, with and without a Clopper-Pearson bound, written to `results/<set>/confidence/<name>.txt`.
   `--dev-size N --dev-seed S` fits on N rows of the validation file, N / 10 per class, drawn with
   seed S.
+- `human.py` — scores filled label sheets (`--sheets A.csv B.csv …`) from `score.py --set
+  confusable --write-label-sheet` against `data/confusable/test_key.csv`: a `score.py` report per
+  sheet plus its errors, errors inside a pair and most frequent confusion, written to
+  `results/confusable/test/human-<sheet name>.txt`, then mean, min and max accuracy over the sheets
+  and the agreement of each two labellers. A blank label counts as wrong.
 
 Banking77 is loaded from [`mteb/banking77`](https://huggingface.co/datasets/mteb/banking77), a
 parquet copy. The original `PolyAI/banking77` is a dataset script, which `datasets` 5.1.0 refuses
