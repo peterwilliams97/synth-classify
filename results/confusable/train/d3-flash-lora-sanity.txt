@@ -1,3 +1,3 @@
 model     models/confusable/d3-flash-lora-sanity
 train     data/confusable/banking77_train_nodev_30.jsonl (30 rows)
-minutes   5.0 (base model load to save)
+minutes   4.9 (base model load to save)
